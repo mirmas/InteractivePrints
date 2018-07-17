@@ -1,0 +1,65 @@
+{ 
+
+ "name": "InteractivePrints", 
+
+ "version": "1.0", 
+
+ "description": "Creates and downloads Excel and Word reports from Report regions (SR, IR, IG)", 
+
+ "keywords": ["Oracle APEX", "report", "Word", "Excel", "Office", "XSLT", "Access", "PDF", "DOCX", "XLSX"], 
+
+ "homepage": "https://github.com/mirmas/InteractivePrints", 
+
+ "bugs": { 
+
+   "url": "https://github.com/mirmas/InteractivePrints/issues", 
+
+   "email": "info@mirmas.si" 
+
+  }, 
+
+  "license": "MIT", 
+
+  "author": { 
+
+    "name": "Miro Masnoglav", 
+
+    "email": "info@mirmas.si", 
+
+    "url": "http://www.mirmas.si" 
+
+  }, 
+
+  "repository": { 
+
+    "type": "git", 
+
+    "url": "https://github.com/mirmas/InteractivePrints.git" 
+
+  }, 
+
+  "oracle": { 
+
+    "versions": ["11.2.0.1", "12.1.0.1"], 
+
+    "apex": { 
+
+      "versions": ["4.1"], 
+
+      "plugin": { 
+
+        "internalName": "SI.MIRMAS.REGION2XSLTREPORT", 
+
+        "type": "process",
+
+        "demo": "https://apex.oracle.com/pls/apex/f?p=14176",
+
+        "previewImage": "https://raw.githubusercontent.com/mirmas/InteractivePrints/master/InteractivePrints.jpg"
+
+      } 
+
+    } 
+
+  } 
+
+} 
