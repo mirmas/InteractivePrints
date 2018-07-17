@@ -44,7 +44,7 @@
 
     "apex": { 
 
-      "versions": ["4.1.0"], 
+      "versions": ["4.2.0", "5.1.0"], 
 
       "plugin": { 
 
