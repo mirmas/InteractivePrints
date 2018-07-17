@@ -1,3 +1,4 @@
+
 # InteractivePrints
 Oracle APEX plugin for creating and downloading Excel and Word reports from Report regions (SR, IR, IG) <br/>
 <br/>
@@ -14,6 +15,7 @@ This is complex plugin. Basic roadmap is:<br/>
   <li>Read SDA Guide.</li>
 </ul>  
   If you are ready to add your XSLT:<br/>
+<br/>  
 <ul>  
   <li>Read the rest of User Guide.</li>
   <li>Examine XSLTs in static files and read Static Files Guide.</li>
