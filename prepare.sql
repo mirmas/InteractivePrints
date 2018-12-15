@@ -172,8 +172,8 @@ l_existsIGstr VARCHAR2(5);
 l_views_granted VARCHAR2(5);
 l_utl_file_privilege VARCHAR2(5);
 begin
-  SELECT '0'||substr(version_no, 1, instr(version_no, '.', 1, 1)-1) ||
-  '0'||substr(version_no, instr(version_no, '.', 1, 1)+1, instr(version_no, '.', 1, 2)-instr(version_no, '.', 1, 1)-1)||'00' 
+  SELECT lpad(substr(version_no, 1, instr(version_no, '.', 1, 1)-1), 2, '0') ||
+  lpad(substr(version_no, instr(version_no, '.', 1, 1)+1, instr(version_no, '.', 1, 2)-instr(version_no, '.', 1, 1)-1), 2, '0')||'00' 
   INTO l_apex_version
   FROM apex_release;
   
