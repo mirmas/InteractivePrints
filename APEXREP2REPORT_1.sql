@@ -2828,7 +2828,7 @@ begin
     
     $if CCOMPILING.g_IG_exists $then        
     if IlI00l = 'NATIVE_IG' then 
-      Il1010 := l1IIl0lI.Il1l01(IIl1I0, Ol01Il, Ol1II0, ll01ll); 
+      Il1010 := "l1IIl0lI".Il1l01(IIl1I0, Ol01Il, Ol1II0, ll01ll); 
       if Il1010 is not null then 
         OlI01I := OlI01I||', '||query2report.g_crlf||Il1010||' REGION_HIGHLIGHTS'; 
       end if; 
@@ -3451,7 +3451,7 @@ begin
           $IF CCOMPILING.g_IG_exists $THEN 
           elsif OlI1I1.source_type_code = 'NATIVE_IG' then
             l_IG := true;
-            Ol01I0 := l1IIl0lI.II0I1IO1(
+            Ol01I0 := "l1IIl0lI".II0I1IO1(
                OlI1I1.region_id, 
                OlII10, 
                IIl11l, 
@@ -3459,14 +3459,14 @@ begin
                O0Il1I0I => IlII10   
             );
             
-            l1IIl0lI.O01lIlI0( 
+            "l1IIl0lI".O01lIlI0( 
                    OlI1I1.region_id, 
                    ll10l10 => l_master_region_source,
                    l10100Il => l_join_master_region,
                    O00I00Il => l_alias_list, 
                    lI111lO1 => IlIlIOl
                );
-            l1IIl0lI.lIlOOl1(  
+            "l1IIl0lI".lIlOOl1(  
                 OlI1I1.region_id, 
                 OlII10, 
                 IIl11l,
@@ -3478,7 +3478,7 @@ begin
               );
               
                               
-              l1IIl0lI.Il1l00( 
+              "l1IIl0lI".Il1l00( 
                   ll01ll => Ol01I0,
                   Ol1IIl => IlII01, 
                   ll11I0 => Il1III  , 

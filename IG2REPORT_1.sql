@@ -89,11 +89,11 @@ begin
   end loop;
   pak_xslt_log.WriteLog( 'Ol0I1l: '||Ol0I1l||' O0II0I11: '||O0II0I11||
                         ' return Il10l1: '||Il10l1||' Ol1II1: '||
-                        Ol1II1, p_procedure => 'l1IIl0lI.ll10Il'); 
+                        Ol1II1, p_procedure => '"l1IIl0lI".ll10Il'); 
 exception 
   when others then 
   pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'l1IIl0lI.ll10Il', p_sqlerrm => sqlerrm ); 
+  p_procedure => '"l1IIl0lI".ll10Il', p_sqlerrm => sqlerrm ); 
   raise; 
 end; 
 
@@ -115,11 +115,11 @@ begin
   
 
   pak_xslt_log.WriteLog( 'Start for Ol01Il : '||Ol01Il||
-                        ' IIl1I0 : '||IIl1I0, p_procedure => 'l1IIl0lI.ll01Il'); 
+                        ' IIl1I0 : '||IIl1I0, p_procedure => '"l1IIl0lI".ll01Il'); 
   ll01l0 := apex_util.get_preference( 'APEX_IG_' || to_char(Ol01Il) || '_CURRENT_REPORT'); 
  
   if ll01l0 is null then 
-    pak_xslt_log.WriteLog( 'User preference ll01l0 is null', p_procedure => 'l1IIl0lI.ll01Il'); 
+    pak_xslt_log.WriteLog( 'User preference ll01l0 is null', p_procedure => '"l1IIl0lI".ll01Il'); 
  
     select * 
     into Il01l1 
@@ -136,7 +136,7 @@ begin
   else 
     ll0II0 := rtrim(ll01l0, ':GRID'); 
  
-    pak_xslt_log.WriteLog( 'User preference ll01l0 is NOT null ll0II0 '||ll0II0, p_procedure => 'l1IIl0lI.ll01Il'); 
+    pak_xslt_log.WriteLog( 'User preference ll01l0 is NOT null ll0II0 '||ll0II0, p_procedure => '"l1IIl0lI".ll01Il'); 
  
     select * 
     into Il01l1 
@@ -151,7 +151,7 @@ begin
   return Il01l1; 
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.ll01Il', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".ll01Il', p_sqlerrm => sqlerrm ); 
   raise; 
 end ll01Il; 
 
@@ -220,7 +220,7 @@ begin
   return Il1ll0; 
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.OIl1Il', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".OIl1Il', p_sqlerrm => sqlerrm ); 
   raise; 
 end; 
 
@@ -312,7 +312,7 @@ begin
             end if;
 
             pak_xslt_log.WriteLog('l0l1I00: '||l0l1I00||' O0OO0I0I: '||O0OO0I0I||' IlO00OI: '||
-                                  IlO00OI||' II0O1I0: '||II0O1I0, p_procedure => 'l1IIl0lI.O0IOOII0');
+                                  IlO00OI||' II0O1I0: '||II0O1I0, p_procedure => '"l1IIl0lI".O0IOOII0');
         end if; 
 
     elsif l110Ol0 = 'ROW' then
@@ -348,7 +348,7 @@ begin
 
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.O0IOOII0', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O0IOOII0', p_sqlerrm => sqlerrm ); 
   raise; 
 end O0IOOII0;
 
@@ -395,7 +395,7 @@ as
 begin 
   
   pak_xslt_log.WriteLog( 'Start for Ol01Il : '||Ol01Il||
-                        ' IIl1I0 : '||IIl1I0, p_procedure => 'l1IIl0lI.lIlOOl1'); 
+                        ' IIl1I0 : '||IIl1I0, p_procedure => '"l1IIl0lI".lIlOOl1'); 
   ll10lI := ''; 
   Il10l1 := ''; 
   ll0II0 := ll01Il(Ol01Il, IIl1I0).report_id;
@@ -447,7 +447,7 @@ begin
  
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.lIlOOl1', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".lIlOOl1', p_sqlerrm => sqlerrm ); 
   raise; 
 end lIlOOl1; 
 
@@ -570,7 +570,7 @@ exception
   when others then 
   pak_xslt_log.WriteLog( 'Error IIl1I0 '||to_char(IIl1I0)||' ll0II0 '||to_char(ll0II0), 
     p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'l1IIl0lI.Il1l01', 
+    p_procedure => '"l1IIl0lI".Il1l01', 
     p_sqlerrm => sqlerrm ); 
   raise; 
 end Il1l01;
@@ -637,7 +637,7 @@ IlIlIOl number;
 O01llO01 number;
 begin
     pak_xslt_log.WriteLog( 'Start for Ol01Il : '||Ol01Il||
-                        ' IIl1I0 : '||IIl1I0, p_procedure => 'l1IIl0lI.II0I1IO1'); 
+                        ' IIl1I0 : '||IIl1I0, p_procedure => '"l1IIl0lI".II0I1IO1'); 
                         
     Il0l10 := ll01Il(Ol01Il, IIl1I0);
     ll0II0 := Il0l10.report_id;
@@ -662,7 +662,7 @@ begin
       l101lO1O1 := l101lO1O1||' IR_description="'||Il0l10.description||'"';                                                            
     end if;                                                                                                                                        
 
-    pak_xslt_log.WriteLog( 'll0l0l: '||l101lO1O1, p_log_type => pak_xslt_log.g_information, p_procedure => 'l1IIl0lI.II0I1IO1');               
+    pak_xslt_log.WriteLog( 'll0l0l: '||l101lO1O1, p_log_type => pak_xslt_log.g_information, p_procedure => '"l1IIl0lI".II0I1IO1');               
 
     
     if IIl11l = 0 then 
@@ -683,7 +683,7 @@ begin
         case when col.region_id != nvl(IlIlIOl, 0) then substr(Ol0lI0.show_grand_total,1,1) end Ol0101,  
         null query_id,
         APEXREP2REPORT.IIl10I(col.item_type, col.attribute_01, col.format_mask) IIl10I,
-        l1IIl0lI.OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
+        "l1IIl0lI".OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
         case when col.region_id = IlIlIOl or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else Ol0lI0.function end ll010I, 
         col.item_type,    
         case when col.region_id = IlIlIOl then IlIlIOl end MASTER_REGION_ID, 
@@ -718,7 +718,7 @@ begin
         substr(Ol0lI0.show_grand_total,1,1) Ol0101,  
         null query_id,
         APEXREP2REPORT.IIl10I(col.item_type, col.attribute_01, col.format_mask) IIl10I,
-        l1IIl0lI.OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
+        "l1IIl0lI".OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
         case when col.region_id = IlIlIOl or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else Ol0lI0.function end ll010I, 
         col.item_type,    
         case when col.region_id = IlIlIOl then IlIlIOl end MASTER_REGION_ID, 
@@ -754,7 +754,7 @@ begin
         substr(Ol0lI0.show_grand_total,1,1) Ol0101,  
         null query_id,
         APEXREP2REPORT.IIl10I(col.item_type, col.attribute_01, col.format_mask) IIl10I,
-        l1IIl0lI.OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
+        "l1IIl0lI".OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
         case when col.region_id = IlIlIOl or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else Ol0lI0.function end ll010I, 
         col.item_type,    
         case when col.region_id = IlIlIOl then IlIlIOl end MASTER_REGION_ID, 
@@ -773,12 +773,12 @@ begin
         order by master_region_id, display_seq; 
     end if;
     
-    APEXREP2REPORT.Il01ll(p_procedure => 'l1IIl0lI.II0I1IO1', ll01ll => Ol01I0 ); 
+    APEXREP2REPORT.Il01ll(p_procedure => '"l1IIl0lI".II0I1IO1', ll01ll => Ol01I0 ); 
     
     return Ol01I0;
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.II0I1IO1', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".II0I1IO1', p_sqlerrm => sqlerrm ); 
   raise;     
 end;
 
@@ -798,9 +798,9 @@ as
  ll11l1 boolean default false;
  Ol11l1 varchar2(4000) default null;
  begin
-  pak_xslt_log.WriteLog( 'Start', p_procedure => 'l1IIl0lI.O0IlO1OO1');
+  pak_xslt_log.WriteLog( 'Start', p_procedure => '"l1IIl0lI".O0IlO1OO1');
   for ll01I1 in 1..ll01ll.count loop
-      pak_xslt_log.WriteLog( ll01ll(ll01I1).alias||' :sum total: '||ll01ll(ll01I1).Ol0101, p_procedure => 'l1IIl0lI.O0IlO1OO1');
+      pak_xslt_log.WriteLog( ll01ll(ll01I1).alias||' :sum total: '||ll01ll(ll01I1).Ol0101, p_procedure => '"l1IIl0lI".O0IlO1OO1');
       if ll01ll(ll01I1).Ol0101 = 'Y' then
         if ll01ll(ll01I1).col_type = 'NUMBER' then
             O1IlOll := 'round('||ll01ll(ll01I1).ll010I||'('||ll01ll(ll01I1).alias||'),3)';
@@ -841,19 +841,19 @@ as
     O0llOlOl := null;
   end if;
   APEXREP2REPORT.Il01ll(
-    'l1IIl0lI.O0IlO1OO1',
+    '"l1IIl0lI".O0IlO1OO1',
     null,
     null,
     Ol0I00 => ll11I0,
     p_grand_total_col_list => O0llOlOl
   );
   
-  pak_xslt_log.WriteLog( 'Il11l0: '||Il11l0, p_procedure => 'l1IIl0lI.O0IlO1OO1');
+  pak_xslt_log.WriteLog( 'Il11l0: '||Il11l0, p_procedure => '"l1IIl0lI".O0IlO1OO1');
   
   return ll11l1;
 exception
   when others then
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.O0IlO1OO1', p_sqlerrm => sqlerrm );
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O0IlO1OO1', p_sqlerrm => sqlerrm );
   raise;
 end;
 
@@ -1026,7 +1026,7 @@ begin
           ); 
         end if; 
     elsif Ol1IlI then
-      pak_xslt_log.WriteLog( 'No ll010I just break', p_procedure => 'l1IIl0lI.Il1l00'); 
+      pak_xslt_log.WriteLog( 'No ll010I just break', p_procedure => '"l1IIl0lI".Il1l00'); 
       Ol11l0 := null; 
       APEXREP2REPORT.Ol11I1( 
             Il11I1 => ll11I0, 
@@ -1037,14 +1037,14 @@ begin
           ); 
       llllOI0 := llllOI0||', '||' BREAKROW'; 
     else 
-      pak_xslt_log.WriteLog( 'No ll010I or break', p_procedure => 'l1IIl0lI.Il1l00'); 
+      pak_xslt_log.WriteLog( 'No ll010I or break', p_procedure => '"l1IIl0lI".Il1l00'); 
       Ol11l0 := null; 
       Il1IIl := null; 
     end if; 
   end if; 
   
   APEXREP2REPORT.Il01ll(
-    'l1IIl0lI.Il1l00',
+    '"l1IIl0lI".Il1l00',
     Ol0I10 => Ol1IIl, 
     Ol0I00 => ll11I0, 
     Il0I00 => Ol11l0, 
@@ -1056,7 +1056,7 @@ begin
  
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.Il1l00', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".Il1l00', p_sqlerrm => sqlerrm ); 
   raise; 
 end Il1l00; 
 
@@ -1114,10 +1114,10 @@ begin
       end loop;
       if l10100Il is null then
           ll10l10 := null;
-          pak_xslt_log.WriteLog( 'Cannot compose master region join' , p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.O01lIlI0', p_sqlerrm => sqlerrm );  
+          pak_xslt_log.WriteLog( 'Cannot compose master region join' , p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm );  
       end if;
   else
-     pak_xslt_log.WriteLog( 'Cannot find master region source' , p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.O01lIlI0', p_sqlerrm => sqlerrm );  
+     pak_xslt_log.WriteLog( 'Cannot find master region source' , p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm );  
   end if;
   
   O00I00Il := '(';
@@ -1128,7 +1128,7 @@ begin
   if O00I00Il is not null then
       O00I00Il := rtrim(O00I00Il,',')||')';
   else
-      pak_xslt_log.WriteLog( 'Cannot compose alias list' , p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.O01lIlI0', p_sqlerrm => sqlerrm );  
+      pak_xslt_log.WriteLog( 'Cannot compose alias list' , p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm );  
   end if;
   
   if ll10l10 is null then
@@ -1136,7 +1136,7 @@ begin
   end if;
 exception 
   when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'l1IIl0lI.O01lIlI0', p_sqlerrm => sqlerrm ); 
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm ); 
   raise; 
 end;
 $end
