@@ -1,0 +1,1541 @@
+<?mso-application progid="Word.Document"?>
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+<pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+<pkg:xmlData>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+<pkg:xmlData>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+<Relationship Id="rId2" Type="http://schemas.microsoft.com/office/2007/relationships/stylesWithEffects" Target="stylesWithEffects.xml"/>
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
+<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/>
+<Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
+<Relationship Id="rId8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/>
+<Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header3.xml"/>
+<Relationship Id="rId10" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
+<Relationship Id="rId11" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer2.xml"/>
+<Relationship Id="rId12" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer3.xml"/>
+<Relationship Id="rId13" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes" Target="endnotes.xml"/>
+<Relationship Id="rId14" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+</Relationships>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+<pkg:xmlData>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14">
+<w:body>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50">
+<w:pPr>
+<w:pStyle w:val="Title"/>
+<w:divId w:val="1183738353"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Orders </w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50">
+<w:pPr>
+<w:pStyle w:val="Subtitle"/>
+</w:pPr>
+<w:r>
+<w:t>Subtitle</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50">
+<w:r>
+<w:t> </w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50">
+<w:r>
+<w:t> </w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00570139" w:rsidRDefault="00F80F50" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="NoSpacing"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="14"/>
+<w:szCs w:val="14"/>
+</w:rPr>
+<w:t>       </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve">Customer Name: </w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r>
+<w:t>Bradley</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:r>
+<w:t xml:space="preserve">, </w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r>
+<w:t>Eugene</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00570139" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="NoSpacing"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="14"/>
+<w:szCs w:val="14"/>
+</w:rPr>
+<w:t xml:space="preserve">      </w:t>
+</w:r>
+<w:r w:rsidR="00F80F50">
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve"># </w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r w:rsidR="00F80F50">
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t>Sales</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:r w:rsidR="00F80F50">
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve"> Rep: </w:t>
+</w:r>
+<w:r w:rsidR="00F80F50">
+<w:t>DEMO</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00570139" w:rsidRDefault="00570139" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="0"/>
+</w:pPr>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00570139" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="NoSpacing"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve">   </w:t>
+</w:r>
+<w:r w:rsidR="00F80F50">
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve">Customer Name: </w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r w:rsidR="00F80F50">
+<w:t>Hartsfield</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:r w:rsidR="00F80F50">
+<w:t>, William</w:t>
+</w:r>
+<w:bookmarkStart w:id="0" w:name="_GoBack"/>
+<w:bookmarkEnd w:id="0"/>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="NoSpacing"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="14"/>
+<w:szCs w:val="14"/>
+</w:rPr>
+<w:t>      </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve"># Sales Rep: </w:t>
+</w:r>
+<w:r>
+<w:t>DEMO</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00570139" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:hanging="360"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="14"/>
+<w:szCs w:val="14"/>
+</w:rPr>
+<w:t>      </w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="Heading3"/>
+</w:pPr>
+<w:r>
+<w:t> Summary</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="NoSpacing"/>
+</w:pPr>
+<w:r w:rsidRPr="00570139">
+<w:rPr>
+<w:b/>
+</w:rPr>
+<w:t xml:space="preserve">SUM </w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r w:rsidRPr="00570139">
+<w:rPr>
+<w:b/>
+</w:rPr>
+<w:t>Order</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:r w:rsidRPr="00570139">
+<w:rPr>
+<w:b/>
+</w:rPr>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r w:rsidRPr="00570139">
+<w:rPr>
+<w:b/>
+</w:rPr>
+<w:t>Items</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:r w:rsidRPr="00570139">
+<w:rPr>
+<w:b/>
+</w:rPr>
+<w:t xml:space="preserve"> #:</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve"> 49</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50" w:rsidP="00570139">
+<w:pPr>
+<w:pStyle w:val="NoSpacing"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="14"/>
+<w:szCs w:val="14"/>
+</w:rPr>
+<w:t> </w:t>
+</w:r>
+<w:r w:rsidRPr="00570139">
+<w:rPr>
+<w:b/>
+</w:rPr>
+<w:t>SUM Order Total:</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve"> $13,030.00</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="00002B63" w:rsidRDefault="00F80F50">
+<w:r>
+<w:t> </w:t>
+</w:r>
+</w:p>
+<w:sectPr w:rsidR="00002B63">
+<w:pgSz w:w="11906" w:h="16838"/>
+<w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417" w:header="708" w:footer="708" w:gutter="0"/>
+<w:cols w:space="708"/>
+<w:docGrid w:linePitch="360"/>
+</w:sectPr>
+</w:body>
+</w:document>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/theme/theme1.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.theme+xml">
+<pkg:xmlData>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
+<a:themeElements>
+<a:clrScheme name="Office">
+<a:dk1>
+<a:sysClr val="windowText" lastClr="000000"/>
+</a:dk1>
+<a:lt1>
+<a:sysClr val="window" lastClr="FFFFFF"/>
+</a:lt1>
+<a:dk2>
+<a:srgbClr val="1F497D"/>
+</a:dk2>
+<a:lt2>
+<a:srgbClr val="EEECE1"/>
+</a:lt2>
+<a:accent1>
+<a:srgbClr val="4F81BD"/>
+</a:accent1>
+<a:accent2>
+<a:srgbClr val="C0504D"/>
+</a:accent2>
+<a:accent3>
+<a:srgbClr val="9BBB59"/>
+</a:accent3>
+<a:accent4>
+<a:srgbClr val="8064A2"/>
+</a:accent4>
+<a:accent5>
+<a:srgbClr val="4BACC6"/>
+</a:accent5>
+<a:accent6>
+<a:srgbClr val="F79646"/>
+</a:accent6>
+<a:hlink>
+<a:srgbClr val="0000FF"/>
+</a:hlink>
+<a:folHlink>
+<a:srgbClr val="800080"/>
+</a:folHlink>
+</a:clrScheme>
+<a:fontScheme name="Office">
+<a:majorFont>
+<a:latin typeface="Cambria"/>
+<a:ea typeface=""/>
+<a:cs typeface=""/>
+<a:font script="Jpan" typeface="ＭＳ ゴシック"/>
+<a:font script="Hang" typeface="맑은 고딕"/>
+<a:font script="Hans" typeface="宋体"/>
+<a:font script="Hant" typeface="新細明體"/>
+<a:font script="Arab" typeface="Times New Roman"/>
+<a:font script="Hebr" typeface="Times New Roman"/>
+<a:font script="Thai" typeface="Angsana New"/>
+<a:font script="Ethi" typeface="Nyala"/>
+<a:font script="Beng" typeface="Vrinda"/>
+<a:font script="Gujr" typeface="Shruti"/>
+<a:font script="Khmr" typeface="MoolBoran"/>
+<a:font script="Knda" typeface="Tunga"/>
+<a:font script="Guru" typeface="Raavi"/>
+<a:font script="Cans" typeface="Euphemia"/>
+<a:font script="Cher" typeface="Plantagenet Cherokee"/>
+<a:font script="Yiii" typeface="Microsoft Yi Baiti"/>
+<a:font script="Tibt" typeface="Microsoft Himalaya"/>
+<a:font script="Thaa" typeface="MV Boli"/>
+<a:font script="Deva" typeface="Mangal"/>
+<a:font script="Telu" typeface="Gautami"/>
+<a:font script="Taml" typeface="Latha"/>
+<a:font script="Syrc" typeface="Estrangelo Edessa"/>
+<a:font script="Orya" typeface="Kalinga"/>
+<a:font script="Mlym" typeface="Kartika"/>
+<a:font script="Laoo" typeface="DokChampa"/>
+<a:font script="Sinh" typeface="Iskoola Pota"/>
+<a:font script="Mong" typeface="Mongolian Baiti"/>
+<a:font script="Viet" typeface="Times New Roman"/>
+<a:font script="Uigh" typeface="Microsoft Uighur"/>
+<a:font script="Geor" typeface="Sylfaen"/>
+</a:majorFont>
+<a:minorFont>
+<a:latin typeface="Calibri"/>
+<a:ea typeface=""/>
+<a:cs typeface=""/>
+<a:font script="Jpan" typeface="ＭＳ 明朝"/>
+<a:font script="Hang" typeface="맑은 고딕"/>
+<a:font script="Hans" typeface="宋体"/>
+<a:font script="Hant" typeface="新細明體"/>
+<a:font script="Arab" typeface="Arial"/>
+<a:font script="Hebr" typeface="Arial"/>
+<a:font script="Thai" typeface="Cordia New"/>
+<a:font script="Ethi" typeface="Nyala"/>
+<a:font script="Beng" typeface="Vrinda"/>
+<a:font script="Gujr" typeface="Shruti"/>
+<a:font script="Khmr" typeface="DaunPenh"/>
+<a:font script="Knda" typeface="Tunga"/>
+<a:font script="Guru" typeface="Raavi"/>
+<a:font script="Cans" typeface="Euphemia"/>
+<a:font script="Cher" typeface="Plantagenet Cherokee"/>
+<a:font script="Yiii" typeface="Microsoft Yi Baiti"/>
+<a:font script="Tibt" typeface="Microsoft Himalaya"/>
+<a:font script="Thaa" typeface="MV Boli"/>
+<a:font script="Deva" typeface="Mangal"/>
+<a:font script="Telu" typeface="Gautami"/>
+<a:font script="Taml" typeface="Latha"/>
+<a:font script="Syrc" typeface="Estrangelo Edessa"/>
+<a:font script="Orya" typeface="Kalinga"/>
+<a:font script="Mlym" typeface="Kartika"/>
+<a:font script="Laoo" typeface="DokChampa"/>
+<a:font script="Sinh" typeface="Iskoola Pota"/>
+<a:font script="Mong" typeface="Mongolian Baiti"/>
+<a:font script="Viet" typeface="Arial"/>
+<a:font script="Uigh" typeface="Microsoft Uighur"/>
+<a:font script="Geor" typeface="Sylfaen"/>
+</a:minorFont>
+</a:fontScheme>
+<a:fmtScheme name="Office">
+<a:fillStyleLst>
+<a:solidFill>
+<a:schemeClr val="phClr"/>
+</a:solidFill>
+<a:gradFill rotWithShape="1">
+<a:gsLst>
+<a:gs pos="0">
+<a:schemeClr val="phClr">
+<a:tint val="50000"/>
+<a:satMod val="300000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="35000">
+<a:schemeClr val="phClr">
+<a:tint val="37000"/>
+<a:satMod val="300000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="100000">
+<a:schemeClr val="phClr">
+<a:tint val="15000"/>
+<a:satMod val="350000"/>
+</a:schemeClr>
+</a:gs>
+</a:gsLst>
+<a:lin ang="16200000" scaled="1"/>
+</a:gradFill>
+<a:gradFill rotWithShape="1">
+<a:gsLst>
+<a:gs pos="0">
+<a:schemeClr val="phClr">
+<a:shade val="51000"/>
+<a:satMod val="130000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="80000">
+<a:schemeClr val="phClr">
+<a:shade val="93000"/>
+<a:satMod val="130000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="100000">
+<a:schemeClr val="phClr">
+<a:shade val="94000"/>
+<a:satMod val="135000"/>
+</a:schemeClr>
+</a:gs>
+</a:gsLst>
+<a:lin ang="16200000" scaled="0"/>
+</a:gradFill>
+</a:fillStyleLst>
+<a:lnStyleLst>
+<a:ln w="9525" cap="flat" cmpd="sng" algn="ctr">
+<a:solidFill>
+<a:schemeClr val="phClr">
+<a:shade val="95000"/>
+<a:satMod val="105000"/>
+</a:schemeClr>
+</a:solidFill>
+<a:prstDash val="solid"/>
+</a:ln>
+<a:ln w="25400" cap="flat" cmpd="sng" algn="ctr">
+<a:solidFill>
+<a:schemeClr val="phClr"/>
+</a:solidFill>
+<a:prstDash val="solid"/>
+</a:ln>
+<a:ln w="38100" cap="flat" cmpd="sng" algn="ctr">
+<a:solidFill>
+<a:schemeClr val="phClr"/>
+</a:solidFill>
+<a:prstDash val="solid"/>
+</a:ln>
+</a:lnStyleLst>
+<a:effectStyleLst>
+<a:effectStyle>
+<a:effectLst>
+<a:outerShdw blurRad="40000" dist="20000" dir="5400000" rotWithShape="0">
+<a:srgbClr val="000000">
+<a:alpha val="38000"/>
+</a:srgbClr>
+</a:outerShdw>
+</a:effectLst>
+</a:effectStyle>
+<a:effectStyle>
+<a:effectLst>
+<a:outerShdw blurRad="40000" dist="23000" dir="5400000" rotWithShape="0">
+<a:srgbClr val="000000">
+<a:alpha val="35000"/>
+</a:srgbClr>
+</a:outerShdw>
+</a:effectLst>
+</a:effectStyle>
+<a:effectStyle>
+<a:effectLst>
+<a:outerShdw blurRad="40000" dist="23000" dir="5400000" rotWithShape="0">
+<a:srgbClr val="000000">
+<a:alpha val="35000"/>
+</a:srgbClr>
+</a:outerShdw>
+</a:effectLst>
+<a:scene3d>
+<a:camera prst="orthographicFront">
+<a:rot lat="0" lon="0" rev="0"/>
+</a:camera>
+<a:lightRig rig="threePt" dir="t">
+<a:rot lat="0" lon="0" rev="1200000"/>
+</a:lightRig>
+</a:scene3d>
+<a:sp3d>
+<a:bevelT w="63500" h="25400"/>
+</a:sp3d>
+</a:effectStyle>
+</a:effectStyleLst>
+<a:bgFillStyleLst>
+<a:solidFill>
+<a:schemeClr val="phClr"/>
+</a:solidFill>
+<a:gradFill rotWithShape="1">
+<a:gsLst>
+<a:gs pos="0">
+<a:schemeClr val="phClr">
+<a:tint val="40000"/>
+<a:satMod val="350000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="40000">
+<a:schemeClr val="phClr">
+<a:tint val="45000"/>
+<a:shade val="99000"/>
+<a:satMod val="350000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="100000">
+<a:schemeClr val="phClr">
+<a:shade val="20000"/>
+<a:satMod val="255000"/>
+</a:schemeClr>
+</a:gs>
+</a:gsLst>
+<a:path path="circle">
+<a:fillToRect l="50000" t="-80000" r="50000" b="180000"/>
+</a:path>
+</a:gradFill>
+<a:gradFill rotWithShape="1">
+<a:gsLst>
+<a:gs pos="0">
+<a:schemeClr val="phClr">
+<a:tint val="80000"/>
+<a:satMod val="300000"/>
+</a:schemeClr>
+</a:gs>
+<a:gs pos="100000">
+<a:schemeClr val="phClr">
+<a:shade val="30000"/>
+<a:satMod val="200000"/>
+</a:schemeClr>
+</a:gs>
+</a:gsLst>
+<a:path path="circle">
+<a:fillToRect l="50000" t="50000" r="50000" b="50000"/>
+</a:path>
+</a:gradFill>
+</a:bgFillStyleLst>
+</a:fmtScheme>
+</a:themeElements>
+<a:objectDefaults/>
+<a:extraClrSchemeLst/>
+</a:theme>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/settings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml">
+<pkg:xmlData>
+<w:settings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" mc:Ignorable="w14">
+<w:view w:val="web"/>
+<w:zoom w:percent="100"/>
+<w:proofState w:spelling="clean" w:grammar="clean"/>
+<w:defaultTabStop w:val="708"/>
+<w:hyphenationZone w:val="425"/>
+<w:noPunctuationKerning/>
+<w:characterSpacingControl w:val="doNotCompress"/>
+<w:compat>
+<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="14"/>
+<w:compatSetting w:name="overrideTableStyleFontSizeAndJustification" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/>
+<w:compatSetting w:name="enableOpenTypeFeatures" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/>
+<w:compatSetting w:name="doNotFlipMirrorIndents" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/>
+</w:compat>
+<w:rsids>
+<w:rsidRoot w:val="00B568E9"/>
+<w:rsid w:val="00002B63"/>
+<w:rsid w:val="000879B9"/>
+<w:rsid w:val="00570139"/>
+<w:rsid w:val="00877DA6"/>
+<w:rsid w:val="00B568E9"/>
+<w:rsid w:val="00E9585B"/>
+<w:rsid w:val="00F80F50"/>
+</w:rsids>
+<m:mathPr>
+<m:mathFont m:val="Cambria Math"/>
+<m:brkBin m:val="before"/>
+<m:brkBinSub m:val="--"/>
+<m:smallFrac m:val="0"/>
+<m:dispDef/>
+<m:lMargin m:val="0"/>
+<m:rMargin m:val="0"/>
+<m:defJc m:val="centerGroup"/>
+<m:wrapIndent m:val="1440"/>
+<m:intLim m:val="subSup"/>
+<m:naryLim m:val="undOvr"/>
+</m:mathPr>
+<w:themeFontLang w:val="sl-SI"/>
+<w:clrSchemeMapping w:bg1="light1" w:t1="dark1" w:bg2="light2" w:t2="dark2" w:accent1="accent1" w:accent2="accent2" w:accent3="accent3" w:accent4="accent4" w:accent5="accent5" w:accent6="accent6" w:hyperlink="hyperlink" w:followedHyperlink="followedHyperlink"/>
+<w:shapeDefaults>
+<o:shapedefaults v:ext="edit" spidmax="1026"/>
+<o:shapelayout v:ext="edit">
+<o:idmap v:ext="edit" data="1"/>
+</o:shapelayout>
+</w:shapeDefaults>
+<w:decimalSymbol w:val=","/>
+<w:listSeparator w:val=";"/>
+</w:settings>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/webSettings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml">
+<pkg:xmlData>
+<w:webSettings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">
+<w:divs>
+<w:div w:id="1183738353">
+<w:marLeft w:val="0"/>
+<w:marRight w:val="0"/>
+<w:marTop w:val="0"/>
+<w:marBottom w:val="0"/>
+<w:divBdr>
+<w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+<w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+<w:bottom w:val="single" w:sz="8" w:space="4" w:color="4F81BD"/>
+<w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+</w:divBdr>
+</w:div>
+</w:divs>
+<w:optimizeForBrowser/>
+</w:webSettings>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/stylesWithEffects.xml" pkg:contentType="application/vnd.ms-word.stylesWithEffects+xml">
+<pkg:xmlData>
+<w:styles xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14">
+<w:docDefaults>
+<w:rPrDefault>
+<w:rPr>
+<w:rFonts w:ascii="Calibri" w:eastAsia="Times New Roman" w:hAnsi="Calibri" w:cs="Times New Roman"/>
+<w:lang w:val="sl-SI" w:eastAsia="sl-SI" w:bidi="ar-SA"/>
+</w:rPr>
+</w:rPrDefault>
+<w:pPrDefault/>
+</w:docDefaults>
+<w:latentStyles w:defLockedState="0" w:defUIPriority="0" w:defSemiHidden="0" w:defUnhideWhenUsed="0" w:defQFormat="0" w:count="267">
+<w:lsdException w:name="Normal" w:qFormat="1"/>
+<w:lsdException w:name="heading 1" w:qFormat="1"/>
+<w:lsdException w:name="heading 2" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 3" w:qFormat="1"/>
+<w:lsdException w:name="heading 4" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 5" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 6" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 7" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 8" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 9" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="header" w:semiHidden="1" w:unhideWhenUsed="1"/>
+<w:lsdException w:name="footer" w:semiHidden="1" w:unhideWhenUsed="1"/>
+<w:lsdException w:name="caption" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="Title" w:qFormat="1"/>
+<w:lsdException w:name="Subtitle" w:qFormat="1"/>
+<w:lsdException w:name="Strong" w:qFormat="1"/>
+<w:lsdException w:name="Emphasis" w:qFormat="1"/>
+<w:lsdException w:name="No Spacing" w:qFormat="1"/>
+<w:lsdException w:name="List Paragraph" w:qFormat="1"/>
+<w:lsdException w:name="Quote" w:qFormat="1"/>
+<w:lsdException w:name="Intense Quote" w:qFormat="1"/>
+<w:lsdException w:name="Subtle Emphasis" w:qFormat="1"/>
+<w:lsdException w:name="Intense Emphasis" w:qFormat="1"/>
+<w:lsdException w:name="Subtle Reference" w:qFormat="1"/>
+<w:lsdException w:name="Intense Reference" w:qFormat="1"/>
+<w:lsdException w:name="Book Title" w:qFormat="1"/>
+<w:lsdException w:name="TOC Heading" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+</w:latentStyles>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+<w:name w:val="Normal"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="200" w:line="276" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading1">
+<w:name w:val="heading 1"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="Heading1Char"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="480" w:after="0"/>
+<w:outlineLvl w:val="0"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="365F91"/>
+<w:kern w:val="36"/>
+<w:sz w:val="28"/>
+<w:szCs w:val="28"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading3">
+<w:name w:val="heading 3"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:link w:val="Heading3Char"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:keepNext/>
+<w:keepLines/>
+<w:spacing w:before="200" w:after="0"/>
+<w:outlineLvl w:val="2"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="4F81BD"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">
+<w:name w:val="Default Paragraph Font"/>
+<w:uiPriority w:val="1"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+</w:style>
+<w:style w:type="table" w:default="1" w:styleId="TableNormal">
+<w:name w:val="Normal Table"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:tblPr>
+<w:tblInd w:w="0" w:type="dxa"/>
+<w:tblCellMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="108" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="108" w:type="dxa"/>
+</w:tblCellMar>
+</w:tblPr>
+</w:style>
+<w:style w:type="numbering" w:default="1" w:styleId="NoList">
+<w:name w:val="No List"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="Heading1Char">
+<w:name w:val="Heading 1 Char"/>
+<w:link w:val="Heading1"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:hint="default"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="365F91"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="Heading3Char">
+<w:name w:val="Heading 3 Char"/>
+<w:link w:val="Heading3"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:eastAsia="Times New Roman" w:hAnsi="Cambria" w:cs="Times New Roman"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="4F81BD"/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Title">
+<w:name w:val="Title"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="TitleChar"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="300" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="TitleChar">
+<w:name w:val="Title Char"/>
+<w:link w:val="Title"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:hint="default"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msotitlecxspfirst">
+<w:name w:val="msotitlecxspfirst"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msotitlecxspmiddle">
+<w:name w:val="msotitlecxspmiddle"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msotitlecxsplast">
+<w:name w:val="msotitlecxsplast"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="300" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Subtitle">
+<w:name w:val="Subtitle"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="SubtitleChar"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:i/>
+<w:iCs/>
+<w:color w:val="4F81BD"/>
+<w:spacing w:val="15"/>
+<w:sz w:val="24"/>
+<w:szCs w:val="24"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="SubtitleChar">
+<w:name w:val="Subtitle Char"/>
+<w:link w:val="Subtitle"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:hint="default"/>
+<w:i/>
+<w:iCs/>
+<w:color w:val="4F81BD"/>
+<w:spacing w:val="15"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ListParagraph">
+<w:name w:val="List Paragraph"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msolistparagraphcxspfirst">
+<w:name w:val="msolistparagraphcxspfirst"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0"/>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msolistparagraphcxspmiddle">
+<w:name w:val="msolistparagraphcxspmiddle"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0"/>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msolistparagraphcxsplast">
+<w:name w:val="msolistparagraphcxsplast"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msochpdefault">
+<w:name w:val="msochpdefault"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:before="100" w:beforeAutospacing="1" w:after="100" w:afterAutospacing="1" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="24"/>
+<w:szCs w:val="24"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msopapdefault">
+<w:name w:val="msopapdefault"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:before="100" w:beforeAutospacing="1"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="24"/>
+<w:szCs w:val="24"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="NoSpacing">
+<w:name w:val="No Spacing"/>
+<w:qFormat/>
+<w:rsid w:val="00570139"/>
+<w:rPr>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+</w:styles>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/docProps/core.xml" pkg:contentType="application/vnd.openxmlformats-package.core-properties+xml">
+<pkg:xmlData>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<dc:creator>fotr</dc:creator>
+<cp:lastModifiedBy>fotr</cp:lastModifiedBy>
+<cp:revision>2</cp:revision>
+<dcterms:created xsi:type="dcterms:W3CDTF">2014-08-01T09:22:00Z</dcterms:created>
+<dcterms:modified xsi:type="dcterms:W3CDTF">2014-08-01T09:22:00Z</dcterms:modified>
+</cp:coreProperties>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/styles.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml">
+<pkg:xmlData>
+<w:styles xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">
+<w:docDefaults>
+<w:rPrDefault>
+<w:rPr>
+<w:rFonts w:ascii="Calibri" w:eastAsia="Times New Roman" w:hAnsi="Calibri" w:cs="Times New Roman"/>
+<w:lang w:val="sl-SI" w:eastAsia="sl-SI" w:bidi="ar-SA"/>
+</w:rPr>
+</w:rPrDefault>
+<w:pPrDefault/>
+</w:docDefaults>
+<w:latentStyles w:defLockedState="0" w:defUIPriority="0" w:defSemiHidden="0" w:defUnhideWhenUsed="0" w:defQFormat="0" w:count="267">
+<w:lsdException w:name="Normal" w:qFormat="1"/>
+<w:lsdException w:name="heading 1" w:qFormat="1"/>
+<w:lsdException w:name="heading 2" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 3" w:qFormat="1"/>
+<w:lsdException w:name="heading 4" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 5" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 6" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 7" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 8" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="heading 9" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="caption" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+<w:lsdException w:name="Title" w:qFormat="1"/>
+<w:lsdException w:name="Subtitle" w:qFormat="1"/>
+<w:lsdException w:name="Strong" w:qFormat="1"/>
+<w:lsdException w:name="Emphasis" w:qFormat="1"/>
+<w:lsdException w:name="No Spacing" w:qFormat="1"/>
+<w:lsdException w:name="List Paragraph" w:qFormat="1"/>
+<w:lsdException w:name="Quote" w:qFormat="1"/>
+<w:lsdException w:name="Intense Quote" w:qFormat="1"/>
+<w:lsdException w:name="Subtle Emphasis" w:qFormat="1"/>
+<w:lsdException w:name="Intense Emphasis" w:qFormat="1"/>
+<w:lsdException w:name="Subtle Reference" w:qFormat="1"/>
+<w:lsdException w:name="Intense Reference" w:qFormat="1"/>
+<w:lsdException w:name="Book Title" w:qFormat="1"/>
+<w:lsdException w:name="TOC Heading" w:semiHidden="1" w:unhideWhenUsed="1" w:qFormat="1"/>
+</w:latentStyles>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+<w:name w:val="Normal"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="200" w:line="276" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading1">
+<w:name w:val="heading 1"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="Heading1Char"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="480" w:after="0"/>
+<w:outlineLvl w:val="0"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="365F91"/>
+<w:kern w:val="36"/>
+<w:sz w:val="28"/>
+<w:szCs w:val="28"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading3">
+<w:name w:val="heading 3"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:link w:val="Heading3Char"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:keepNext/>
+<w:keepLines/>
+<w:spacing w:before="200" w:after="0"/>
+<w:outlineLvl w:val="2"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="4F81BD"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">
+<w:name w:val="Default Paragraph Font"/>
+<w:uiPriority w:val="1"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+</w:style>
+<w:style w:type="table" w:default="1" w:styleId="TableNormal">
+<w:name w:val="Normal Table"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:tblPr>
+<w:tblInd w:w="0" w:type="dxa"/>
+<w:tblCellMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="108" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="108" w:type="dxa"/>
+</w:tblCellMar>
+</w:tblPr>
+</w:style>
+<w:style w:type="numbering" w:default="1" w:styleId="NoList">
+<w:name w:val="No List"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="Heading1Char">
+<w:name w:val="Heading 1 Char"/>
+<w:link w:val="Heading1"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:hint="default"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="365F91"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="Heading3Char">
+<w:name w:val="Heading 3 Char"/>
+<w:link w:val="Heading3"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:eastAsia="Times New Roman" w:hAnsi="Cambria" w:cs="Times New Roman"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="4F81BD"/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Title">
+<w:name w:val="Title"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="TitleChar"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="300" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="TitleChar">
+<w:name w:val="Title Char"/>
+<w:link w:val="Title"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:hint="default"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msotitlecxspfirst">
+<w:name w:val="msotitlecxspfirst"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msotitlecxspmiddle">
+<w:name w:val="msotitlecxspmiddle"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msotitlecxsplast">
+<w:name w:val="msotitlecxsplast"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="300" w:line="240" w:lineRule="auto"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:color w:val="17365D"/>
+<w:spacing w:val="5"/>
+<w:sz w:val="52"/>
+<w:szCs w:val="52"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Subtitle">
+<w:name w:val="Subtitle"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="SubtitleChar"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+<w:i/>
+<w:iCs/>
+<w:color w:val="4F81BD"/>
+<w:spacing w:val="15"/>
+<w:sz w:val="24"/>
+<w:szCs w:val="24"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:customStyle="1" w:styleId="SubtitleChar">
+<w:name w:val="Subtitle Char"/>
+<w:link w:val="Subtitle"/>
+<w:rsid w:val="00002B63"/>
+<w:rPr>
+<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:hint="default"/>
+<w:i/>
+<w:iCs/>
+<w:color w:val="4F81BD"/>
+<w:spacing w:val="15"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ListParagraph">
+<w:name w:val="List Paragraph"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msolistparagraphcxspfirst">
+<w:name w:val="msolistparagraphcxspfirst"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0"/>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msolistparagraphcxspmiddle">
+<w:name w:val="msolistparagraphcxspmiddle"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:after="0"/>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msolistparagraphcxsplast">
+<w:name w:val="msolistparagraphcxsplast"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:ind w:left="720"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msochpdefault">
+<w:name w:val="msochpdefault"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:before="100" w:beforeAutospacing="1" w:after="100" w:afterAutospacing="1" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="24"/>
+<w:szCs w:val="24"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="msopapdefault">
+<w:name w:val="msopapdefault"/>
+<w:basedOn w:val="Normal"/>
+<w:rsid w:val="00002B63"/>
+<w:pPr>
+<w:spacing w:before="100" w:beforeAutospacing="1"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+<w:sz w:val="24"/>
+<w:szCs w:val="24"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="NoSpacing">
+<w:name w:val="No Spacing"/>
+<w:qFormat/>
+<w:rsid w:val="00570139"/>
+<w:rPr>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+</w:styles>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/word/fontTable.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml">
+<pkg:xmlData>
+<w:fonts xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">
+<w:font w:name="Calibri">
+<w:panose1 w:val="020F0502020204030204"/>
+<w:charset w:val="EE"/>
+<w:family w:val="swiss"/>
+<w:pitch w:val="variable"/>
+<w:sig w:usb0="E00002FF" w:usb1="4000ACFF" w:usb2="00000001" w:usb3="00000000" w:csb0="0000019F" w:csb1="00000000"/>
+</w:font>
+<w:font w:name="Times New Roman">
+<w:panose1 w:val="02020603050405020304"/>
+<w:charset w:val="EE"/>
+<w:family w:val="roman"/>
+<w:pitch w:val="variable"/>
+<w:sig w:usb0="E0002AFF" w:usb1="C0007841" w:usb2="00000009" w:usb3="00000000" w:csb0="000001FF" w:csb1="00000000"/>
+</w:font>
+<w:font w:name="Cambria">
+<w:panose1 w:val="02040503050406030204"/>
+<w:charset w:val="EE"/>
+<w:family w:val="roman"/>
+<w:pitch w:val="variable"/>
+<w:sig w:usb0="E00002FF" w:usb1="400004FF" w:usb2="00000000" w:usb3="00000000" w:csb0="0000019F" w:csb1="00000000"/>
+</w:font>
+</w:fonts>
+</pkg:xmlData>
+</pkg:part>
+<pkg:part pkg:name="/docProps/app.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.extended-properties+xml">
+<pkg:xmlData>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+<Template>Normal.dotm</Template>
+<TotalTime>1</TotalTime>
+<Pages>1</Pages>
+<Words>32</Words>
+<Characters>183</Characters>
+<Application>Microsoft Office Word</Application>
+<DocSecurity>0</DocSecurity>
+<Lines>1</Lines>
+<Paragraphs>1</Paragraphs>
+<ScaleCrop>false</ScaleCrop>
+<HeadingPairs>
+<vt:vector size="2" baseType="variant">
+<vt:variant>
+<vt:lpstr>Title</vt:lpstr>
+</vt:variant>
+<vt:variant>
+<vt:i4>1</vt:i4>
+</vt:variant>
+</vt:vector>
+</HeadingPairs>
+<TitlesOfParts>
+<vt:vector size="1" baseType="lpstr">
+<vt:lpstr>
+</vt:lpstr>
+</vt:vector>
+</TitlesOfParts>
+<Company>
+</Company>
+<LinksUpToDate>false</LinksUpToDate>
+<CharactersWithSpaces>214</CharactersWithSpaces>
+<SharedDoc>false</SharedDoc>
+<HyperlinksChanged>false</HyperlinksChanged>
+<AppVersion>14.0000</AppVersion>
+</Properties>
+</pkg:xmlData>
+</pkg:part>
+
+<!--Headers. Only header2 is active. Header2 renders on every page-->
+<pkg:part pkg:name="/word/header1.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+<pkg:xmlData>
+<w:hdr xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:p w:rsidR="00606FAF" w:rsidRDefault="00606FAF">
+<w:pPr>
+<w:pStyle w:val="Header"/>
+</w:pPr>
+</w:p>
+</w:hdr>
+</pkg:xmlData>
+</pkg:part>
+
+<!--The only active header. Header2 renders on every page-->
+<pkg:part pkg:name="/word/header2.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+<pkg:xmlData>
+<w:hdr xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:p w:rsidR="00606FAF" w:rsidRPr="00606FAF" w:rsidRDefault="00606FAF">
+<w:pPr>
+<w:pStyle w:val="Header"/>
+<w:jc w:val="#PAGE_HEADER_ALIGNMENT#"/>
+<w:rPr>
+<w:rFonts w:ascii="#PAGE_HEADER_FONT_FAMILY#" w:hAnsi="#PAGE_HEADER_FONT_FAMILY#" w:cs="#PAGE_HEADER_FONT_FAMILY#"/>
+<w:color w:val="#PAGE_HEADER_FONT_COLOR#"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="00606FAF">
+<w:rPr>
+<w:rFonts w:ascii="#PAGE_HEADER_FONT_FAMILY#" w:hAnsi="#PAGE_HEADER_FONT_FAMILY#" w:cs="#PAGE_HEADER_FONT_FAMILY#"/>
+#PAGE_HEADER_FONT_WEIGHT# <!--bold, normal-->
+<w:color w:val="#PAGE_HEADER_FONT_COLOR#"/>
+<w:sz w:val="#PAGE_HEADER_FONT_SIZE#"/>
+<w:szCs w:val="#PAGE_HEADER_FONT_SIZE#"/>
+</w:rPr>
+<w:t>#PAGE_HEADER#</w:t>
+</w:r>
+<w:bookmarkStart w:id="0" w:name="_GoBack"/>
+<w:bookmarkEnd w:id="0"/>
+</w:p>
+</w:hdr>	
+</pkg:xmlData>
+</pkg:part>
+
+<pkg:part pkg:name="/word/header3.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+<pkg:xmlData>
+<w:hdr xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:p w:rsidR="00606FAF" w:rsidRDefault="00606FAF">
+<w:pPr>
+<w:pStyle w:val="Header"/>
+</w:pPr>
+</w:p>
+</w:hdr>
+</pkg:xmlData>
+</pkg:part>
+
+
+<!--Footers - only footer2 is active. Footer2 renders on every page-->
+<pkg:part pkg:name="/word/footer1.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+<pkg:xmlData>
+<w:ftr xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:p w:rsidR="00606FAF" w:rsidRDefault="00606FAF">
+<w:pPr>
+<w:pStyle w:val="Footer"/>
+</w:pPr>
+</w:p>
+</w:ftr>
+</pkg:xmlData>
+</pkg:part>
+
+<!--The only active footer. Footer2 renders on every page-->
+<pkg:part pkg:name="/word/footer2.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+<pkg:xmlData>
+<w:ftr xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:p w:rsidR="00606FAF" w:rsidRPr="00EC41B1" w:rsidRDefault="00630A04" w:rsidP="00606FAF">
+<w:pPr>
+<w:jc w:val="#PAGE_FOOTER_ALIGNMENT#"/>
+<w:rPr>
+<w:rFonts w:ascii="#PAGE_FOOTER_FONT_FAMILY#" w:hAnsi="#PAGE_FOOTER_FONT_FAMILY#" w:cs="#PAGE_FOOTER_FONT_FAMILY#"/>
+<w:color w:val="#PAGE_FOOTER_FONT_COLOR#"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="00EC41B1">
+<w:rPr>
+<w:rFonts w:ascii="#PAGE_FOOTER_FONT_FAMILY#" w:hAnsi="#PAGE_FOOTER_FONT_FAMILY#" w:cs="#PAGE_FOOTER_FONT_FAMILY#"/>
+#PAGE_FOOTER_FONT_WEIGHT# <!--bold, normal-->
+<w:color w:val="#PAGE_FOOTER_FONT_COLOR#"/>
+<w:sz w:val="#PAGE_FOOTER_FONT_SIZE#"/>
+<w:szCs w:val="#PAGE_FOOTER_FONT_SIZE#"/>
+</w:rPr>
+<w:t>#PAGE_FOOTER#</w:t>
+</w:r>
+<w:bookmarkStart w:id="0" w:name="_GoBack"/>
+<w:bookmarkEnd w:id="0"/>
+</w:p>
+</w:ftr>
+</pkg:xmlData>
+</pkg:part>
+
+<pkg:part pkg:name="/word/footer3.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+<pkg:xmlData>
+<w:ftr xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:p w:rsidR="00606FAF" w:rsidRDefault="00606FAF">
+<w:pPr>
+<w:pStyle w:val="Footer"/>
+</w:pPr>
+</w:p>
+</w:ftr>
+</pkg:xmlData>
+</pkg:part>
+
+<pkg:part pkg:name="/word/footnotes.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>
+<pkg:xmlData>
+<w:footnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:footnote w:type="separator" w:id="-1">
+<w:p w:rsidR="00DC11EA" w:rsidRDefault="00DC11EA" w:rsidP="003E6BD8">
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:r>
+<w:separator/>
+</w:r>
+</w:p>
+</w:footnote>
+<w:footnote w:type="continuationSeparator" w:id="0">
+<w:p w:rsidR="00DC11EA" w:rsidRDefault="00DC11EA" w:rsidP="003E6BD8">
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:r>
+<w:continuationSeparator/>
+</w:r>
+</w:p>
+</w:footnote>
+</w:footnotes>
+</pkg:xmlData>
+</pkg:part>
+
+<pkg:part pkg:name="/word/endnotes.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml"/>
+<pkg:xmlData>
+<w:endnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14">
+<w:endnote w:type="separator" w:id="-1">
+<w:p w:rsidR="00DC11EA" w:rsidRDefault="00DC11EA" w:rsidP="003E6BD8">
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:r>
+<w:separator/>
+</w:r>
+</w:p>
+</w:endnote>
+<w:endnote w:type="continuationSeparator" w:id="0">
+<w:p w:rsidR="00DC11EA" w:rsidRDefault="00DC11EA" w:rsidP="003E6BD8">
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:r>
+<w:continuationSeparator/>
+</w:r>
+</w:p>
+</w:endnote>
+</w:endnotes>
+</pkg:xmlData>
+</pkg:part>
+
+</pkg:package>
