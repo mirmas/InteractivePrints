@@ -1,5 +1,5 @@
 { 
- "name": "InteractivePrints", 
+ "name": "Interactive Prints", 
  "version": "1.0", 
  "description": "Creates and downloads Excel and Word reports from Report regions (SR, IR, IG)", 
  "keywords": ["Oracle APEX", "report", "Word", "Excel", "Office", "XSLT", "Access", "PDF", "DOCX", "XLSX"], 
