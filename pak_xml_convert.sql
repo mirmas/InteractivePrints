@@ -1,5 +1,6 @@
 
-CREATE OR REPLACE PACKAGE "PAK_ZIP" AS
+
+CREATE OR REPLACE package PAK_XML_CONVERT as
 
 -- Interactive Prints using the following MIT License:
   --
@@ -25,39 +26,42 @@ CREATE OR REPLACE PACKAGE "PAK_ZIP" AS
   -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   -- SOFTWARE.
 
-  procedure add1file
-  ( p_zipped_blob in out blob
-    , p_name in varchar2
-    , p_content in blob
-  );
 
-  procedure finish_zip(
-    p_zipped_blob in out blob,
-    p_comment varchar2 default 'Zipped by Region2XSLTReport software http://www.mirmas.si'
-  );
+function SerializeColTypes (p_reportTypes Query2Report.t_coltype_tables)
+return varchar2;
 
-$if CCOMPILING.g_utl_file_privilege $then
-  procedure save_zip
-  ( p_zipped_blob in blob
-    , p_dir in varchar2
-    , p_filename in varchar2
-  );
-$end
+function DeserializeColTypes (p_reportTypes varchar2)
+return  Query2Report.t_coltype_tables;
 
-  function compressText(p_content CLOB, p_file_name varchar2 :='Region2XSLTReport') return BLOB;
+function LogColType (p_reportType  t_coltype_table)
+return varchar2;
 
-  function decompressToText
-    ( p_zipped_blob blob
-    , p_file_name varchar2 :='Region2XSLTReport'
-    )
-  return clob;
+function LogColTypes (p_reportTypes  Query2Report.t_coltype_tables)
+return varchar2;
 
-  function decompress
-    ( p_zipped_blob blob
-    , p_file_name varchar2 :='Region2XSLTReport'
-    )
-  return blob;
+function SerializeRegionAttrs (p_regionAttrs Query2Report.tab_string)
+return varchar2;
 
-END PAK_ZIP;
+function DeserializeRegionAttrs (p_regionAttrs varchar2)
+return  Query2Report.tab_string;
 
+/** Delete null elements REGION_AGGREGATES and REGION_HIGHLIGHTS and then replace
+* not null elements REGION_AGGREGATES and REGION_HIGHLIGHTS to attributes in XML pio_clob.
+*
+* @param pio_clob XML to convert
+*/
+PROCEDURE xmlConvert(
+  pio_clob        IN OUT NOCOPY CLOB,
+  p_filename      IN VARCHAR2,
+  pi_regionAttrs  in Query2Report.tab_string,
+  pi_reportTypes  IN OUT Query2Report.t_coltype_tables
+);
+
+/* function returns Word highlight name of the most similar color from upper list to p_color.
+   Parameter p_color is in RGB HEX format
+*/
+function findWordColor(p_color varchar2)
+return varchar2;
+
+end;
 /

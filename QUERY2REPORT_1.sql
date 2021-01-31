@@ -1,3 +1,39 @@
+CREATE OR REPLACE PACKAGE BODY "QUERY2REPORT" as
+
+-- Interactive Prints using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
+
+
+--error_xml_processing EXCEPTION;
+--PRAGMA EXCEPTION_INIT(error_xml_processing, -19202);
+
+
+
+
+
+-------------------------CRYPTO PART-------------------------------
+g_key constant varchar2(100) := 'L+6d771+m5m4K274TYj2w3dntYOK7weoT151DTxW0o8=';
 
 
 
@@ -5,208 +41,291 @@
 
 
 
-  CREATE OR REPLACE PACKAGE BODY "QUERY2REPORT" as
- 
+g_control_string constant varchar2(4) := '5EC1';
+------------------------------------------------------------------
 
-
- 
-
-OllI10 constant varchar2(100) := 'L+6d771+m5m4K274TYj2w3dntYOK7weoT151DTxW0o8=';
- 
-IllI11 constant varchar2(4) := '5EC1';
-
- 
 --'<?xml version="1.0" encoding="'||p_encoding||'"?>'|| g_crlf||
-lllI11 constant varchar2(400):=
+g_start_xslt_html constant varchar2(400):=
   '<?xml version="1.0" encoding="utf-8"?>'|| g_crlf||
   '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">'|| g_crlf||
   '<xsl:output method="html"/>'||g_crlf||
     '<xsl:template match="/">'|| g_crlf|| g_crlf;
- 
- 
-OllI1I constant varchar2(400):=
+
+
+
+
+
+
+g_start_xslt_text constant varchar2(400):=
   '<?xml version="1.0" encoding="utf-8"?>'|| g_crlf||
   '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">'|| g_crlf||
   '<xsl:output method="text"/>'||g_crlf||
     '<xsl:template match="/">'|| g_crlf|| g_crlf;
- 
- 
-IllI1I constant varchar2(200):=
+
+
+
+
+
+
+g_end_xslt constant varchar2(200):=
   g_crlf||'</xsl:template>'||g_crlf||
                 '</xsl:stylesheet>'||g_crlf;
- 
-lllI1l constant varchar2(200):= g_crlf||'<xsl:text disable-output-escaping="yes">'||g_crlf||'<![CDATA[';
-OllI1l constant varchar2(200):=  ']]>'||g_crlf||'</xsl:text>'||g_crlf;
- 
-IllII0 constant varchar2(200):= '<xsl:text disable-output-escaping="yes"><![CDATA[';
-lllII0 constant varchar2(200):=  ']]></xsl:text>';
- 
- 
-OllII1 constant varchar2(200):= '<xsl:text>';
-IllII1 constant varchar2(200):=  '</xsl:text>'||g_crlf;
- 
 
-function lllIII (OllIII in varchar2)
+g_startStr_txt_no_esc constant varchar2(200):= g_crlf||'<xsl:text disable-output-escaping="yes">'||g_crlf||'<![CDATA[';
+g_endStr_txt_no_esc constant varchar2(200):=  ']]>'||g_crlf||'</xsl:text>'||g_crlf;
+
+g_startStr_txt_no_esc_lb constant varchar2(200):= '<xsl:text disable-output-escaping="yes"><![CDATA[';
+g_endStr_txt_no_esc_lb constant varchar2(200):=  ']]></xsl:text>';
+
+
+
+
+
+
+g_startStr_txt constant varchar2(200):= '<xsl:text>';
+g_endStr_txt constant varchar2(200):=  '</xsl:text>'||g_crlf;
+
+TYPE rowset_interval IS VARRAY(2) OF PLS_INTEGER;
+TYPE rowset_intervals IS VARRAY(5) OF rowset_interval;
+
+--------------------------------------------CRYPTO PART-----------------------------------------------
+function md5hash (p_input in varchar2)
 return varchar2
 is
 begin
  return upper(dbms_obfuscation_toolkit.md5(
-          input => utl_i18n.string_to_raw(OllIII)));
-end lllIII;
- 
-function IllIIl
+          input => utl_i18n.string_to_raw(p_input)));
+end md5hash;
+
+function GetKey
 return raw
 is
-Il01I1 raw(200);
- 
-cursor lllIIl is
+l_ret raw(200);
+
+cursor c_curp is
 select replace(replace(trim(text),chr(10)),chr(13)) text from user_source
 where type='PACKAGE' and name = 'QUERY2REPORT' order by line;
- 
-cursor OllIl0 is
+
+cursor c_curb is
 select replace(replace(trim(text),chr(10)),chr(13)) text from user_source
 where type='PACKAGE BODY' and name = 'QUERY2REPORT' order by line;
- 
-cursor IllIl0 is
+
+cursor c_cur1p is
 select replace(replace(trim(text),chr(10)),chr(13)) text from user_source
 where type='PACKAGE' and name = 'APEXREP2REPORT' order by line;
- 
-cursor lllIl1 is
+
+cursor c_cur1b is
 select replace(replace(trim(text),chr(10)),chr(13)) text from user_source
 where type='PACKAGE BODY' and name = 'APEXREP2REPORT' order by line;
- 
+
 begin
- for OllIl1 in OllIl0 loop
-  if length(OllIl1.text) > 0 then
-    Il01I1 := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(Il01I1,UTL_I18N.STRING_TO_RAW(OllIl1.text,  'AL32UTF8')));
+ for r_curb in c_curb loop
+  if length(r_curb.text) > 0 then
+    l_ret := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(l_ret,UTL_I18N.STRING_TO_RAW(r_curb.text,  'AL32UTF8')));
   end if;
  end loop;
- 
- for IllIlI in lllIIl loop
-  if length(IllIlI.text) > 0 and nvl(instr(lower(IllIlI.text), 'g_selectenc constant varchar2'), 0)=0 then
-    Il01I1 := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(Il01I1,UTL_I18N.STRING_TO_RAW(trim(IllIlI.text),  'AL32UTF8')));
+
+ for r_curp in c_curp loop
+  if length(r_curp.text) > 0 and nvl(instr(lower(r_curp.text), 'g_selectenc constant varchar2'), 0)=0 then
+    l_ret := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(l_ret,UTL_I18N.STRING_TO_RAW(trim(r_curp.text),  'AL32UTF8')));
   end if;
  end loop;
- 
- for lllIlI in lllIl1 loop
-  if length(lllIlI.text) > 0 then
-    Il01I1 := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(Il01I1,UTL_I18N.STRING_TO_RAW(lllIlI.text,  'AL32UTF8')));
+
+ for r_cur1b in c_cur1b loop
+  if length(r_cur1b.text) > 0 then
+    l_ret := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(l_ret,UTL_I18N.STRING_TO_RAW(r_cur1b.text,  'AL32UTF8')));
   end if;
  end loop;
- 
- for OllIll in IllIl0 loop
-  if nvl(instr(lower(OllIll.text), 'g_views_granted constant boolean'), 0)=0 and length(OllIll.text)>0 then
-    Il01I1 := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(Il01I1,UTL_I18N.STRING_TO_RAW(OllIll.text,  'AL32UTF8')));
+
+ for r_cur1p in c_cur1p loop
+  if nvl(instr(lower(r_cur1p.text), 'g_views_granted constant boolean'), 0)=0 and length(r_cur1p.text)>0 then
+    l_ret := dbms_obfuscation_toolkit.md5(input => utl_raw.concat(l_ret,UTL_I18N.STRING_TO_RAW(r_cur1p.text,  'AL32UTF8')));
   end if;
  end loop;
- 
- 
- return Il01I1;
+
+
+ return l_ret;
 exception
   when others then
   pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
-  p_procedure => 'IllIIl', p_sqlerrm => sqlerrm );
+  p_procedure => 'GetKey', p_sqlerrm => sqlerrm );
   raise;
-end IllIIl;
- 
+end GetKey;
 
-function BlockXOR(IIlIl1 RAW, OIlIlI RAW)
+--Ne wrapaj!!
+function BlockXOR(p_raw RAW, p_key RAW)
 return RAW
 as
-IllIll RAW(32000);
-llll00 number;
-Olll00 number;
+l_blockkey RAW(32000);
+l_rawsize number;
+l_keysize number;
 begin
-  llll00 := utl_raw.length(IIlIl1);
-  Olll00 := utl_raw.length(OIlIlI);
-  while llll00 > 0 loop
-    if llll00 >= Olll00 then
-      IllIll:=utl_raw.concat(IllIll, OIlIlI);
+  l_rawsize := utl_raw.length(p_raw);
+  l_keysize := utl_raw.length(p_key);
+  while l_rawsize > 0 loop
+    if l_rawsize >= l_keysize then
+      l_blockkey:=utl_raw.concat(l_blockkey, p_key);
     else
-      IllIll:=utl_raw.concat(IllIll, utl_raw.substr(OIlIlI, 1, llll00));
+      l_blockkey:=utl_raw.concat(l_blockkey, utl_raw.substr(p_key, 1, l_rawsize));
     end if;
-    llll00 := llll00 - Olll00;
+    l_rawsize := l_rawsize - l_keysize;
   end loop;
-  return utl_raw.bit_xor(IIlIl1, IllIll);
+  return utl_raw.bit_xor(p_raw, l_blockkey);
 exception
   when others then
   pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
   p_procedure => 'BlockXOR', p_sqlerrm => sqlerrm );
   raise;
 end;
- 
- 
-function Illl01(OIll0l varchar2)
+
+
+function IsValidLicenceKey(p_lk varchar2)
 return boolean
 as
-llll01 varchar2(20);
-Olll0I varchar2(32);
-Illl0I varchar2(4);
+l_validate varchar2(20);
+l_hash varchar2(32);
+l_control_string varchar2(4);
 begin
-   if OIll0l = OIlIl1 then
+   if p_lk = g_trial then
      return true;
    end if;
-   llll01 := trim(replace(upper(OIll0l),'-',''));
-   Illl0I := substr(llll01,17,4);
-   Olll0I := lllIII(substr(llll01,1,16)||OllI10);
-   return substr(Olll0I, 5, 1)||substr(Olll0I, 16, 1)||substr(Olll0I, 30, 1)||substr(Olll0I, 13, 1) = nvl(Illl0I,' ');
+   l_validate := trim(replace(upper(p_lk),'-',''));
+   l_control_string := substr(l_validate,17,4);
+   l_hash := md5hash(substr(l_validate,1,16)||g_key);
+   return substr(l_hash, 5, 1)||substr(l_hash, 16, 1)||substr(l_hash, 30, 1)||substr(l_hash, 13, 1) = nvl(l_control_string,' ');
 exception
   when others then
   pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
-  p_procedure => 'Illl01', p_sqlerrm => sqlerrm );
+  p_procedure => 'IsValidLicenceKey', p_sqlerrm => sqlerrm );
   return false;
-end Illl01;
- 
+end IsValidLicenceKey;
 
-
-function OIll01(IIll0I varchar2, OIll0l varchar2)
+-------------DES3 verzija----------
+/**Decrypts PL/SQL code
+*
+* @param p_plsql PLSQL Block.
+* @param p_lk Valid Licence key
+* @return encrypted PLSQL block
+*/
+function DecPlSql(p_plsql varchar2, p_lk varchar2)
 return varchar2 AS
-llll0l  RAW(16); 
-Olll0l  RAW(16);
+l_key_bytes_raw  RAW(16); --stores 128-bit encryption key
+l_key2_raw  RAW(16);
 BEGIN
-  if OIll0l is null then
-    llll0l := IllIIl;
+  if p_lk is null then
+    l_key_bytes_raw := GetKey;
   else
-    if not Illl01(OIll0l) then
-      pak_xslt_log.WriteLog( 'INV'||OIll0l, p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'OIll01', p_sqlerrm => sqlerrm );
+    if not isvalidlicencekey(p_lk) then
+      pak_xslt_log.WriteLog( 'INV'||p_lk, p_log_type => pak_xslt_log.g_error,
+      p_procedure => 'DecPlSql', p_sqlerrm => sqlerrm );
       return null;
     end if;
- 
-    llll0l := UTL_I18N.STRING_TO_RAW (substr(OIll0l,1,16),  'AL32UTF8');
-    Olll0l := UTL_I18N.STRING_TO_RAW (substr(OllI10,1,16),  'AL32UTF8');
-    llll0l := BlockXOR(llll0l, Olll0l);
+
+    l_key_bytes_raw := UTL_I18N.STRING_TO_RAW (substr(p_lk,1,16),  'AL32UTF8');
+    l_key2_raw := UTL_I18N.STRING_TO_RAW (substr(g_key,1,16),  'AL32UTF8');
+    l_key_bytes_raw := BlockXOR(l_key_bytes_raw, l_key2_raw);
   end if;
   return
   UTL_I18N.RAW_TO_CHAR(
     DBMS_OBFUSCATION_TOOLKIT.DES3DECRYPT
     (
-       input => UTL_ENCODE.BASE64_DECODE(UTL_I18N.STRING_TO_RAW(IIll0I,  'AL32UTF8')),
-       key => llll0l
+       input => UTL_ENCODE.BASE64_DECODE(UTL_I18N.STRING_TO_RAW(p_plsql,  'AL32UTF8')),
+       key => l_key_bytes_raw
     ),
     'AL32UTF8'
   );
 exception
   when others then
   pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
-  p_procedure => 'OIll01', p_sqlerrm => sqlerrm );
+  p_procedure => 'DecPlSql', p_sqlerrm => sqlerrm );
   raise;
-END OIll01;
- 
+END DecPlSql;
 
- 
-procedure SetLicenceKey(p_licence_key varchar2, p_coded varchar2, IIll0l varchar2)
-as
-Illl10 varchar2(20);
-ll1Il1 number;
-begin
-  select count(*) into ll1Il1 from xsltswkey;
-  if ll1Il1 = 1 then
-    select swkey into Illl10 from xsltswkey;
+/*
+function CheckDBIDWSID
+return boolean AS
+l_key_bytes_raw  RAW(16); --stores 128-bit encryption key
+l_key2_raw  RAW(16);
+l_dec_dbidwsid varchar2(4000);
+l_type_id varchar2(3);
+l_ids varchar2(4000);
+l_exists number;
+l_id number;
+l_lk varchar2(4000);
+l_dbidwsid varchar2(4000);
+cursor c_ws is select workspace_id from apex_workspaces;
+BEGIN
+  select SWKEY, DBIDWSID into l_lk, l_dbidwsid from xsltswkey;
+  if not isvalidlicencekey(l_lk) then
+    pak_xslt_log.WriteLog( 'INV'||l_lk, p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'DecPlSql', p_sqlerrm => sqlerrm );
+    return false;
   end if;
-  if not Illl01(p_licence_key) or nvl(Illl10,' ') = OIlIl1 or ll1Il1 = 0 then
+
+  l_key_bytes_raw := UTL_I18N.STRING_TO_RAW (substr(l_lk,1,16),  'AL32UTF8');
+  l_key2_raw := UTL_I18N.STRING_TO_RAW (substr(g_key,1,16),  'AL32UTF8');
+  l_key_bytes_raw := BlockXOR(l_key_bytes_raw, l_key2_raw);
+
+  l_dec_dbidwsid :=
+  trim(UTL_I18N.RAW_TO_CHAR(
+    DBMS_OBFUSCATION_TOOLKIT.DES3DECRYPT
+    (
+       input => UTL_ENCODE.BASE64_DECODE(UTL_I18N.STRING_TO_RAW(l_dbidwsid,  'AL32UTF8')),
+       key => l_key_bytes_raw
+    ),
+    'AL32UTF8'
+  ));
+  l_type_id := substr(l_dec_dbidwsid,1,3);
+  l_ids := substr(l_dec_dbidwsid,4);
+
+
+  select count(*) into l_exists
+  from all_objects where upper(owner) = 'SYS' and upper(object_name) = 'V_$DATABASE' and OBJECT_TYPE = 'VIEW';
+
+  if l_type_id = 'DB:' and l_exists = 1 then
+    EXECUTE IMMEDIATE 'select DBID from SYS.V_$DATABASE' into l_id;
+    if instr(','||l_ids||',', ','||to_char(l_id)||',') > 0 then
+      return true;
+    end if;
+  elsif l_type_id = 'WS:' then
+    for r_ws in c_ws loop
+      if instr(','||l_ids||',', ','||to_char(r_ws.workspace_id)||',') > 0 then
+        return true;
+      end if;
+    end loop;
+  end if;
+
+  return false;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'CheckDBIDWSID', p_sqlerrm => sqlerrm );
+  return false;
+END CheckDBIDWSID;
+
+function CheckDBIDWSID01 return number
+as
+begin
+  if CheckDBIDWSID then
+    return 1;
+  else
+    return 0;
+  end if;
+end;
+*/
+
+procedure SetLicenceKey(p_licence_key varchar2, p_coded varchar2, p_dbidwsid varchar2)
+as
+l_licence_key varchar2(20);
+l_count number;
+begin
+  select count(*) into l_count from xsltswkey;
+  if l_count = 1 then
+    select swkey into l_licence_key from xsltswkey;
+  end if;
+  if not isvalidlicencekey(p_licence_key) or nvl(l_licence_key,' ') = g_trial or l_count = 0 then
     delete from xsltswkey;
-    insert into xsltswkey(swkey, coded, dbidwsid) values(trim(upper(p_licence_key)), p_coded, IIll0l);
+    insert into xsltswkey(swkey, coded, dbidwsid) values(trim(upper(p_licence_key)), p_coded, p_dbidwsid);
     commit;
   end if;
 exception
@@ -216,1519 +335,1629 @@ exception
   rollback;
   raise;
 end;
- 
- 
 
- 
- 
 
+------------------End of Crypto part--------------------------------------------
+
+
+/*Extracts strings from HTML and separate them by space */
 function html2str ( line in varchar2 ) return varchar2 is
-    llll10       varchar2(32767) := null;
-    Olll11 boolean         := FALSE;
-    Illl11       varchar2(4);
+    x       varchar2(32767) := null;
+    in_html boolean         := FALSE;
+    s       varchar2(4);
   begin
     if line is null then
       return line;
     end if;
-    
-    for ll01I1 in 1 .. length( line ) loop
-      Illl11 := substr( line, ll01I1, 1 );
-      if Olll11 then
-        if Illl11 = '>' then
-          Olll11 := FALSE;
-          if substr(llll10,length(llll10),1)<>' ' then
-            llll10:=llll10||' ';
+    --pak_xslt_log.WriteLog( 'line: '||line, p_log_type => pak_xslt_log.g_warning, p_procedure => 'html2str');
+    for i in 1 .. length( line ) loop
+      s := substr( line, i, 1 );
+      if in_html then
+        if s = '>' then
+          in_html := FALSE;
+          if substr(x,length(x),1)<>' ' then
+            x:=x||' ';
           end if;
         end if;
       else
-        if Illl11 = '<' then
-          Olll11 := TRUE;
+        if s = '<' then
+          in_html := TRUE;
         end if;
       end if;
-      if not Olll11 and Illl11 != '>' then
-        llll10 := llll10|| Illl11;
+      if not in_html and s != '>' then
+        x := x|| s;
       end if;
     end loop;
-    llll10:=trim(llll10);
-    return llll10;
+    x:=trim(x);
+    return x;
 exception
   when others then
   pak_xslt_log.WriteLog( 'Error: '||line, p_log_type => pak_xslt_log.g_error, p_procedure => 'html2str', p_sqlerrm => sqlerrm );
   raise;
 end html2str;
- 
 
+/* Remove special chars which caused ORA-31061: XDB error: special char to escaped char conversion failed. */
+/*
 function RemoveSpecialChars (p_inputstr varchar2)
 return varchar2
 as
-llll1I varchar2(32);
-Olll1I varchar2(32);
+l_special_chars varchar2(32);
+l_spaces varchar2(32);
 begin
-  for ll01I1 in 0..31 loop
-    if ll01I1 not in (9,10,13) then
-      llll1I := llll1I||chr(ll01I1);
-      Olll1I := Olll1I||' ';
+  for i in 0..31 loop
+    if i not in (9,10,13) then
+      l_special_chars := l_special_chars||chr(i);
+      l_spaces := l_spaces||' ';
     end if;
   end loop;
-  return translate(p_inputstr, llll1I, Olll1I);
+  return translate(p_inputstr, l_special_chars, l_spaces);
 exception
   when others then
   pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'RemoveSpecialChars', p_sqlerrm => sqlerrm );
   raise;
 end RemoveSpecialChars;
- 
- 
+ */
 
-function Illl1l(
-  llll1l varchar2,
-  OlllI0 varchar2
-)
-return varchar2
-as
-Il01I1 varchar2(32000);
-lll0II number default 1;
-Oll0I1 number default 1;
-IlllI0 varchar2(32000);
-llllI1 varchar2(32000);
-begin
-  Il01I1 := llll1l;
-  loop
-    IlllI0 :='';
-    llllI1 :='';
-    lll0II := instr(Il01I1, '<'||OlllI0||'>');
-    exit when nvl(lll0II, 0) = 0;
-    Oll0I1 := instr(Il01I1, '</'||OlllI0||'>');
-    exit when nvl(Oll0I1, 0) = 0;
-    Oll0I1 := Oll0I1 + length('</'||OlllI0||'>');
-    if lll0II > 1 then
-      IlllI0 := substr(Il01I1, 1, lll0II - 1);
-    end if;
-    if Oll0I1 <= length(Il01I1) then
-      llllI1 := substr(Il01I1, Oll0I1);
-    end if;
-    Il01I1 := IlllI0||llllI1;
-  end loop;
-  return Il01I1;
-end;
- 
-function OlllI1(
-  Il00I0 varchar2,
-  IIll00 varchar2 default ' _#!$%&()*+,-.''"[]/<=>:;?@\^`{}|~'
-)
-return varchar2
-as
-Il01I1 varchar2(4000);
-begin
-  Il01I1 := Il00I0;
-  
-  for ll01I1 in 1..length(IIll00) loop
-    Il01I1:= replace(Il01I1, '_x'||trim(to_char(ascii(substr(IIll00,ll01I1, 1)),'xx')), '_x005F_x'||trim(to_char(ascii(substr(IIll00,ll01I1, 1)),'xx')));
-  end loop;
-  return Il01I1;
-end OlllI1;
- 
+-----------------pak_xml_convert------------------------------------------
 
-function OIll1I(
-  p_xml varchar2
-)
-return varchar2
-as
-IlllII  number default 1;
-llllII    number default 1;
- 
-OlllIl number default 1;
-IlllIl number default 1;
-lllll0 varchar2(4000);
-ll11l1 varchar2(30);
- 
-Ollll0 number default 1;
-Illll1 number default 1;
-lllll1 varchar2(4000);
- 
-OllllI varchar2(30);
-IllllI number default 1;
-OlII11 PLS_INTEGER := dbms_utility.get_time();
-llllll number default 1;
-Olllll number default 1;
-Il01I1 varchar2(32000);
-I100000 varchar2(32000);
-Il1ll1 varchar2(32000);
-l100000 number default 1;
-O100001 number default 1;
-l_start_of_rowset boolean default false;
-begin
-  
-  I100000 := replace(p_xml, '<REGION_AGGREGATES/>','');
-  I100000 := replace(I100000, '<REGION_HIGHLIGHTS/>','');
-  I100000 := replace(I100000, '<BREAKROW/>','');
-  loop
-    
-    
-    
-    
-    l100000 := instr(I100000, '<ROWSET ', IlllII);
-    l_start_of_rowset := l100000 > 0;
-    O100001 := instr(I100000, '</ROWSET>', IlllII);
-    IlllII := instr(I100000, '<ROW>', IlllII);
-    if nvl(l100000, 0) = 0 then
-      l100000 := IlllII;
-    end if;
-    if nvl(O100001, 0) = 0 then
-      O100001 := IlllII;
-    end if;
-    pak_xslt_log.WriteLog(
-      'Before least: IlllII: '||IlllII||' l100000: '||l100000||' O100001: '||O100001,
-      p_procedure => 'OIll1I (VARCHAR2)'
-    );
-    IlllII := least(IlllII, l100000, O100001);
-    pak_xslt_log.WriteLog(
-      'After least: IlllII: '||IlllII||' l100000: '||l100000||' O100001: '||O100001,
-      p_procedure => 'OIll1I (VARCHAR2)'
-    );
-    exit when nvl(IlllII, 0)=0;
-    llllII := instr(I100000, '</ROW>', IlllII);
-    exit when nvl(llllII, 0) = 0;
-    llllII := llllII + length('</ROW>');
-    Il1ll1 := substr(I100000, IlllII, llllII - IlllII);
-    
- 
-    OlllIl := instr(Il1ll1, '<REGION_AGGREGATES>');
-    IlllIl := instr(Il1ll1, '</REGION_AGGREGATES>', OlllIl);
-    if nvl(OlllIl, 0) > 0 and nvl(IlllIl, 0) > 0 then
-      OlllIl := OlllIl + length('<REGION_AGGREGATES>');
-      lllll0 := substr(Il1ll1, OlllIl, IlllIl-OlllIl);
-      IllllI := 1;
-      loop
-        llllll := instr(lllll0, ',', IllllI, 1);
-        exit when nvl(llllll, 0)=0;
-        Olllll := instr(lllll0, ',', IllllI, 2);
-        exit when nvl(Olllll, 0)=0;
-        ll11l1 := substr(lllll0, IllllI, llllll - IllllI);
-        OllllI := substr(lllll0, llllll+1, Olllll - llllll - 1);
-        IllllI := Olllll+1;
-        
-        Il1ll1 := replace(Il1ll1, '<'||OllllI||' TYPE="','<'||OllllI||' aggr_function="'||ll11l1||'" TYPE="');
-        if instr(OllllI, '_x') > 0 then
-          OllllI := OlllI1(OllllI);
-          Il1ll1 := replace(Il1ll1, '<'||OllllI||' TYPE="','<'||OllllI||' aggr_function="'||ll11l1||'" TYPE="');
-        end if;
-        
-      end loop;
-      if l_start_of_rowset then
-        Il1ll1 := replace(Il1ll1, '<ROW>','<ROW ll010I="1">');
-        Il1ll1 := replace(Il1ll1, '<ROW ','<ROW ll010I="1" ');
-      else
-        Il1ll1 := replace(Il1ll1, '<ROW','<ROW ll010I="1"');
-      end if;
-    end if;
- 
-    if instr(Il1ll1, '<BREAKROW>1</BREAKROW>') > 0
-  
-    then
-      if l_start_of_rowset then
-        Il1ll1 := replace(Il1ll1, '<ROW ','<ROW breakrow="1" ');
-        Il1ll1 := replace(Il1ll1, '<ROW>','<ROW breakrow="1">');
-      else
-        Il1ll1 := replace(Il1ll1, '<ROW','<ROW breakrow="1"');
-      end if;
-      Il1ll1 := replace(Il1ll1, '<BREAKROW>1</BREAKROW>','');
-    end if;
- 
-     if instr(Il1ll1, '<BREAKROW>2</BREAKROW>') > 0
-   
-    then
-      if l_start_of_rowset then
-        Il1ll1 := replace(Il1ll1, '<ROW ','<ROW breakrow="2" ');
-        Il1ll1 := replace(Il1ll1, '<ROW>','<ROW breakrow="2">');
-      else
-        Il1ll1 := replace(Il1ll1, '<ROW','<ROW breakrow="2"');
-      end if;
-      Il1ll1 := replace(Il1ll1, '<BREAKROW>2</BREAKROW>','');
-    end if;
- 
-    Ollll0 := instr(Il1ll1, '<REGION_HIGHLIGHTS>');
-    Illll1 := instr(Il1ll1, '</REGION_HIGHLIGHTS>', Ollll0);
-    if nvl(Ollll0, 0) > 0 and nvl(Illll1, 0) > 0 then
-      Ollll0 := Ollll0 + length('<REGION_HIGHLIGHTS>');
-      lllll1 := substr(Il1ll1, Ollll0, Illll1-Ollll0);
-      
-      lllll1 := replace(lllll1,'&quot;','"');
-      
-      if l_start_of_rowset then
-        Il1ll1 := replace(Il1ll1, '<ROW ','<ROW '||lllll1||' ');
-        Il1ll1 := replace(Il1ll1, '<ROW>','<ROW '||lllll1||'>');
-      else
-        Il1ll1 := replace(Il1ll1, '<ROW','<ROW '||lllll1);
-      end if;
-      
-    end if;
- 
-    IlllII := llllII;
-    
-    Il01I1 := Il01I1||chr(10)||Il1ll1;
-  end loop;
-  
-  Il01I1 := Illl1l(Il01I1, 'REGION_AGGREGATES');
-  Il01I1 := Illl1l(Il01I1, 'REGION_HIGHLIGHTS');
-  
-  return Il01I1;
-exception
-    when others then
-    pak_xslt_log.WriteLog(
-      'Error',
-      p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'OIll1I (VARCHAR2)',
-      p_sqlerrm => sqlerrm
-    );
-    raise;
-end OIll1I;
- 
 
-PROCEDURE OIll1I(
-  pio_clob        IN OUT NOCOPY CLOB
-)
-as
-I100001 varchar2(32000);
-l10000I constant number := 20000;
- 
-O10000I number default 0;
-I10000l  constant VARCHAR2(100) := '<ROW>';
-l10000l    constant VARCHAR2(100) := '</ROW>';
-lll0II number default 1;
-Oll0I1 number default 0;
-O100010 number default 1;
-I100010 number;
-l100011 number;
-OlII11 PLS_INTEGER := dbms_utility.get_time();
-O100011 PLS_INTEGER;
-I10001I number;
-Ol0l11 clob;
-l10001I boolean default true;
-begin
-  if  dbms_lob.instr(pio_clob, '<REGION_AGGREGATES') > 0 or
-    dbms_lob.instr(pio_clob, '<REGION_HIGHLIGHTS') >0 or
-    dbms_lob.instr(pio_clob, '<BREAKROW')>0
-  then 
-    dbms_lob.createtemporary(Ol0l11, false);
-    loop
-      O10000I := 0;
-      lll0II := dbms_lob.instr(pio_clob, I10000l, greatest(Oll0I1, 1));
-      
-      exit when nvl(lll0II, 0) = 0;
-      Oll0I1 := lll0II + length(I10000l);
-      if l10001I then
-        I10001I := lll0II - 1;
-        dbms_lob.read(pio_clob, I10001I, 1, I100001);
-        dbms_lob.writeappend(Ol0l11, length(I100001), I100001);
-        l10001I := false;
-      end if;
- 
-      O100010 := dbms_lob.instr(pio_clob, l10000l, Oll0I1 + l10000I);
- 
-      if nvl(O100010, 0) = 0 then
-        loop
-          O100010 := dbms_lob.instr(pio_clob, l10000l, Oll0I1);
-          exit when nvl(O100010, 0) = 0;
-          O100010 := O100010 + length(l10000l);
-          exit when O100010 - lll0II > l10000I;
-          Oll0I1 := O100010;
-          
-        end loop;
-      else
-        Oll0I1 := O100010 + length(l10000l);
-      end if;
-      l100011 := Oll0I1 - lll0II;
-      dbms_lob.read(pio_clob, l100011, lll0II, I100001);
- 
-      I100001 := OIll1I(I100001);
-      dbms_lob.writeappend(Ol0l11, length(I100001), I100001);
-      
-    end loop;
-    
-    I10001I := dbms_lob.getlength(pio_clob)- Oll0I1;
-    pak_xslt_log.WriteLog(
-        'Last read amount '||I10001I||' offset '||Oll0I1,
-        p_procedure => 'OIll1I');
-    dbms_lob.read(pio_clob, I10001I, Oll0I1 + 1, I100001);
-    dbms_lob.writeappend(Ol0l11, length(I100001), I100001);
-    pio_clob := Ol0l11;
- 
-    dbms_lob.freetemporary(Ol0l11);
-  end if;
-  pak_xslt_log.WriteLog(
-      'OIll1I (CLOB) finished. ',
-      p_procedure => 'OIll1I (CLOB)',
-      p_start_time => OlII11
-  );
-exception
-    when others then
-    pak_xslt_log.WriteLog(
-      'Error',
-      p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'OIll1I (CLOB)',
-      p_sqlerrm => sqlerrm
-    );
-    raise;
-end OIll1I;
- 
- 
-procedure O10001l
+
+procedure mhtCorrections
 (
   p_clob          IN OUT NOCOPY CLOB
 )
 IS
-I10001l CLOB;
-l1000I0 number;
-O1000I0 varchar2(4000);
-I1000I1 number;
-l1000I1 number;
-O1000II number;
-I1000II number;
-l1000Il number;
-O1000Il varchar2(32000);
-ll01I1 number default 1;
+l_part CLOB;
+l_end_boundary number;
+l_boundary varchar2(4000);
+l_cur_pos number;
+l_start_ct number;
+l_end_ct number;
+l_begin_part number;
+l_end_part number;
+l_ct varchar2(32000);
+i number default 1;
 begin
-  
-  I1000I1 := dbms_lob.instr(p_clob, 'boundary="');
-  if nvl(I1000I1, 0) = 0 then
-    
+  --find boundary
+  l_cur_pos := dbms_lob.instr(p_clob, 'boundary="');
+  if nvl(l_cur_pos, 0) = 0 then
+    --TODO Write error log
     return;
   end if;
-  I1000I1 := I1000I1 + length('boundary="');
-  l1000I0 := dbms_lob.instr(p_clob, '"', I1000I1);
-  if nvl(l1000I0, 0) = 0 then
-    
+  l_cur_pos := l_cur_pos + length('boundary="');
+  l_end_boundary := dbms_lob.instr(p_clob, '"', l_cur_pos);
+  if nvl(l_end_boundary, 0) = 0 then
+    --TODO Write error log
     return;
   end if;
-  O1000I0 := dbms_lob.substr(p_clob, l1000I0 - I1000I1, I1000I1);
-  if instr(O1000I0, '_NextPart_') = 0 then
-    
+  l_boundary := dbms_lob.substr(p_clob, l_end_boundary - l_cur_pos, l_cur_pos);
+  if instr(l_boundary, '_NextPart_') = 0 then
+    --TODO Write error log
     return;
   end if;
-  I1000I1 := l1000I0;
+  l_cur_pos := l_end_boundary;
   loop
-    I1000II := dbms_lob.instr(p_clob, O1000I0, l1000I0, ll01I1);
-    exit when nvl(I1000II, 0) = 0;
-    l1000Il := dbms_lob.instr(p_clob, O1000I0, l1000I0, ll01I1 + 1);
-    exit when nvl(l1000Il, 0) = 0;
-    
-    l1000I1 := dbms_lob.instr(p_clob, 'Content-Type: ', I1000II);
-    if l1000I1 > 0 and l1000I1 < l1000Il then
-      l1000I1 := l1000I1 + length('Content-Type: ');
-      O1000II:= dbms_lob.instr(p_clob, ';', l1000I1);
-      if O1000II > 0 and l1000I1 < l1000Il then
-        O1000Il := dbms_lob.substr(p_clob, O1000II-l1000I1, l1000I1);
-        if O1000Il = 'text/html' then
-          
-          pak_blob_util.clobReplace(p_clob, '='||chr(10), '='||chr(13)||chr(10), I1000II, l1000Il);
-          
+    l_begin_part := dbms_lob.instr(p_clob, l_boundary, l_end_boundary, i);
+    exit when nvl(l_begin_part, 0) = 0;
+    l_end_part := dbms_lob.instr(p_clob, l_boundary, l_end_boundary, i + 1);
+    exit when nvl(l_end_part, 0) = 0;
+    --read Content-Type
+    l_start_ct := dbms_lob.instr(p_clob, 'Content-Type: ', l_begin_part);
+    if l_start_ct > 0 and l_start_ct < l_end_part then
+      l_start_ct := l_start_ct + length('Content-Type: ');
+      l_end_ct:= dbms_lob.instr(p_clob, ';', l_start_ct);
+      if l_end_ct > 0 and l_start_ct < l_end_part then
+        l_ct := dbms_lob.substr(p_clob, l_end_ct-l_start_ct, l_start_ct);
+        if l_ct = 'text/html' then
+          --do replace
+          pak_blob_util.clobReplace(p_clob, '='||chr(10), '='||chr(13)||chr(10), l_begin_part, l_end_part);
+          ----dbms_xslprocessor.clob2file(p_clob, 'XMLDIR', 'test'||to_char(i)||'.mht', NLS_CHARSET_ID('EE8MSWIN1250'));
           null;
         end if;
       end if;
     end if;
-    ll01I1 := ll01I1 + 1;
+    i := i + 1;
   end loop;
   pak_blob_util.clobReplaceAll(p_clob, chr(10)||chr(10), g_crlf);
-  
+  --pak_blob_util.clobReplaceAll(p_clob, g_crlf||g_crlf, g_crlf);
 exception
     when others then
     pak_xslt_log.WriteLog(
       'Error',
       p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'O10001l',
+      p_procedure => 'mhtCorrections',
       p_sqlerrm => sqlerrm
     );
     raise;
-end O10001l;
- 
- 
- 
+end mhtCorrections;
 
- 
- 
-procedure I1000l0(
+
+
+/*
+PROCEDURE Clob2File
+(
+  p_clob           IN CLOB,
+  p_dir            IN VARCHAR2,
+  p_fileName       IN VARCHAR2
+)
+  IS
+
+  c_amount         CONSTANT BINARY_INTEGER := 32000;
+  l_buffer         VARCHAR2(32000);
+  l_chr10          PLS_INTEGER;
+  l_clobLen        PLS_INTEGER;
+  l_fHandler       UTL_FILE.FILE_TYPE;
+  l_pos            PLS_INTEGER    := 1;
+  l_line           PLS_INTEGER    := 0;
+
+BEGIN
+
+  l_clobLen  := DBMS_LOB.GETLENGTH(p_clob);
+  l_fHandler := UTL_FILE.FOPEN(p_dir, p_fileName,'W',c_amount);
+
+  WHILE l_pos < l_clobLen LOOP
+    l_buffer := DBMS_LOB.SUBSTR(p_clob, c_amount, l_pos);
+    EXIT WHEN l_buffer IS NULL;
+    l_chr10  := INSTR(l_buffer,g_crlf, -1);
+    IF l_chr10 != 0 THEN
+      l_buffer := SUBSTR(l_buffer,1,l_chr10-1);
+      l_line := l_line + 1;
+    else
+      l_chr10 := 0;
+    END IF;
+    UTL_FILE.PUT_LINE(l_fHandler, l_buffer, TRUE);
+    l_pos := l_pos + LENGTH(l_buffer) + length(g_crlf);
+  END LOOP;
+
+  UTL_FILE.FCLOSE(l_fHandler);
+
+EXCEPTION
+WHEN OTHERS THEN
+  pak_xslt_log.WriteLog(
+      'Error when writing CLOBa to '||P_DIR||'\'||P_FILENAME,
+      p_log_type => pak_xslt_log.g_error,
+      p_procedure => 'Clob2File'
+   );
+  IF UTL_FILE.IS_OPEN(l_fHandler) THEN
+    UTL_FILE.FCLOSE(l_fHandler);
+  END IF;
+  RAISE;
+
+END Clob2File;
+*/
+
+
+procedure StartXML(
 pio_xml IN OUT NOCOPY CLOB,
 p_encoding varchar2 default 'utf-8'
 )
 as
-  ll1l1I varchar2(200);
+  l_start_string varchar2(200);
 begin
   if p_encoding is null then
-    ll1l1I := '<?xml version="1.0"?>'||g_crlf||'<DOCUMENT>';
+    l_start_string := '<?xml version="1.0"?>'||g_crlf||'<DOCUMENT>';
   else
-    ll1l1I := '<?xml version="1.0" encoding="'||p_encoding||'"?>'||g_crlf||'<DOCUMENT>';
+    l_start_string := '<?xml version="1.0" encoding="'||p_encoding||'"?>'||g_crlf||'<DOCUMENT>';
   end if;
   DBMS_LOB.CREATETEMPORARY (pio_xml, false);
-  DBMS_LOB.WRITE (pio_xml, lengthb(ll1l1I), 1, ll1l1I);
+  DBMS_LOB.WRITE (pio_xml, lengthb(l_start_string), 1, l_start_string);
 exception
     when others then
     pak_xslt_log.WriteLog(
       'Error',
       p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'I1000l0',
+      p_procedure => 'StartXML',
       p_sqlerrm => sqlerrm
     );
     raise;
-end I1000l0;
- 
-procedure l1000l0(
+end StartXML;
+
+procedure EndXML(
 pio_xml IN OUT NOCOPY CLOB
 )
 as
-  Ol1l1l constant varchar2(40) := '</DOCUMENT>';
+  l_end_string constant varchar2(40) := '</DOCUMENT>';
 begin
-  DBMS_LOB.WRITEAPPEND (pio_xml, lengthb(Ol1l1l), Ol1l1l);
+  DBMS_LOB.WRITEAPPEND (pio_xml, lengthb(l_end_string), l_end_string);
 exception
     when others then
     pak_xslt_log.WriteLog(
       'Error',
       p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'l1000l0',
+      p_procedure => 'endXML',
       p_sqlerrm => sqlerrm
     );
     raise;
-end l1000l0;
- 
- 
-function IIlIll(
-  OIll00 varchar2,
-  IIll00 varchar2 default '#!$%&()*+,-.''"[]/<=>:;?@\^`{}|~'
+end EndXML;
+
+
+function ConvertColName2XmlName(
+  p_colname varchar2,
+  p_chars varchar2 default '#!$%&()*+,-.''"[]/<=>:;?@\^`{}|~'
 )
 return varchar2
 as
-Il01I1 varchar2(4000);
+l_ret varchar2(4000);
 begin
-  Il01I1 := OIll00;
-  Il01I1:= replace(Il01I1,' ','_');
-  for ll01I1 in 1..length(IIll00) loop
-    Il01I1:= substr(replace(Il01I1, substr(IIll00,ll01I1, 1), 'llll10'||trim(to_char(ascii(substr(IIll00,ll01I1, 1)),'xx'))),1,30);
+  l_ret := p_colname;
+  l_ret:= replace(l_ret,' ','_');
+  l_ret:= replace(l_ret,'<br>','_');
+  l_ret:= replace(l_ret,'<br/>','_');
+  for i in 1..length(p_chars) loop
+    l_ret:= substr(replace(l_ret, substr(p_chars,i, 1), 'x'||trim(to_char(ascii(substr(p_chars,i, 1)),'xx'))),1,30);
   end loop;
-  return Il01I1;
+  return l_ret;
 end;
- 
-procedure O1000l1
-(
-  I1000l1 IN varchar2
-  ,l1000lI IN OUT tab_string
-)
-as
-begin
-  l1000lI.extend;
-  l1000lI(l1000lI.count) := I1000l1;
-exception
-  when others then
-  pak_xslt_log.WriteLog(
-    'Error',
-    p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O1000l1',
-    p_sqlerrm => sqlerrm
-  );
-  raise;
-end O1000l1;
- 
-procedure O1000lI
-(
-  I1000ll IN t_coltype_table
-  ,l1000ll IN OUT t_coltype_tables
-)
-as
-begin
-  l1000ll.extend;
-  l1000ll(l1000ll.count) := I1000ll;
-exception
-  when others then
-  pak_xslt_log.WriteLog(
-    'Error',
-    p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O1000lI',
-    p_sqlerrm => sqlerrm
-  );
-  raise;
-end O1000lI;
- 
 
-function OIllll
+procedure AddStringToTable
 (
-  IIllll  IN varchar2
+  pi_string IN varchar2
+  ,pio_stringTable IN OUT tab_string
+)
+as
+begin
+  pio_stringTable.extend;
+  pio_stringTable(pio_stringTable.count) := pi_string;
+exception
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'AddStringToTable',
+    p_sqlerrm => sqlerrm
+  );
+  raise;
+end AddStringToTable;
+
+procedure AddTableToTables
+(
+  pi_table IN t_coltype_table
+  ,pio_tables IN OUT t_coltype_tables
+)
+as
+begin
+  pio_tables.extend;
+  pio_tables(pio_tables.count) := pi_table;
+exception
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'AddTableToTables',
+    p_sqlerrm => sqlerrm
+  );
+  raise;
+end AddTableToTables;
+
+/*IzraÄTuna Excel oznako stolpca, 1=A, 2=B,...,26=Z, 27=AA, 28=AB,..., 54=BB,..*/
+function ExcelCol(p_position number)
+return varchar2
+as
+l_coldiv26 number;
+l_colmod26 number;
+l_ret varchar2(2);
+begin
+  l_coldiv26 := floor((p_position - 1)/26);
+  l_colmod26 := mod(p_position - 1, 26);
+
+  if l_coldiv26 > 0 then
+    l_ret := chr(ascii('A')- 1 + l_coldiv26);
+  end if;
+  l_ret := l_ret || chr(ascii('A') + l_colmod26);
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'ExcelCol',
+    p_sqlerrm => sqlerrm
+  );
+  raise;
+end;
+
+
+/**sestavi tabelo iz selekta (ne iz APEX reporta), FORMAT_MASK in FULL_NAME je column name brez vezajev*/
+function ReportTypesElementTab
+(
+  pi_selectQuery  IN varchar2
 )
 return t_coltype_table
 as
-  Ol1011           NUMBER;
+  c           NUMBER;
   col_cnt     INTEGER;
-  Ol1lIl     DBMS_SQL.DESC_TAB;
-  O100100  varchar2(40);
-  I100100      varchar2(40);
-  
-  Il01I1       t_coltype_table := t_coltype_table();
-  Il01II   varchar2(4000);
- 
-  cursor Il0Ill(l100101 number) is
+  rec_tab     DBMS_SQL.DESC_TAB;
+  l_ora_type  varchar2(40);
+  l_type      varchar2(40);
+  --l_ret       varchar2(32000) :='<REPORT_TYPES>'||g_crlf;
+  l_ret       t_coltype_table := t_coltype_table();
+  l_xmlname   varchar2(4000);
+
+  cursor c_cur(c_col_type number) is
     select ora_type
-    from oratype_codes where ora_code = l100101;
+    from oratype_codes where ora_code = c_col_type;
 begin
   pak_xslt_log.WriteLog(
-    'Start OIllll(IIllll): '||IIllll ,
-    p_procedure => 'OIllll'
+    'Start ReportTypesElementTab(pi_selectQuery): '||pi_selectQuery ,
+    p_procedure => 'ReportTypesElementTab'
   );
- 
-  if IIllll is null then
-    return Il01I1;
+
+  if pi_selectQuery is null then
+    return l_ret;
   end if;
- 
-  Ol1011 := DBMS_SQL.OPEN_CURSOR;
-  DBMS_SQL.PARSE(Ol1011, IIllll, DBMS_SQL.NATIVE);
-  DBMS_SQL.DESCRIBE_COLUMNS(Ol1011, col_cnt, Ol1lIl);
-  DBMS_SQL.CLOSE_CURSOR(Ol1011);
- 
-  for ll01I1 in 1..Ol1lIl.count loop
-    I100100 := 'STRING';
-    if Ol1lIl(ll01I1).col_name not in ('REGION_HIGHLIGHTS') then
-      Il01II := IIlIll(Ol1lIl(ll01I1).col_name);
-      open Il0Ill(Ol1lIl(ll01I1).col_type);
-      fetch Il0Ill into O100100;
-      if Il0Ill%notfound then
+
+  c := DBMS_SQL.OPEN_CURSOR;
+  DBMS_SQL.PARSE(c, pi_selectQuery, DBMS_SQL.NATIVE);
+  DBMS_SQL.DESCRIBE_COLUMNS(c, col_cnt, rec_tab);
+  DBMS_SQL.CLOSE_CURSOR(c);
+
+  pak_xslt_log.WriteLog(
+    'Parse SQL results. col_cnt: '||col_cnt||' rec_tab.count: '||rec_tab.count,
+    p_procedure => 'ReportTypesElementTab'
+  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  for i in 1..rec_tab.count loop
+    l_type := 'VARCHAR2';
+    if rec_tab(i).col_name not in ('REGION_HIGHLIGHTS') then
+      l_xmlname := ConvertColName2XmlName(rec_tab(i).col_name);
+      open c_cur(rec_tab(i).col_type);
+      fetch c_cur into l_ora_type;
+      if c_cur%notfound then
         pak_xslt_log.WriteLog(
-          'Can''Il0lI0 find data type with ID: '||Ol1lIl(ll01I1).col_type||' in ORATYPE_CODES view, using ID instead ',
+          'Can''t find data type with ID: '||rec_tab(i).col_type||' in ORATYPE_CODES view, using ID instead ',
           p_log_type => pak_xslt_log.g_warning,
-          p_procedure => 'OIllll'
+          p_procedure => 'ReportTypesElementTab'
         );
       end if;
- 
-      if Ol1lIl(ll01I1).col_type = 231 or O100100 = 'DATE' or O100100 like 'TIMESTAMP%' then
-        I100100 := 'DATE';
-      elsif O100100 = 'NUMBER' then
-        I100100 := 'NUMBER';
+
+      if rec_tab(i).col_type = 231 or l_ora_type = 'DATE' or l_ora_type like 'TIMESTAMP%' then
+        l_type := 'DATE';
+      elsif l_ora_type = 'NUMBER' then
+        l_type := 'NUMBER';
       end if;
-      Il01I1.extend;
-      Il01I1(Il01I1.count) := t_coltype_row(Il01II, I100100, null, null, replace(Il01II, '_', ' '));
-      
-      close Il0Ill;
+      l_ret.extend;
+      l_ret(l_ret.count) := t_coltype_row(l_xmlname, l_type, null, null,
+                            replace(replace(replace(replace(l_xmlname,'_x005F_',' '), '_', ' '),'x26','&'),'x2e','.'),
+                            i, ExcelCol(i), null, null, null, null, null, null, null, null, null, null, null
+                            );
+      --l_ret := l_ret||'<'||l_xmlname||'><TYPE>'||l_type||'</TYPE></'||l_xmlname||'>'||g_crlf;
+      close c_cur;
     end if;
   end loop;
-  
-  return Il01I1;
+  --return l_ret||'</REPORT_TYPES>';
+  pak_xslt_log.WriteLog(
+    'Returning l_ret.count: '||l_ret.count,
+    p_procedure => 'ReportTypesElementTab'
+  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return l_ret;
 exception
     when others then
     pak_xslt_log.WriteLog(
       'Error',
       p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'OIllll(IIllll)',
+      p_procedure => 'ReportTypesElementTab(pi_selectQuery)',
       p_sqlerrm => sqlerrm
     );
     raise;
-end OIllll;
- 
+end ReportTypesElementTab;
 
- 
+/*
+function ReportTypesElement
+(
+  pi_selectQuery  IN varchar2
+)
+return varchar2
+as
 
- 
-function O100101
+  l_ret       varchar2(32000) :='<REPORT_TYPES>'||g_crlf;
+  l_xmlname   varchar2(64);
+  l_reporttypes t_coltype_table;
+
+begin
+  pak_xslt_log.WriteLog(
+    'Start ReportTypesElement(pi_selectQuery): '||pi_selectQuery ,
+    p_log_type => pak_xslt_log.g_warning,
+    p_procedure => 'ReportTypesElement'
+  );
+
+  l_reporttypes := ReportTypesElementTab(pi_selectQuery);
+
+
+  for i in 1..l_reporttypes.count loop
+    l_ret := l_ret||'<'||l_reporttypes(i).colname||'>'||g_crlf||
+            '<TYPE>'||l_reporttypes(i).coltype||'</TYPE>'||g_crlf||
+            '</'||l_reporttypes(i).colname||'>'||g_crlf;
+  end loop;
+
+  return l_ret||'</REPORT_TYPES>';
+exception
+    when others then
+    pak_xslt_log.WriteLog(
+      'Error',
+      p_log_type => pak_xslt_log.g_error,
+      p_procedure => 'ReportTypesElement(pi_selectQuery)',
+      p_sqlerrm => sqlerrm
+    );
+    raise;
+end ReportTypesElement;
+*/
+
+/*
+function ReportTypesElement
+(
+  p_coltypeTable  t_coltype_table
+)
+return varchar2
+as
+
+  l_ret       varchar2(32000) :='<REPORT_TYPES>'||g_crlf;
+  l_xmlname   varchar2(64);
+
+begin
+  pak_xslt_log.WriteLog(
+    'Start ReportTypesElement(p_coltypeTable) count: '||p_coltypeTable.count ,
+    p_procedure => 'ReportTypesElement'
+  );
+
+
+
+  for i in 1..p_coltypeTable.count loop
+    l_ret := l_ret||'<'||p_coltypeTable(i).colname||'>'||g_crlf||
+            '<TYPE>'||p_coltypeTable(i).coltype||'</TYPE>'||g_crlf||
+            '<FORMAT_MASK>'||p_coltypeTable(i).formatmask||'</FORMAT_MASK>'||g_crlf||
+            '<FULL_NAME>'||p_coltypeTable(i).fullname||'</FULL_NAME>'||g_crlf||
+            '</'||p_coltypeTable(i).colname||'>'||g_crlf;
+  end loop;
+
+  return l_ret||'</REPORT_TYPES>';
+exception
+    when others then
+    pak_xslt_log.WriteLog(
+      'Error',
+      p_log_type => pak_xslt_log.g_error,
+      p_procedure => 'ReportTypesElement(p_coltypeTable)',
+      p_sqlerrm => sqlerrm
+    );
+    raise;
+end ReportTypesElement;
+*/
+
+
+
+function ReportTypesElement
 (
   pi_selectQueries  IN tab_string
 )
 return t_coltype_tables
 as
-Il01I1 t_coltype_tables := t_coltype_tables();
+l_ret t_coltype_tables := t_coltype_tables();
 begin
-  for ll01I1 in 1..pi_selectQueries.count loop
-    O1000lI(OIllll(pi_selectQueries(ll01I1)), Il01I1);
-  end loop;
-  return Il01I1;
-end;
- 
- 
 
-procedure I10010I(
+
+
+
+
+
+
+
+
+
+
+
+
+  for i in 1..pi_selectQueries.count loop
+    AddTableToTables(ReportTypesElementTab(pi_selectQueries(i)), l_ret);
+  end loop;
+
+
+
+
+
+
+
+
+  return l_ret;
+end;
+
+
+
+
+/** Insert string at offset l_offset, then append a rest of CLOB
+  *
+  * @param pio_clob CLOB
+  * @param p_insertingStr String to insert
+  * @p_offset Offset of inserting point
+  */
+procedure InsertString(
   pio_clob IN OUT NOCOPY CLOB,
-  l10010I varchar2,
-  IIlI1l number
+  p_insertingStr varchar2,
+  p_offset number
 )
 as
-Ol0l11 CLOB;
+l_temp CLOB;
 begin
-  dbms_lob.createtemporary(Ol0l11, false);
-  dbms_lob.copy(Ol0l11, pio_clob, IIlI1l - 1);
-  dbms_lob.writeappend(Ol0l11, length(l10010I), l10010I);
-  dbms_lob.copy(Ol0l11, pio_clob, dbms_lob.getlength(pio_clob) - IIlI1l + 1, dbms_lob.getlength(Ol0l11) + 1, IIlI1l);
+  dbms_lob.createtemporary(l_temp, false);
+  dbms_lob.copy(l_temp, pio_clob, p_offset - 1);
+  dbms_lob.writeappend(l_temp, length(p_insertingStr), p_insertingStr);
+  dbms_lob.copy(l_temp, pio_clob, dbms_lob.getlength(pio_clob) - p_offset + 1, dbms_lob.getlength(l_temp) + 1, p_offset);
   dbms_lob.trim(pio_clob, 0);
-  pio_clob := Ol0l11;
-  dbms_lob.freetemporary(Ol0l11);
+  pio_clob := l_temp;
+  dbms_lob.freetemporary(l_temp);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I10010I',
+    p_procedure => 'InsertString',
     p_sqlerrm => sqlerrm
   );
   raise;
-end I10010I;
- 
- 
-function O10010l(I10010l CLOB)
+end InsertString;
+
+
+function ElementRealNames(p_tempXml CLOB)
 return t_string_table
 as
-lll0II number;
-Oll0I1 number;
-l100110 varchar2(32000);
-Oll0Il varchar2(200);
-Il01I1 t_string_table:= t_string_table();
+l_start number;
+l_end number;
+l_elements varchar2(32000);
+l_element varchar2(200);
+l_ret t_string_table:= t_string_table();
 begin
-  lll0II := dbms_lob.instr(I10010l, '<ROW>');
-  if lll0II > 0 then
-    lll0II := lll0II + length('<ROW>');
-    Oll0I1 := dbms_lob.instr(I10010l, '</ROW>');
-    if Oll0I1 > 0 then
-      l100110 := dbms_lob.substr(I10010l, Oll0I1 - lll0II, lll0II);
-      pak_xslt_log.WriteLog('l100110: '||l100110, p_procedure => 'O10010l');
-      lll0II := 1;
+  l_start := dbms_lob.instr(p_tempXml, '<ROW>');
+  if l_start > 0 then
+    l_start := l_start + length('<ROW>');
+    l_end := dbms_lob.instr(p_tempXml, '</ROW>');
+    if l_end > 0 then
+      l_elements := dbms_lob.substr(p_tempXml, l_end - l_start, l_start);
+      pak_xslt_log.WriteLog('l_elements: '||l_elements, p_procedure => 'ElementRealNames');
+      l_start := 1;
       loop
-        lll0II := instr(l100110,'<', lll0II);
-        exit when nvl(lll0II, 0) = 0;
-        Oll0I1 := instr(l100110,'>', lll0II);
-        exit when nvl(Oll0I1, 0) = 0;
-        Oll0Il := substr(l100110, lll0II + 1, Oll0I1 - (lll0II+1));
-        lll0II := instr(l100110, '</'||Oll0Il||'>', Oll0I1);
-        exit when nvl(lll0II, 0) = 0;
-        lll0II := lll0II + length('</'||Oll0Il||'>');
-        Il01I1.extend;
-        Il01I1(Il01I1.count) := t_string_row(Oll0Il);
-        pak_xslt_log.WriteLog(Oll0Il||' added', p_procedure => 'O10010l');
+        l_start := instr(l_elements,'<', l_start);
+        exit when nvl(l_start, 0) = 0;
+        l_end := instr(l_elements,'>', l_start);
+        exit when nvl(l_end, 0) = 0;
+        l_element := substr(l_elements, l_start + 1, l_end - (l_start+1));
+        l_start := instr(l_elements, '</'||l_element||'>', l_end);
+        exit when nvl(l_start, 0) = 0;
+        l_start := l_start + length('</'||l_element||'>');
+        l_ret.extend;
+        l_ret(l_ret.count) := t_string_row(l_element);
+        pak_xslt_log.WriteLog(l_element||' added', p_procedure => 'ElementRealNames');
       end loop;
     end if;
   end if;
-  return Il01I1;
+  return l_ret;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O10010l',
+    p_procedure => 'ElementRealNames',
     p_sqlerrm => sqlerrm
   );
   raise;
-end O10010l;
- 
-function Ol00I0(
-  Il00I0 varchar2,
-  IIll00 varchar2 default ' _#!$%&()*+,-.''"[]/<=>:;?@\^`{}|~'
+end ElementRealNames;
+
+function ConvertXmlName2ColName(
+  p_xmlname varchar2,
+  p_chars varchar2 default ' _#!$%&()*+,-.''"[]/<=>:;?@\^`{}|~'
 )
 return varchar2
 as
-Il01I1 varchar2(4000);
+l_ret varchar2(4000);
 begin
-  Il01I1 := Il00I0;
-  
-  for ll01I1 in 1..length(IIll00) loop
-    Il01I1:= replace(Il01I1, '_x00'||trim(to_char(ascii(substr(IIll00,ll01I1, 1)),'xx'))||'_', substr(IIll00, ll01I1, 1));
-    Il01I1:= replace(Il01I1, '_x00'||trim(to_char(ascii(substr(IIll00,ll01I1, 1)),'XX'))||'_', substr(IIll00, ll01I1, 1));
+  l_ret := p_xmlname;
+  --l_ret:= translate(l_ret,' ()','_');
+  for i in 1..length(p_chars) loop
+    l_ret:= replace(l_ret, '_x00'||trim(to_char(ascii(substr(p_chars,i, 1)),'xx'))||'_', substr(p_chars, i, 1));
+    l_ret:= replace(l_ret, '_x00'||trim(to_char(ascii(substr(p_chars,i, 1)),'XX'))||'_', substr(p_chars, i, 1));
   end loop;
-  return Il01I1;
-end Ol00I0;
- 
+  return l_ret;
+end ConvertXmlName2ColName;
 
-
- 
-
-procedure O100110(
-  I100111 IN OUT CLOB,
-  l100111 t_coltype_table,
-  O10011I varchar2
+-- Original
+/*
+procedure InsertTypeTableAndRegionAttr(
+  pio_tempXml IN OUT NOCOPY CLOB,
+  p_reportTypes t_coltype_table,
+  p_regionAttr varchar2
 )
 as
-OlIlI1 number;
+l_offset number;
+--l_correctedReportTypes t_coltype_table := t_coltype_table();
+l_elementRealNames t_string_table;
+l_colname varchar2(64);
+l_coltype varchar2(30);
+l_formatmask varchar2(60);
+l_fullname varchar2(200);
+l_reportTypesXml varchar2(32000);
+i number := 0;
+c_cur sys_refcursor; --cur_coltype;
 
-I10011I t_string_table;
-IlI0ll varchar2(64);
-l10011l varchar2(30);
-O10011l varchar2(60);
-l_width number;
-I1001I0 varchar2(200);
-l1001I0 varchar2(32000);
-ll01I1 number := 0;
-Il0Ill sys_refcursor; 
-O1001I1 CLOB;
-I100001 varchar2(32000);
-I1001I1 number := 4000;
-l1001II boolean := true;
-O1001II number;
- 
- 
 begin
   pak_xslt_log.WriteLog(
-      'Start procedure I100111 size: '||dbms_lob.getlength(I100111),
-      p_procedure => 'O100110'
+      'Start procedure pio_tempXml size: '||dbms_lob.getlength(pio_tempXml),
+      p_procedure => 'InsertTypeTableAndRegionAttr'
     );
- 
-  
- 
-  OlIlI1 := dbms_lob.instr(I100111, '<ROWSET>');
-  if nvl(OlIlI1, 0) > 0 then
-    
+
+  l_offset := dbms_lob.instr(pio_tempXml, '<ROWSET>');
+  if nvl(l_offset, 0) > 0 then
+    --Correct pi_reportTypes with real XML data
     pak_xslt_log.WriteLog(
-      'Start O10010l',
-      p_procedure => 'O100110'
+      'Start ElementRealNames',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
     );
-    I10011I := O10010l(I100111);
+    l_elementRealNames := ElementRealNames(pio_tempXml);
     pak_xslt_log.WriteLog(
-      'End O10010l',
-      p_procedure => 'O100110'
+      'End ElementRealNames',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
     );
- 
- 
-    dbms_lob.createtemporary(O1001I1, false);
-    OlIlI1 := 1;
- 
+
+    pak_xslt_log.WriteLog(
+      'Open cursor',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+
+    open c_cur for
+    select nvl(r.col, t.colname), t.coltype, t.formatmask, t.fullname from table(p_reportTypes) t
+    left outer join table(l_elementRealNames) r on ConvertXmlName2ColName(r.col) = ConvertXmlName2ColName(t.colname);
+
+    pak_xslt_log.WriteLog(
+      'Close cursor',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+
+    pak_xslt_log.WriteLog(
+      'Start cursor loop',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
     loop
-      exit when nvl(OlIlI1, 0) = 0;
-      O1001II := OlIlI1;
-      loop
-        OlIlI1 := dbms_lob.instr(I100111, '<ROW>', OlIlI1);
-        exit when nvl(OlIlI1, 0) = 0;
-        OlIlI1 := OlIlI1 + length('<ROW>');
-        exit when OlIlI1 - O1001II > I1001I1;
-      end loop;
- 
- 
-      
-      
-      
-     
- 
- 
-      if nvl(OlIlI1, 0) = 0 then
-        I100001 := dbms_lob.substr(I100111, I1001I1 + 1000, O1001II);
-      else
-        OlIlI1 := OlIlI1 - length('<ROW>');
-        I100001 := dbms_lob.substr(I100111, OlIlI1 - O1001II, O1001II);
-      end if;
-      if l1001II then
-        I100001 := replace(I100001, '<ROWSET>', '<ROWSET '||O10011I||'>');
-      end if;
- 
- 
-      
-      
-      
-      
- 
- 
-      open Il0Ill for
-      select nvl(I1001Il.col, Il0lI0.colname), Il0lI0.coltype, Il0lI0.formatmask, Il0lI0.columnwidth, Il0lI0.fullname from table(l100111) Il0lI0
-      left outer join table(I10011I) I1001Il on Ol00I0(I1001Il.col) = Ol00I0(Il0lI0.colname);
- 
-      loop
-        fetch Il0Ill into IlI0ll, l10011l, O10011l, l_width, I1001I0;
-        exit when Il0Ill%notfound;
-        
-        
-        I100001 := replace(I100001, '<'||IlI0ll||'>',
-          '<'||IlI0ll||' TYPE="'||l10011l||'" '||
-          case when O10011l is not null then 'FORMAT_MASK="'||O10011l||'" ' end||
-          case when l_width is not null then 'COLUMN_WIDTH="'||l_width||'" ' end||
-          'FULL_NAME="'||replace(I1001I0,'_',' ')||'">');
- 
-        I100001 := replace(I100001, '<'||IlI0ll||'/>',
-          '<'||IlI0ll||' TYPE="'||l10011l||'" '||
-          case when O10011l is not null then 'FORMAT_MASK="'||O10011l||'" ' end||
-          case when l_width is not null then 'COLUMN_WIDTH="'||l_width||'" ' end||
-          'FULL_NAME="'||replace(I1001I0,'_',' ')||'"/>');
- 
-        ll01I1 := ll01I1 + 1;
-      end loop;
-      close Il0Ill;
- 
- 
-      
-      
-      
-      
- 
-      dbms_lob.writeappend(O1001I1, length(I100001), I100001);
- 
- 
-      l1001II:= false;
+      fetch c_cur into l_colname, l_coltype, l_formatmask, l_fullname;
+      exit when c_cur%notfound;
+      --l_correctedReportTypes.extend;
+      --l_correctedReportTypes(l_correctedReportTypes.count) := t_coltype_row(l_colname, l_coltype, l_formatmask, l_fullname);
+      pio_tempXml := replace(pio_tempXml, '<'||l_colname||'>',
+        '<'||l_colname||' TYPE="'||l_coltype||'" '||
+        case when l_formatmask is not null then 'FORMAT_MASK="'||l_formatmask||'" ' end||
+        'FULL_NAME="'||replace(l_fullname,'_',' ')||'">');
+
+      pio_tempXml := replace(pio_tempXml, '<'||l_colname||'/>',
+        '<'||l_colname||' TYPE="'||l_coltype||'" '||
+        case when l_formatmask is not null then 'FORMAT_MASK="'||l_formatmask||'" ' end||
+        'FULL_NAME="'||replace(l_fullname,'_',' ')||'"/>');
+
+      i := i + 1;
     end loop;
-    
-    dbms_lob.trim(I100111, 0);
-    dbms_lob.copy(I100111, O1001I1, dbms_lob.getlength(O1001I1));
-    
-    dbms_lob.freetemporary(O1001I1);
- 
+    close c_cur;
+
+    pak_xslt_log.WriteLog(
+      'End cursor loop i: '||i,
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+    --TODO dodaj columnom atribute TYPE, FORMAT_MASK, FULL_NAME
+    InsertString(pio_tempXml,  ' '||p_regionAttr, l_offset+length('<ROWSET'));
+
+    pak_xslt_log.WriteLog(
+      'End InsertString',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+
   end if;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O100110',
+    p_procedure => 'InsertTypeTableAndRegionAttr',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
-procedure l1001Il
+*/
+
+---Optimizirana verzija---
+/*
+procedure InsertTypeTableAndRegionAttr(
+  pio_reportTypes IN OUT t_coltype_table,
+  p_tempXml IN CLOB,
+  p_regionAttr varchar2
+)
+as
+l_offset number;
+--l_correctedReportTypes t_coltype_table := t_coltype_table();
+l_elementRealNames t_string_table;
+l_colname varchar2(64);
+l_coltype varchar2(30);
+l_formatmask varchar2(400);
+l_width number;
+l_fullname varchar2(200);
+l_reportTypesXml varchar2(32000);
+i number := 0;
+c_cur sys_refcursor; --cur_coltype;
+l_destXML CLOB;
+l_buffer varchar2(32000);
+l_initialbuffSize number := 4000;
+l_first boolean := true;
+l_startoffset number;
+l_position number;
+l_excelcol varchar2(2);
+
+begin
+  pak_xslt_log.WriteLog(
+      'Start procedure pio_tempXml size: '||dbms_lob.getlength(pio_tempXml),
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+
+  ----dbms_xslprocessor.clob2file(pio_tempXml, 'XMLDIR', 'debug1.xml');
+
+  l_offset := dbms_lob.instr(p_tempXml, '<ROWSET>');
+  if nvl(l_offset, 0) > 0 then
+    --Correct pi_reportTypes with real XML data
+    pak_xslt_log.WriteLog(
+      'Start ElementRealNames',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+    l_elementRealNames := ElementRealNames(p_tempXml);
+    pak_xslt_log.WriteLog(
+      'End ElementRealNames',
+      p_procedure => 'InsertTypeTableAndRegionAttr'
+    );
+
+    dbms_lob.createtemporary(l_destXML, false);
+    l_offset := 1;
+
+    loop
+      exit when nvl(l_offset, 0) = 0;
+      l_startoffset := l_offset;
+      loop
+        l_offset := dbms_lob.instr(pio_tempXml, '<ROW>', l_offset);
+        exit when nvl(l_offset, 0) = 0;
+        l_offset := l_offset + length('<ROW>');
+        exit when l_offset - l_startoffset > l_initialbuffSize;
+      end loop;
+
+
+      pak_xslt_log.WriteLog(
+        'End inner loop l_offset: '||l_offset||' l_startoffset: '||l_startoffset,
+        p_procedure => 'InsertTypeTableAndRegionAttr'
+      );
+
+
+      if nvl(l_offset, 0) = 0 then
+        l_buffer := dbms_lob.substr(pio_tempXml, l_initialbuffSize + 1000, l_startoffset);
+      else
+        l_offset := l_offset - length('<ROW>');
+        l_buffer := dbms_lob.substr(pio_tempXml, l_offset - l_startoffset, l_startoffset);
+      end if;
+      if l_first then
+        l_buffer := replace(l_buffer, '<ROWSET>', '<ROWSET '||p_regionAttr||'>');
+      end if;
+
+
+      pak_xslt_log.WriteLog(
+        'p_reportTypes.count = '||p_reportTypes.count||' in buffer (first 200 ch): '||substr(l_buffer, 1, 200),
+        p_procedure => 'InsertTypeTableAndRegionAttr'
+      );
+
+      open c_cur for
+      select nvl(r.col, t.colname), t.coltype, t.formatmask, t.columnwidth, t.fullname, t.position, t.excelcol from table(p_reportTypes) t
+      left outer join table(l_elementRealNames) r on ConvertXmlName2ColName(r.col) = ConvertXmlName2ColName(t.colname);
+
+      loop
+        fetch c_cur into l_colname, l_coltype, l_formatmask, l_width, l_fullname, l_position, l_excelcol;
+        exit when c_cur%notfound;
+        --l_correctedReportTypes.extend;
+        --l_correctedReportTypes(l_correctedReportTypes.count) := t_coltype_row(l_colname, l_coltype, l_formatmask, l_fullname);
+
+        pak_xslt_log.WriteLog(
+          'First replacing '||'<'||l_colname||'> with '||
+          '<'||l_colname||' TYPE="'||l_coltype||'" '||
+          case when l_formatmask is not null then 'FORMAT_MASK="'||l_formatmask||'" ' end||
+          case when l_width is not null then 'COLUMN_WIDTH="'||l_width||'" ' end||
+          case when l_position is not null then 'POSITION="'||l_position||'" ' end||
+          case when l_excelcol is not null then 'EXCELCOL="'||l_excelcol||'" ' end||
+
+
+
+
+
+
+
+
+
+
+          case when BreakOnCol(p_regionAttr, l_colname) then 'BREAK="1" ' end||
+          'FULL_NAME="'||replace(l_fullname,'_',' ')||'">',
+          p_procedure => 'InsertTypeTableAndRegionAttr'
+        );
+
+        l_buffer := replace(l_buffer, '<'||l_colname||'>',
+          '<'||l_colname||' TYPE="'||l_coltype||'" '||
+          case when l_formatmask is not null then 'FORMAT_MASK="'||l_formatmask||'" ' end||
+          case when l_width is not null then 'COLUMN_WIDTH="'||l_width||'" ' end||
+          case when l_position is not null then 'POSITION="'||l_position||'" ' end||
+          case when l_excelcol is not null then 'EXCELCOL="'||l_excelcol||'" ' end||
+
+
+
+
+
+
+
+
+          case when BreakOnCol(p_regionAttr, l_colname) then 'BREAK="1" ' end||
+          'FULL_NAME="'||replace(l_fullname,'_',' ')||'">');
+
+        pak_xslt_log.WriteLog(
+          'replaced OK ',
+          p_procedure => 'InsertTypeTableAndRegionAttr'
+        );
+
+        pak_xslt_log.WriteLog(
+          'Second replacing '||'<'||l_colname||'> with '||
+          '<'||l_colname||' TYPE="'||l_coltype||'" '||
+          case when l_formatmask is not null then 'FORMAT_MASK="'||l_formatmask||'" ' end||
+          case when l_width is not null then 'COLUMN_WIDTH="'||l_width||'" ' end||
+          case when l_position is not null then 'POSITION="'||l_position||'" ' end||
+          case when l_excelcol is not null then 'EXCELCOL="'||l_excelcol||'" ' end||
+
+
+
+
+
+
+
+
+
+
+
+
+          case when BreakOnCol(p_regionAttr, l_colname) then 'BREAK="1" ' end||
+          'FULL_NAME="'||replace(l_fullname,'_',' ')||'">',
+          p_procedure => 'InsertTypeTableAndRegionAttr'
+        );
+
+        l_buffer := replace(l_buffer, '<'||l_colname||'/>',
+          '<'||l_colname||' TYPE="'||l_coltype||'" '||
+          case when l_formatmask is not null then 'FORMAT_MASK="'||l_formatmask||'" ' end||
+          case when l_width is not null then 'COLUMN_WIDTH="'||l_width||'" ' end||
+          case when l_position is not null then 'POSITION="'||l_position||'" ' end||
+          case when l_excelcol is not null then 'EXCELCOL="'||l_excelcol||'" ' end||
+
+
+
+
+
+
+          case when BreakOnCol(p_regionAttr, l_colname) then 'BREAK="1" ' end||
+          'FULL_NAME="'||replace(l_fullname,'_',' ')||'"/>');
+
+        pak_xslt_log.WriteLog(
+          'replaced OK ',
+          p_procedure => 'InsertTypeTableAndRegionAttr'
+        );
+
+        i := i + 1;
+      end loop;
+      close c_cur;
+
+
+      pak_xslt_log.WriteLog(
+        'out buffer (first 200 ch): '||substr(l_buffer, 1, 200),
+        p_procedure => 'InsertTypeTableAndRegionAttr'
+      );
+
+      dbms_lob.writeappend(l_destXML, length(l_buffer), l_buffer);
+
+
+      l_first:= false;
+    end loop;
+    ----dbms_xslprocessor.clob2file(l_destXML, 'XMLDIR', 'debug2.xml');
+    dbms_lob.trim(pio_tempXml, 0);
+    dbms_lob.copy(pio_tempXml, l_destXML, dbms_lob.getlength(l_destXML));
+    ----dbms_xslprocessor.clob2file(pio_tempXml, 'XMLDIR', 'debug3.xml');
+    dbms_lob.freetemporary(l_destXML);
+
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'InsertTypeTableAndRegionAttr',
+    p_sqlerrm => sqlerrm
+  );
+  raise;
+end;
+*/
+
+procedure AddXmlChunk
 (
   pio_xml in out nocopy clob
-  ,ll000l in varchar2
-  ,IIllll  IN varchar2
-  ,Ol000l IN t_coltype_table
-  ,Ol001I  IN PLS_INTEGER
-) as
-Ol0l11 CLOB;
-O1001l0 number;
-I1001l0 constant varchar2(40) := '<?xml version="1.0"?>';
-l1001l1 constant varchar2(4000) := '<ROWSET '||ll000l||'></ROWSET>';
-llIII1 varchar2(32000);
-Illl10 varchar2(20);
-O1001l1 varchar2(4000);
-OlIlI1 number;
+  ,pi_regionAttr in varchar2
+  ,pi_selectQuery  IN varchar2
+  ,pio_reportTypes IN OUT t_coltype_table
+  ,pi_max_rows  IN PLS_INTEGER
+)
+as
+l_temp CLOB;
+l_erase number;
+l_erase_string constant varchar2(40) := '<?xml version="1.0"?>';
+l_empty_region constant varchar2(4000) := '<ROWSET '||pi_regionAttr||'></ROWSET>';
+l_plsql varchar2(32000);
+l_licence_key varchar2(20);
+l_coded varchar2(4000);
+l_offset number;
 ctx DBMS_XMLGEN.ctxHandle;
- 
+
+
 l_region_src varchar2(32000);
 l_start_region_src number;
 l_end_region_src number;
- 
 
+
+
+
+--l_ret_xml CLOB;
 begin
     pak_xslt_log.WriteLog(
-      'Start procedure ll000l '||ll000l,
-      p_procedure => 'l1001Il(varchar2)'
+      'Start procedure pio_regionAttr: '||pi_regionAttr||' pio_reportTypes.count: '||pio_reportTypes.count,
+      p_procedure => 'AddXmlChunk(varchar2)'
     );
- 
-    if IIllll is null then
+
+    if pi_selectQuery is null then
       pak_xslt_log.WriteLog(
-        'IIllll is null',
-        p_procedure => 'l1001Il(varchar2)'
+        'pi_selectQuery is null',
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
     else
       pak_xslt_log.WriteLog(
-        'IIllll '||IIllll,
-        p_procedure => 'l1001Il(varchar2)'
+        'pi_selectQuery '||pi_selectQuery,
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
- 
+
     end if;
- 
-    if ll000l is null then
+
+    if pi_regionAttr is null then
       pak_xslt_log.WriteLog(
-        'll000l is null',
-        p_procedure => 'l1001Il(varchar2)'
+        'pio_regionAttr is null',
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
     else
       pak_xslt_log.WriteLog(
-        'll000l '||ll000l,
-        p_procedure => 'l1001Il(varchar2)'
+        'pi_regionAttr '||pi_regionAttr,
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
     end if;
- 
-    
+
+    /* Za dat v EXECUTE immediate*/
     BEGIN
-        ctx := DBMS_XMLGEN.NEWCONTEXT(IIllll);
- 
-        
- 
-        DBMS_XMLGEN.SETMAXROWS (ctx, Ol001I);
+        ctx := DBMS_XMLGEN.NEWCONTEXT(pi_selectQuery);
+
+
+        /*
+        if IsFullVersion then --FULL
+          DBMS_XMLGEN.SETMAXROWS (ctx, pi_max_rows); --TODO trial set to max 20
+          --DBMS_XMLGEN.SETMAXROWS (ctx, 5);
+        else                            --TRIAL
+          DBMS_XMLGEN.SETMAXROWS (ctx, least(pi_max_rows,20));
+        end if;
+        */
+
+
+        DBMS_XMLGEN.SETMAXROWS (ctx, pi_max_rows);
         DBMS_XMLGEN.SETROWSETTAG (ctx, 'ROWSET');
         DBMS_XMLGEN.SETROWTAG(ctx, 'ROW');
         DBMS_XMLGEN.SETNULLHANDLING(ctx, DBMS_XMLGEN.EMPTY_TAG);
-        
-        
+        --DBMS_XMLGEN.GETXML (ctx, l_xml);
+        -- napiL?i prva dva tag-a
         pak_xslt_log.WriteLog(
-          'Start DBMS_XMLGEN.GETXML Ol001I: '||Ol001I,
-          p_procedure => 'l1001Il(varchar2)'
+          'Start DBMS_XMLGEN.GETXML pi_max_rows: '||pi_max_rows,
+          p_procedure => 'AddXmlChunk(varchar2)'
         );
-        Ol0l11:= DBMS_XMLGEN.GETXML (ctx);
+        l_temp:= DBMS_XMLGEN.GETXML (ctx);
       exception
         when others then
           pak_xslt_log.WriteLog(
-            'Select statement is not properly composed. Statement: '||IIllll,
+            'Select statement is not properly composed. Statement: '||pi_selectQuery,
             p_log_type => pak_xslt_log.g_error,
-            p_procedure => 'l1001Il(varchar2)',
+            p_procedure => 'AddXmlChunk(varchar2)',
             p_sqlerrm => sqlerrm
           );
-          l_start_region_src := instr(IIllll, APEXREP2REPORT.g_start_region_src);
-          l_end_region_src   := instr(IIllll, APEXREP2REPORT.g_end_region_src);
+          l_start_region_src := instr(pi_selectQuery, APEXREP2REPORT.g_start_region_src);
+          l_end_region_src   := instr(pi_selectQuery, APEXREP2REPORT.g_end_region_src);
           if l_start_region_src > 0 and l_end_region_src > 0 then
-              l_region_src := substr(IIllll, l_start_region_src + length(APEXREP2REPORT.g_start_region_src),
+              l_region_src := substr(pi_selectQuery, l_start_region_src + length(APEXREP2REPORT.g_start_region_src),
                                      l_end_region_src - l_start_region_src - length(APEXREP2REPORT.g_start_region_src) - 1);
               pak_xslt_log.WriteLog(
                 'Trying with region select: '||l_region_src,
                 p_log_type => pak_xslt_log.g_warning,
-                p_procedure => 'l1001Il(varchar2)'
+                p_procedure => 'AddXmlChunk(varchar2)'
               );
               ctx := DBMS_XMLGEN.NEWCONTEXT(l_region_src);
-              DBMS_XMLGEN.SETMAXROWS (ctx, Ol001I);
+              DBMS_XMLGEN.SETMAXROWS (ctx, pi_max_rows);
               DBMS_XMLGEN.SETROWSETTAG (ctx, 'ROWSET');
               DBMS_XMLGEN.SETROWTAG(ctx, 'ROW');
               DBMS_XMLGEN.SETNULLHANDLING(ctx, DBMS_XMLGEN.EMPTY_TAG);
-              
-              
+              --DBMS_XMLGEN.GETXML (ctx, l_xml);
+              -- napiL?i prva dva tag-a
               pak_xslt_log.WriteLog(
-                  'Start DBMS_XMLGEN.GETXML with region source. Ol001I: '||Ol001I,
-                  p_procedure => 'l1001Il(varchar2)'
+                  'Start DBMS_XMLGEN.GETXML with region source. pi_max_rows: '||pi_max_rows,
+                  p_procedure => 'AddXmlChunk(varchar2)'
               );
-              Ol0l11:= DBMS_XMLGEN.GETXML (ctx);
+              l_temp:= DBMS_XMLGEN.GETXML (ctx);
           else
               raise;
           end if;
     END;
- 
+
+
+
+
+
+
+
+
+
+
     pak_xslt_log.WriteLog(
       'Stop DBMS_XMLGEN.GETXML',
-      p_procedure => 'l1001Il(varchar2)'
+      p_procedure => 'AddXmlChunk(varchar2)'
     );
- 
-    
- 
-    
-    
- 
-    
-    
-    if Ol0l11 is null then
-      dbms_lob.writeappend(pio_xml, length(l1001l1),l1001l1);
+
+    /*konec bloka za EXECUTE immediate*/
+
+    /*produkcijska nastavitev*/
+    --EXECUTE IMMEDIATE DecPlSql(Query2Report.g_SelectEnc, null) into l_licence_key, l_coded;
+
+    --test
+    /*
+    select swkey, coded into l_licence_key, l_coded from xsltswkey;
+
+    l_plsql := DecPlSql(l_coded, l_licence_key);
+
+    pak_xslt_log.WriteLog(
+        'pi_selectQuery:'||pi_selectQuery,
+        p_procedure => 'AddXmlChunk(varchar2)'
+      );
+
+    EXECUTE IMMEDIATE l_plsql USING IN pi_selectQuery, IN pi_max_rows, OUT l_temp;
+*/
+    if l_temp is null then
+      dbms_lob.writeappend(pio_xml, length(l_empty_region),l_empty_region);
       pak_xslt_log.WriteLog(
-        'Empty region ll000l '||ll000l,
+        'Empty region pi_regionAttr '||pi_regionAttr,
         p_log_type => pak_xslt_log.g_warning,
-        p_procedure => 'l1001Il(varchar2)'
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
- 
+
     else
-      
-      
-      if l_region_src is null then
-          O100110(Ol0l11, Ol000l, ll000l);
-      else
-          O100110(Ol0l11, OIllll(l_region_src), ll000l);
-      end if;
- 
-      
-      
- 
- 
- 
-       
+      --l_temp is not null
+      ----dbms_xslprocessor.clob2file(l_temp, 'XMLDIR', 'debug1.xml');
       pak_xslt_log.WriteLog(
-        'DBMS_XMLGEN.GETXML Ol0l11 size '||to_char(dbms_lob.getlength(Ol0l11)),
-        p_procedure => 'l1001Il(varchar2)'
+        'Before InsertTypeTableAndRegionAttr l_region_src: '||l_region_src||' pio_reportTypes.count: '||pio_reportTypes.count||' pi_selectQuery '||pi_selectQuery,
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
- 
-      O1001l0 := lengthb(I1001l0);
-      DBMS_LOB.ERASE(Ol0l11, O1001l0);
+
+      if l_region_src is null then
+          if nvl(pio_reportTypes.count, 0) = 0 then
+              --InsertTypeTableAndRegionAttr(l_temp, ReportTypesElementTab(pi_selectQuery), pi_regionAttr); --not apex report, just select statement
+              pio_reportTypes := ReportTypesElementTab(pi_selectQuery);
+          else
+              --InsertTypeTableAndRegionAttr(l_temp, pi_reportTypes, pi_regionAttr); --apex report
+              null;
+          end if;
+      else
+          --InsertTypeTableAndRegionAttr(l_temp, ReportTypesElementTab(l_region_src), pi_regionAttr); --select statement not properly composed, just region source query
+          pio_reportTypes := ReportTypesElementTab(l_region_src);
+      end if;
+
+      --pak_blob_util.clobReplaceAll(l_temp, '<ROWSET>', '<ROWSET>'||OraTypesElement(pi_selectQuery)); --adding ora_types info
+      --pak_blob_util.clobReplaceAll(l_temp, '<ROWSET>', '<ROWSET '||pi_regionAttr||'>'); --adding attribute
+
+       ----dbms_xslprocessor.clob2file(l_temp, 'XMLDIR', 'debug2.xml');
+      pak_xslt_log.WriteLog(
+        'DBMS_XMLGEN.GETXML l_temp size '||to_char(dbms_lob.getlength(l_temp)),
+        p_procedure => 'AddXmlChunk(varchar2)'
+      );
+
+      l_erase := lengthb(l_erase_string);
+      DBMS_LOB.ERASE(l_temp, l_erase);
       pak_xslt_log.WriteLog(
         'Start DBMS_LOB.APPEND',
-        p_procedure => 'l1001Il(varchar2)'
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
- 
-      DBMS_LOB.APPEND(pio_xml, Ol0l11);
+
+      DBMS_LOB.APPEND(pio_xml, l_temp);
       pak_xslt_log.WriteLog(
         'DBMS_LOB.APPEND',
-        p_procedure => 'l1001Il(varchar2)'
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
- 
-      
-      DBMS_LOB.FREETEMPORARY (Ol0l11);
+
+      /*
+      l_start_name := instr(pi_regionAttr, 'name="');
+      l_start_name := l_start_name + length('name="');
+      l_end_name := instr(pi_regionAttr, '"', l_start_name);
+      l_name := substr(pi_regionAttr, l_start_name, l_end_name - l_start_name);
+      ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug'||l_name||'.xml');
+      */
+      DBMS_LOB.FREETEMPORARY (l_temp);
       pak_xslt_log.WriteLog(
         'DBMS_LOB.FREETEMPORARY',
-        p_procedure => 'l1001Il(varchar2)'
+        p_procedure => 'AddXmlChunk(varchar2)'
       );
-      
+      ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug1.xml');
     end if;
   exception
     when others then
       pak_xslt_log.WriteLog(
         'Error',
         p_log_type => pak_xslt_log.g_error,
-        p_procedure => 'l1001Il(varchar2)',
+        p_procedure => 'AddXmlChunk(varchar2)',
         p_sqlerrm => sqlerrm
       );
       raise;
-end l1001Il;
- 
-procedure l1001Il
+end AddXmlChunk;
+
+procedure AddXmlChunk
 (
   pio_xml in out nocopy clob
-  ,ll000l in varchar2
-  ,IIllll  IN SYS_REFCURSOR
-  ,Ol000l IN t_coltype_table
-  ,Ol001I  IN PLS_INTEGER
+  ,pi_regionAttr in varchar2
+  ,pi_selectQuery  IN SYS_REFCURSOR
+  ,pi_reportTypes IN t_coltype_table
+  ,pi_max_rows  IN PLS_INTEGER
 ) as
-Ol0l11 CLOB;
-O1001l0 number;
-I1001l0 constant varchar2(40) := '<?xml version="1.0"?>';
-l1001l1 constant varchar2(4000) := '<ROWSET '||ll000l||'></ROWSET>';
-Illl10 varchar2(20);
-O1001l1 varchar2(4000);
-llIII1 varchar2(32000);
-OlIlI1 number;
- 
+l_temp CLOB;
+l_erase number;
+l_erase_string constant varchar2(40) := '<?xml version="1.0"?>';
+l_empty_region constant varchar2(4000) := '<ROWSET '||pi_regionAttr||'></ROWSET>';
+l_licence_key varchar2(20);
+l_coded varchar2(4000);
+l_plsql varchar2(32000);
+l_offset number;
 
-
+/*
+l_start_string constant varchar2(40) := '<?xml version="1.0"?>'||ascii(10)||'<DOCUMENT>';
+l_end_string constant varchar2(40) := '</DOCUMENT>';
+l_erase_string constant varchar2(40) := '<?xml version="1.0"?>';
+*/
+--l_ret_xml CLOB;
 begin
      pak_xslt_log.WriteLog(
       'Start procedure',
-      p_procedure => 'l1001Il(SYS_REFCURSOR)'
+      p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
     );
- 
-    
-    
- 
-    
-    select swkey, coded into Illl10, O1001l1 from xsltswkey;
- 
-    llIII1 := OIll01(O1001l1, Illl10);
- 
-    EXECUTE IMMEDIATE llIII1 USING IN IIllll, IN Ol001I, OUT Ol0l11;
- 
-    
- 
-    if Ol0l11 is null then
-      dbms_lob.writeappend(pio_xml, length(l1001l1),l1001l1);
+
+    /*produkcijska nastavitev*/
+    --EXECUTE IMMEDIATE DecPlSql(Query2Report.g_SelectEnc,null) into l_licence_key, l_coded;
+
+    --test
+    select swkey, coded into l_licence_key, l_coded from xsltswkey;
+
+    l_plsql := DecPlSql(l_coded, l_licence_key);
+
+    EXECUTE IMMEDIATE l_plsql USING IN pi_selectQuery, IN pi_max_rows, OUT l_temp;
+
+    /*
+    DBMS_XMLGEN.SETROWSETTAG (ctx, 'ROWSET');--pi_regionAttr);
+    DBMS_XMLGEN.SETROWTAG(ctx, 'ROW'); --pi_regionAttr||'_ROW');
+    DBMS_XMLGEN.SETNULLHANDLING(ctx, DBMS_XMLGEN.EMPTY_TAG);
+    --DBMS_XMLGEN.GETXML (ctx, l_xml);
+    -- napiL?i prva dva tag-a
+    pak_xslt_log.WriteLog(
+      'Start DBMS_XMLGEN.GETXML',
+      p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
+    );
+    l_temp:= DBMS_XMLGEN.GETXML (ctx);
+    */
+
+    if l_temp is null then
+      dbms_lob.writeappend(pio_xml, length(l_empty_region),l_empty_region);
       pak_xslt_log.WriteLog(
-        'Empty region ll000l '||ll000l,
+        'Empty region pi_regionAttr '||pi_regionAttr,
         p_log_type => pak_xslt_log.g_warning,
-        p_procedure => 'l1001Il(SYS_REFCURSOR)'
+        p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
       );
     else
-      O100110(Ol0l11, Ol000l, ll000l);
- 
+      pak_xslt_log.WriteLog(
+        'Before InsertTypeTableAndRegionAttr pi_reportTypes.count: '||pi_reportTypes.count,
+        p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
+      );
+
+      --InsertTypeTableAndRegionAttr(l_temp, pi_reportTypes, pi_regionAttr);
+
       pak_xslt_log.WriteLog(
         'Start DBMS_XMLGEN.GETXML',
-        p_procedure => 'l1001Il(SYS_REFCURSOR)'
+        p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
       );
-      O1001l0 := lengthb(I1001l0);
-      DBMS_LOB.ERASE(Ol0l11, O1001l0);
- 
+      l_erase := lengthb(l_erase_string);
+      DBMS_LOB.ERASE(l_temp, l_erase);
+
       pak_xslt_log.WriteLog(
         'Start Append',
-        p_procedure => 'l1001Il(SYS_REFCURSOR)'
+        p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
       );
-      DBMS_LOB.APPEND(pio_xml, Ol0l11);
+      DBMS_LOB.APPEND(pio_xml, l_temp);
       pak_xslt_log.WriteLog(
         'Append',
-        p_procedure => 'l1001Il(SYS_REFCURSOR)'
+        p_procedure => 'AddXmlChunk(SYS_REFCURSOR)'
       );
-      DBMS_LOB.FREETEMPORARY (Ol0l11);
-      
+      DBMS_LOB.FREETEMPORARY (l_temp);
+      ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug1.xml');
     end if;
- 
+
 exception
     when others then
       pak_xslt_log.WriteLog(
         'Error',
         p_log_type => pak_xslt_log.g_error,
-        p_procedure => 'l1001Il(varchar2)',
+        p_procedure => 'AddXmlChunk(SYS_REFCURSOR)',
         p_sqlerrm => sqlerrm
       );
       raise;
-end l1001Il;
- 
- 
-function ll001I
+end AddXmlChunk;
+
+
+function Query2Xml
 (
   pi_regionAttrs in tab_string
   ,pi_selectQueries   IN tab_string
-  ,Ol000l     IN t_coltype_tables
-  ,Ol001I        in tab_integer
- 
+  ,pi_reportTypes     IN OUT t_coltype_tables
+  ,pi_max_rows        in tab_integer
+
 ) return clob as
-I1001lI number;
-IlII1l CLOB;
-Illl10 varchar2(20);
-O1001l1 varchar2(4000);
- 
+l_tbl_count number;
+l_xml CLOB;
+l_licence_key varchar2(20);
+l_coded varchar2(4000);
+
 begin
-  I1001lI := least(pi_selectQueries.count, pi_regionAttrs.count);
-  
+  l_tbl_count := least(pi_selectQueries.count, pi_regionAttrs.count);
+  --DBMS_LOB.OPEN (l_xml, DBMS_LOB.LOB_READWRITE);
   pak_xslt_log.WriteLog(
     'Start procedure',
-    p_procedure => 'll001I(tab_string)'
+    p_procedure => 'Query2Xml(tab_string)'
   );
-  I1000l0(IlII1l);
+  StartXml(l_xml);
   pak_xslt_log.WriteLog(
-    'I1000l0',
-    p_procedure => 'll001I(tab_string)'
+    'StartXml',
+    p_procedure => 'Query2Xml(tab_string)'
   );
- 
-  for ll01I1 in 1..I1001lI loop
+
+  for i in 1..l_tbl_count loop
     pak_xslt_log.WriteLog(
-      'Loop Start l1001Il '||to_char(ll01I1),
-      p_procedure => 'll001I(tab_string)'
+      'Loop Start AddXmlChunk '||to_char(i),
+      p_procedure => 'Query2Xml(tab_string)'
     );
-    l1001Il(IlII1l, pi_regionAttrs(ll01I1), pi_selectQueries(ll01I1), Ol000l(ll01I1), Ol001I(ll01I1));
- 
-    
- 
+    AddXmlChunk(l_xml, pi_regionAttrs(i), pi_selectQueries(i), pi_reportTypes(i), pi_max_rows(i));
+
+    ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug2.xml');
+
     pak_xslt_log.WriteLog(
-      'Loop End l1001Il '||to_char(ll01I1),
-      p_procedure => 'll001I(tab_string)'
+      'Loop End AddXmlChunk '||to_char(i),
+      p_procedure => 'Query2Xml(tab_string)'
     );
   end loop;
- 
-  l1000l0(IlII1l);
- 
-  
- 
+
+  EndXml(l_xml);
+
+  ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug3.xml');
+
   pak_xslt_log.WriteLog(
-    'l1000l0',
-    p_procedure => 'll001I(tab_string)'
+    'EndXml',
+    p_procedure => 'Query2Xml(tab_string)'
   );
- 
-  return IlII1l;
+
+  return l_xml;
   exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'll001I(tab_string)',
+    p_procedure => 'Query2Xml(tab_string)',
     p_sqlerrm => sqlerrm
   );
   raise;
-end ll001I;
- 
- 
- 
-procedure l1001lI
+end Query2Xml;
+
+
+
+procedure AddIntegerToTable
 (
-  O1001ll IN varchar2
-  ,I1001ll IN OUT tab_integer
+  pi_integer IN varchar2
+  ,pio_integerTable IN OUT tab_integer
 )
 as
 begin
-  I1001ll.extend;
-  I1001ll(I1001ll.count) := O1001ll;
+  pio_integerTable.extend;
+  pio_integerTable(pio_integerTable.count) := pi_integer;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l1001lI',
+    p_procedure => 'AddIntegerToTable',
     p_sqlerrm => sqlerrm
   );
   raise;
-end l1001lI;
- 
- 
-procedure Il000I
+end AddIntegerToTable;
+
+
+procedure AddQuery
 (
-  ll000l    IN varchar2
-  ,IIllll     IN varchar2
-  ,Ol000l     IN t_coltype_table
+  pi_regionAttr    IN varchar2
+  ,pi_selectQuery     IN varchar2
+  ,pi_reportTypes     IN t_coltype_table
   ,pi_maxRows         IN PLS_INTEGER
-  ,Il0010 IN OUT tab_string
-  ,ll0010  IN OUT tab_string
-  ,Ol0011  IN OUT t_coltype_tables
-  ,Il0011        IN OUT tab_integer
+  ,pio_regionAttrs IN OUT tab_string
+  ,pio_selectQueries  IN OUT tab_string
+  ,pio_reportTypes  IN OUT t_coltype_tables
+  ,pio_maxRows        IN OUT tab_integer
 )
 as
 begin
-  if ll000l is not null and IIllll is not null then
-    O1000l1(IIllll, ll0010);
-    O1000lI(Ol000l, Ol0011);
-    O1000l1(ll000l, Il0010);
-    l1001lI(nvl(pi_maxRows, 100000), Il0011);
+  if pi_regionAttr is not null and pi_selectQuery is not null then
+    AddStringToTable(pi_selectQuery, pio_selectQueries);
+    AddTableToTables(pi_reportTypes, pio_reportTypes);
+    AddStringToTable(pi_regionAttr, pio_regionAttrs);
+    AddIntegerToTable(nvl(pi_maxRows, 100000), pio_maxRows);
   end if;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Il000I',
+    p_procedure => 'AddQuery',
     p_sqlerrm => sqlerrm
   );
   raise;
-end Il000I;
- 
- 
- 
-function ll001I
+end AddQuery;
+
+
+
+function Query2Xml
 (
   pi_regionAttr1 in varchar2 default null
   ,pi_selectQuery1   IN varchar2 default null
-  ,l100I00   IN t_coltype_table default null
+  ,pi_reportTypes1   IN t_coltype_table default null
   ,pi_maxRows1       IN PLS_INTEGER default 20
   ,pi_regionAttr2 in varchar2 default null
   ,pi_selectQuery2   IN varchar2 default null
-  ,O100I00   IN t_coltype_table default null
+  ,pi_reportTypes2   IN t_coltype_table default null
   ,pi_maxRows2       IN PLS_INTEGER default 20
   ,pi_regionAttr3 in varchar2 default null
   ,pi_selectQuery3   IN varchar2 default null
-  ,I100I01   IN t_coltype_table default null
+  ,pi_reportTypes3   IN t_coltype_table default null
   ,pi_maxRows3       IN PLS_INTEGER default 20
   ,pi_regionAttr4 in varchar2 default null
   ,pi_selectQuery4   IN varchar2 default null
-  ,l100I01   IN t_coltype_table default null
+  ,pi_reportTypes4   IN t_coltype_table default null
   ,pi_maxRows4       IN PLS_INTEGER default 20
   ,pi_regionAttr5 in varchar2 default null
   ,pi_selectQuery5   IN varchar2 default null
-  ,O100I0I   IN t_coltype_table default null
+  ,pi_reportTypes5   IN t_coltype_table default null
   ,pi_maxRows5       IN PLS_INTEGER default 20
 ) return clob as
-OlIII0 tab_string := tab_string();
-IlI1II  tab_string := tab_string();
-llI1II    t_coltype_tables := t_coltype_tables();
-OlI1Il        tab_integer := tab_integer();
- 
+l_regionAttrs tab_string := tab_string();
+l_selectQueries  tab_string := tab_string();
+l_reportTypes    t_coltype_tables := t_coltype_tables();
+l_maxRows        tab_integer := tab_integer();
+
 begin
-  Il000I(pi_regionAttr1, pi_selectQuery1, l100I00, pi_maxRows1, OlIII0, IlI1II, llI1II, OlI1Il);
-  Il000I(pi_regionAttr2, pi_selectQuery2, O100I00, pi_maxRows2, OlIII0, IlI1II, llI1II, OlI1Il);
-  Il000I(pi_regionAttr3, pi_selectQuery3, I100I01, pi_maxRows3, OlIII0, IlI1II, llI1II, OlI1Il);
-  Il000I(pi_regionAttr4, pi_selectQuery4, l100I01, pi_maxRows4, OlIII0, IlI1II, llI1II, OlI1Il);
-  Il000I(pi_regionAttr5, pi_selectQuery5, O100I0I, pi_maxRows5, OlIII0, IlI1II, llI1II, OlI1Il);
- 
-  return ll001I(OlIII0, IlI1II, llI1II, OlI1Il);
+  AddQuery(pi_regionAttr1, pi_selectQuery1, pi_reportTypes1, pi_maxRows1, l_regionAttrs, l_selectQueries, l_reportTypes, l_maxRows);
+  AddQuery(pi_regionAttr2, pi_selectQuery2, pi_reportTypes2, pi_maxRows2, l_regionAttrs, l_selectQueries, l_reportTypes, l_maxRows);
+  AddQuery(pi_regionAttr3, pi_selectQuery3, pi_reportTypes3, pi_maxRows3, l_regionAttrs, l_selectQueries, l_reportTypes, l_maxRows);
+  AddQuery(pi_regionAttr4, pi_selectQuery4, pi_reportTypes4, pi_maxRows4, l_regionAttrs, l_selectQueries, l_reportTypes, l_maxRows);
+  AddQuery(pi_regionAttr5, pi_selectQuery5, pi_reportTypes5, pi_maxRows5, l_regionAttrs, l_selectQueries, l_reportTypes, l_maxRows);
+
+  return Query2Xml(l_regionAttrs, l_selectQueries, l_reportTypes, l_maxRows);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'll001I(varchar2)',
+    p_procedure => 'Query2Xml(varchar2)',
     p_sqlerrm => sqlerrm
   );
   raise;
- 
-end ll001I;
- 
-function ll001I
+
+end Query2Xml;
+
+function Query2Xml
 (
    pi_regionAttr1 in varchar2 default null
   ,pi_selectQuery1   IN SYS_REFCURSOR default null
-  ,l100I00   IN t_coltype_table default null
+  ,pi_reportTypes1   IN OUT t_coltype_table
   ,pi_maxRows1       IN pls_integer default 20
   ,pi_regionAttr2 in varchar2 default null
   ,pi_selectQuery2   IN SYS_REFCURSOR default null
-  ,O100I00   IN t_coltype_table default null
+  ,pi_reportTypes2   IN OUT t_coltype_table
   ,pi_maxRows2       IN pls_integer default 20
   ,pi_regionAttr3 in varchar2 default null
   ,pi_selectQuery3   IN SYS_REFCURSOR default null
-  ,I100I01   IN t_coltype_table default null
+  ,pi_reportTypes3   IN OUT t_coltype_table
   ,pi_maxRows3       IN pls_integer default 20
   ,pi_regionAttr4 in varchar2 default null
   ,pi_selectQuery4   IN SYS_REFCURSOR default null
-  ,l100I01   IN t_coltype_table default null
+  ,pi_reportTypes4   IN OUT t_coltype_table
   ,pi_maxRows4       IN pls_integer default 20
   ,pi_regionAttr5 in varchar2 default null
   ,pi_selectQuery5   IN SYS_REFCURSOR default null
-  ,O100I0I   IN t_coltype_table default null
+  ,pi_reportTypes5   IN OUT t_coltype_table
   ,pi_maxRows5       IN pls_integer default 20
 ) return clob as
-IlII1l CLOB;
+l_xml CLOB;
 begin
-  I1000l0(IlII1l);
+  StartXml(l_xml);
   if pi_regionAttr1 is not null and pi_selectQuery1 is not null then
-     l1001Il(IlII1l, pi_regionAttr1, pi_selectQuery1, l100I00, pi_maxRows1);
+     AddXmlChunk(l_xml, pi_regionAttr1, pi_selectQuery1, pi_reportTypes1, pi_maxRows1);
   end if;
   if pi_regionAttr2 is not null and pi_selectQuery2 is not null then
-     l1001Il(IlII1l, pi_regionAttr2, pi_selectQuery2, O100I00, pi_maxRows2);
+     AddXmlChunk(l_xml, pi_regionAttr2, pi_selectQuery2, pi_reportTypes2, pi_maxRows2);
   end if;
   if pi_regionAttr3 is not null and pi_selectQuery3 is not null then
-     l1001Il(IlII1l, pi_regionAttr3, pi_selectQuery3, I100I01, pi_maxRows3);
+     AddXmlChunk(l_xml, pi_regionAttr3, pi_selectQuery3, pi_reportTypes3, pi_maxRows3);
   end if;
   if pi_regionAttr4 is not null and pi_selectQuery4 is not null then
-     l1001Il(IlII1l, pi_regionAttr4, pi_selectQuery4, l100I01, pi_maxRows4);
+     AddXmlChunk(l_xml, pi_regionAttr4, pi_selectQuery4, pi_reportTypes4, pi_maxRows4);
   end if;
   if pi_regionAttr5 is not null and pi_selectQuery5 is not null then
-     l1001Il(IlII1l, pi_regionAttr5, pi_selectQuery5, O100I0I, pi_maxRows5);
+     AddXmlChunk(l_xml, pi_regionAttr5, pi_selectQuery5, pi_reportTypes5, pi_maxRows5);
   end if;
- 
-  
-  l1000l0(IlII1l);
-  
- 
- 
-  return IlII1l;
+
+  ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug2.xml');
+  EndXml(l_xml);
+  ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug3.xml');
+
+
+  return l_xml;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'll001I (SYS_REFCURSOR)',
+    p_procedure => 'Query2Xml (SYS_REFCURSOR)',
     p_sqlerrm => sqlerrm
   );
   raise;
-end ll001I;
- 
-procedure I100I0I(
+end Query2Xml;
+
+procedure FormatCorrection(
   pio_clob IN OUT NOCOPY CLOB,
   p_format number
 )
 as
 begin
   if p_format = F_MHT then
-    O10001l(pio_clob);
-  
+    mhtCorrections(pio_clob);
+  /* commented because of really bad performance
+  elsif p_format in (F_HTML, F_XML) then
+    pak_blob_util.clobReplaceAll(pio_clob, '><','>'||chr(13)||chr(10)||'<');
+  elsif p_format = F_RTF then
+    pak_blob_util.clobReplaceAll(pio_clob, '}{','}'||chr(13)||chr(10)||'{');
+  */
   end if;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I100I0I',
+    p_procedure => 'FormatCorrection',
     p_sqlerrm => sqlerrm
   );
   raise;
-end I100I0I;
- 
- function l100I0l(p_filename varchar2)
+end FormatCorrection;
+
+ function OOXMLFilename(p_filename varchar2)
  return boolean
  as
  begin
   return upper(substr(p_filename, nullif( instr(p_filename,'.', -1) +1, 1))) in ('DOCX', 'XLSX', 'PPTX');
  end;
- 
 
- 
- 
+/** Return otput of XSLT transformation (working function)
+  *
+  * @param p_Xml input XML
+  * @param p_Xslt XSLT transformation
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_OOXML If p_format is set to f_ooxml OOXML (DOCX or XLSX) BLOB will be returned.
+  * @param p_template  Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_Xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @return output of XSLT transformation on input XML
+  */
+
+
 function XslTransform
 (
 p_Xml               IN    CLOB,
 p_Xslt              IN    CLOB,
 p_format            IN    number,
-po_error            OUT   boolean,
+po_error            OUT   VARCHAR2,
 p_template          IN    CLOB default null,
 p_external_params   IN    varchar2 default null
 ) return BLOB
 as
- 
- 
-p           DBMS_XSLPROCESSOR.Processor;
-ss          DBMS_XSLPROCESSOR.Stylesheet;
-xmldoc      DBMS_XMLDOM.DOMDOCUMENT;
-xsltDoc      DBMS_XMLDOM.DOMDOCUMENT;
- 
-O100I0l     CLOB;
-I100I10     BLOB;
- 
-IlIIl1 varchar2(1000);
- 
-I100lII number;
-l_first_quote_pos number;
-l_second_quote_pos number;
-l_end_name_value number;
- 
-l_start_name_value number default 1;
-l_name_value varchar2(100);
-l_equal_sign_pos number;
-l101I1I varchar2(100);
-llIll1 varchar2(100);
-l_external_params_count number default 1;
-OlII11 PLS_INTEGER;
- 
- 
-begin
-  if p_Xml is null then
-    pak_xslt_log.WriteLog(
-      'p_Xml is null',
-      p_log_type => pak_xslt_log.g_error,
-      p_procedure => 'XslTransform - function with XSLT CLOB'
-    );
-  end if;
-      
-  po_error := false;    
- 
-  p:= DBMS_XSLPROCESSOR.NEWPROCESSOR;
-  xmldoc := DBMS_XMLDOM.NEWDOMDOCUMENT(p_Xml);
-  DBMS_LOB.CREATETEMPORARY(O100I0l, false);
-  xsltDoc := DBMS_XMLDOM.NEWDOMDOCUMENT(p_Xslt);
-  ss:= DBMS_XSLPROCESSOR.NEWSTYLESHEET(xsltDoc, null);
-  DBMS_XSLPROCESSOR.RESETPARAMS(ss);
- 
-  
-  if p_external_params is not null then
-    IlIIl1 := trim(p_external_params);
-    l_end_name_value := 1;
- 
-    while nvl(l_end_name_value, 0) > 0 and l_external_params_count < 100
-    loop
-      I100lII := instr(IlIIl1,' ',l_start_name_value);
-      l_first_quote_pos := instr(IlIIl1,'''',l_start_name_value, 1);
-      l_second_quote_pos := instr(IlIIl1,'''',l_start_name_value, 2);
- 
-      if I100lII not between l_first_quote_pos and l_second_quote_pos
-      then
-        l_end_name_value := I100lII - 1;
-      else
-        l_end_name_value := l_second_quote_pos;
-      end if;
-      if nvl(l_end_name_value, 0) <= 0 then
-        l_name_value := trim(substr(IlIIl1, l_start_name_value));
-      else
-        l_name_value := trim(substr(IlIIl1, l_start_name_value, l_end_name_value-l_start_name_value+1));
-      end if;
-      l_equal_sign_pos := instr(l_name_value, '=');
- 
-      if nvl(l_equal_sign_pos, 0)  > 0 then
-        l101I1I := trim(substr(l_name_value, 1, l_equal_sign_pos - 1));
-        llIll1 := trim(substr(l_name_value, l_equal_sign_pos + 1));
-        if l101I1I is not null and llIll1 is not null then
-          if substr(llIll1,1,1) != '''' or substr(llIll1,length(llIll1),1)!= '''' then
-             pak_xslt_log.WriteLog(
-             'Wrapping '||to_char(llIll1)||' with quotes before sending to DBMS_XSLPROCESSOR.SETPARAM',
-             p_procedure => 'XslTransform - function with XSLT CLOB');
-             llIll1 := ''''||llIll1||'''';
-          end if;
-          pak_xslt_log.WriteLog(
-            'DBMS_XSLPROCESSOR.SETPARAM(l101I1I='||to_char(l101I1I)||', llIll1='||to_char(llIll1)||')',
-            p_procedure => 'XslTransform - function with XSLT CLOB'
-          );
-          DBMS_XSLPROCESSOR.SETPARAM(ss, l101I1I, llIll1);
- 
-          pak_xslt_log.WriteLog(
-            'Finished DBMS_XSLPROCESSOR.SETPARAM(l101I1I='||to_char(l101I1I)||', llIll1='||to_char(llIll1)||')',
-            p_procedure => 'XslTransform - function with XSLT CLOB'
-          );
+
+retBlob     BLOB;
+
+    begin
+        retBlob := pak_xsltprocessor.Transform(p_Xml, p_Xslt, p_external_params, po_error);
+        if p_format = f_ooxml and retBlob is not null and p_template is not null and po_error is null then
+            retBlob := FLAT_OPC_PKG.FlatOPC2OOXML(pak_blob_util.blob2clob(retBlob), p_template);
         end if;
-      end if;
-      l_start_name_value := l_end_name_value + 2;
-      l_external_params_count := l_external_params_count + 1;
-    end loop;
-  end if;
-  
-  OlII11 := dbms_utility.get_time;
-  pak_xslt_log.WriteLog(
-      'DBMS_XSLPROCESSOR.PROCESSXSL started',
-      p_procedure => 'XslTransform - function with XSLT CLOB',
-      p_start_time => OlII11
-    );
- 
-  DBMS_XSLPROCESSOR.PROCESSXSL(p, ss, xmldoc, O100I0l);
-  pak_xslt_log.WriteLog(
-      'DBMS_XSLPROCESSOR.PROCESSXSL finished',
-      p_procedure => 'XslTransform - function with XSLT CLOB',
-      p_start_time => OlII11
-  );
-  DBMS_XMLDOM.FREEDOCUMENT(xsltDoc);
-  DBMS_XMLDOM.FREEDOCUMENT(xmldoc);
-  DBMS_XSLPROCESSOR.FREESTYLESHEET(ss);
-  DBMS_XSLPROCESSOR.FREEPROCESSOR(p);
- 
-  
- 
-  
- 
-  
- 
-  
-  
-  
-  
- 
-  
-  if p_format = f_ooxml then
-      if O100I0l is not null and p_template is not null then 
-          I100I10 := "i1lIlII11".FlatOPC2OOXML(O100I0l, p_template);
-      else
-          pak_xslt_log.WriteLog(
-              'Error O100I0l is null or p_template is null',
-              p_log_type => pak_xslt_log.g_error,
-              p_procedure => 'XslTransform - function with XSLT BLOB'
-          );
-      end if;
-  else
-      I100I10 := pak_blob_util.clob2blob(O100I0l);
-  end if;
-  return I100I10;
- 
+  return retBlob;
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -1737,39 +1966,56 @@ exception
     p_procedure => 'XslTransform - function with XSLT BLOB',
     P_SQLERRM => sqlerrm
   );
-  
+
   raise;
 end XslTransform;
- 
- 
-$if CCOMPILING.g_utl_file_privilege $then
 
+
+
+
+
+
+$if CCOMPILING.g_utl_file_privilege $then
+/** Return otput of XSLT transformation
+  *
+  * @param p_Xml input XML
+  * @param p_xsltDir ORA Directory of XSLT file
+  * @param p_xsltFile Filename of XSLT file
+  * @param P_NLS_CHARSET Charset of XSLT file (e.g. 'EE8MSWIN1250' for windows-1250)
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_OOXML If p_format is set to g_ooxml OOXML (DOCX or XLSX) BLOB will be returned.
+  * @param p_template  Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!  * Notice that we had to put single quotes around the text value magenta!
+  * @return output of XSLT transformation on input XML
+  */
 function XslTransform
 (
 p_Xml             IN    CLOB,
 p_xsltDir         IN    varchar2,
 p_xsltFile        IN    varchar2,
 p_format          IN    number,
-po_error          OUT   boolean,
-p_Template          IN    CLOB, 
+po_error          OUT   VARCHAR2,
+p_Template          IN    CLOB, -- default null,
 P_NLS_CHARSET     IN    VARCHAR2 default null,
 p_external_params IN    varchar2 default null
 ) return BLOB
 as
- 
-l100I10        CLOB;
- 
+
+l_Xslt        CLOB;
+
 begin
-  l100I10 := pak_blob_util.READ2CLOB(p_xsltDir, p_xsltFile, P_NLS_CHARSET);
+  l_Xslt := pak_blob_util.READ2CLOB(p_xsltDir, p_xsltFile, P_NLS_CHARSET);
   return XslTransform(
     p_Xml => p_Xml,
-    p_Xslt => l100I10,
+    p_Xslt => l_Xslt,
     p_format => p_format,
     po_error => po_error,
     p_template => p_template,
     p_external_params => p_external_params
   );
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -1780,29 +2026,42 @@ exception
   );
   raise;
 end;
-$end
- 
- 
+$END
 
-function O100I11
+/** Return otput of XSLT transformation. Replacement from Print Settings are made in XSLT prior to transformation.
+  *
+  * @param p_Xml input XML
+  * @param p_Xslt input XSLT
+  * @param p_app_id application ID from where Print Settings are read,
+  * @param p_page_id page ID from where Print Settings are read,
+  * @param p_region_name region name from where Print Settings are read,
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_error Outputs false if there is a problem on print server side.
+  * @param p_template static OOXML template,
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @return output of XSLT transformation on input XML
+  */
+function XslTransformApex
 (
 p_Xml                   IN    CLOB,
 p_Xslt                  IN OUT  CLOB,
-IIl1Il                IN    number,
-IIl1I0               IN    number,
-OIl11I           IN    varchar2,
-p_format                IN    number,  
-p_fileext               IN    varchar2, 
-po_error                OUT   boolean,
-p_template              IN OUT CLOB, 
+p_app_id                IN    number,
+p_page_id               IN    number,
+p_region_name           IN    varchar2,
+p_format                IN    number,  --default F_TEXT,
+p_fileext               IN    varchar2, --docx, xlsx,..
+po_error                OUT   VARCHAR2,
+p_template              IN OUT CLOB, --default null,
 p_external_params       IN    varchar2 default null
 ) return BLOB
 as
 begin
-  pak_xslt_replacestr.SmartReplaceReportAttr(p_Xslt, IIl1Il, IIl1I0, OIl11I, p_format, p_fileext);
-  pak_xslt_replacestr.SmartReplaceReportAttr(p_template, IIl1Il, IIl1I0, OIl11I, p_format, p_fileext);
-  
- 
+  pak_xslt_replacestr.SmartReplaceReportAttr(p_Xslt, p_app_id, p_page_id, p_region_name, p_format, p_fileext);
+  pak_xslt_replacestr.SmartReplaceReportAttr(p_template, p_app_id, p_page_id, p_region_name, p_format, p_fileext);
+  ----dbms_xslprocessor.clob2file(p_Xslt, 'XMLDIR', 'APEX_standard_layout_replaced.xslt');
+
   return XslTransform(
     p_Xml => p_Xml,
     p_Xslt => p_Xslt,
@@ -1811,138 +2070,194 @@ begin
     p_template => p_template,
     p_external_params => p_external_params
   );
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O100I11 (CLOB)',
+    p_procedure => 'XslTransformApex (CLOB)',
     P_SQLERRM => sqlerrm
   );
   raise;
 end;
- 
+
+
+
 $if CCOMPILING.g_utl_file_privilege $then
 
-procedure O100I11
+
+
+
+/** File version of XSLT transformation. Replacements from Print Settings dialog are made in XSLT prior to transformation.
+  *
+  * @param p_XmlDir Oracle Directory of input XML
+  * @param p_XmlFile filename of input XML
+  * @param p_XsltDir Oracle Directory of input XSLT
+  * @param p_XsltFile filename of input XSLT
+  * @param p_XsltReplacedFile filename of XSLT with replacements from Print Settings dialog are made in XSLT prior to transformation. Location of file is p_XsltDir.
+  * @param p_app_id application ID from where Print Settings are read,
+  * @param p_page_id page ID from where Print Settings are read,
+  * @param p_region_name region name from where Print Settings are read,
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_error Outputs false if there is a problem on print server side.
+  * @param p_templateDir Oracle Directory of static OOXML template,
+  * @param p_templateFile Filename of static OOXML template,
+  * @param p_outDir Oracle Directory of output file,
+  * @param p_outFile Filename of output file,
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  */
+procedure XslTransformApex
 (
 p_xmlDir                IN    varchar2,
 p_xmlFile               IN    varchar2,
 p_xsltDir                IN    varchar2,
 p_xsltFile               IN    varchar2,
 p_xsltReplacedFile       IN    varchar2,
-IIl1Il                IN    number,
-IIl1I0               IN    number,
-OIl11I           IN    varchar2,
-p_format                IN    number,  
-po_error                OUT   boolean,
-p_templateDir                IN    varchar2,
-p_templateFile               IN    varchar2,
-p_templateReplacedFile       IN    varchar2,
+p_app_id                IN    number,
+p_page_id               IN    number,
+p_region_name           IN    varchar2,
+p_format                IN    number,  --default F_TEXT,
+po_error                OUT   VARCHAR2,
+p_templateDir                IN    varchar2 default null,
+p_templateFile               IN    varchar2 default null,
+p_templateReplacedFile       IN    varchar2 default null,
 p_outDir                IN    varchar2,
 p_outFile               IN    varchar2,
 p_external_params       IN    varchar2 default null
 )
+
 as
- 
-IlII1l         CLOB;
-l100I10        CLOB;
-I100I11    CLOB;
+
+l_Xml         CLOB;
+l_Xslt        CLOB;
+l_template    CLOB;
 l_out         BLOB;
 l_fileext varchar2(10);
- 
+
 begin
   l_fileext := lower(substr(p_outFile, nullif( instr(p_outFile,'.', -1) +1, 1) ));
-  IlII1l := pak_blob_util.READ2CLOB(p_xmlDir, p_xmlFile);
-  l100I10 := pak_blob_util.READ2CLOB(p_xsltDir, p_xsltFile);
-  if p_format = f_ooxml then
-    I100I11 := pak_blob_util.READ2CLOB(p_templateDir, p_templateFile);
+  l_Xml := pak_blob_util.READ2CLOB(p_xmlDir, p_xmlFile);
+  l_Xslt := pak_blob_util.READ2CLOB(p_xsltDir, p_xsltFile);
+  if p_templateDir is not null and p_templateFile is not null then
+    l_template := pak_blob_util.READ2CLOB(p_templateDir, p_templateFile);
   end if;
- 
-  pak_xslt_replacestr.SmartReplaceReportAttr(l100I10, IIl1Il, IIl1I0, OIl11I, p_format, l_fileext);
-  dbms_xslprocessor.clob2file(l100I10, p_xsltDir, p_xsltReplacedFile);
-  if p_format = f_ooxml then
-    pak_xslt_replacestr.SmartReplaceReportAttr(I100I11, IIl1Il, IIl1I0, OIl11I, p_format, l_fileext);
-    dbms_xslprocessor.clob2file(I100I11, p_templateDir, p_templateReplacedFile);
+
+  pak_xslt_replacestr.SmartReplaceReportAttr(l_Xslt, p_app_id, p_page_id, p_region_name, p_format, l_fileext);
+  dbms_xslprocessor.clob2file(l_Xslt, p_xsltDir, p_xsltReplacedFile);
+  if p_templateDir is not null and p_templateFile is not null then
+      pak_xslt_replacestr.SmartReplaceReportAttr(l_template, p_app_id, p_page_id, p_region_name, p_format, l_fileext);
+      dbms_xslprocessor.clob2file(l_template, p_templateDir, p_templateReplacedFile);
   end if;
- 
+
   l_out := XslTransform(
-    p_Xml => IlII1l,
-    p_Xslt => l100I10,
+    p_Xml => l_Xml,
+    p_Xslt => l_Xslt,
     p_format => p_format,
     po_error => po_error,
-    p_template => I100I11,
+    p_template => l_template,
     p_external_params => p_external_params
   );
- 
+
   pak_blob_util.Blob2File(p_outDir, p_outFile, l_out);
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O100I11 (file)',
+    p_procedure => 'XslTransformApex (file)',
     P_SQLERRM => sqlerrm
   );
   raise;
 end;
 $end
- 
 
-function O100I11
+/** Return otput of XSLT transformation
+  *
+  * @param p_Xml input XML
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_page_id page ID from where Print Settings are read,
+  * @param p_region_name region name from where Print Settings are read,
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_fileext File extension. E.g. xslx, docx
+  * @param po_error Outputs false if there is a problem on print server side.
+  * @param p_templateStaticFile Filename of APEX static file with static OOXML template,
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @return output of XSLT transformation on input XML
+  */
+function XslTransformApex
 (
   p_Xml                   IN    CLOB,
   p_xsltStaticFile        IN    varchar2,
-  IIl1I0               IN    number,
-  OIl11I           IN    varchar2,
+  p_page_id               IN    number,
+  p_region_name           IN    varchar2,
   po_file_csid            OUT   number,
-  p_format                IN    number,  
+  p_format                IN    number,  --default F_TEXT,
   p_fileext               IN    varchar2,
-  po_error                OUT   boolean,
-  p_templateStaticFile    IN    varchar2, 
+  po_error                OUT   VARCHAR2,
+  p_templateStaticFile    IN    varchar2, --default null,
   p_external_params       IN    varchar2 default null
 ) return BLOB
 as
- 
-l100I10        CLOB;
-I100I11    CLOB;
- 
+
+l_Xslt        CLOB;
+l_template    CLOB;
+
 begin
-  l100I10 := pak_blob_util.StaticFile2CLOB(p_xsltStaticFile, po_file_csid);
-  
+  l_Xslt := pak_blob_util.StaticFile2CLOB(p_xsltStaticFile, po_file_csid);
+  ----dbms_xslprocessor.clob2file(l_Xslt, 'XMLDIR', 'APEX_standard_layout_replaced.xslt');
   if p_templateStaticFile is not null then
-    I100I11 := pak_blob_util.StaticFile2CLOB(p_templateStaticFile, po_file_csid);
+    l_template := pak_blob_util.StaticFile2CLOB(p_templateStaticFile, po_file_csid);
   end if;
- 
-  return O100I11
+
+  return XslTransformApex
   (
     p_Xml => p_Xml,
-    p_Xslt => l100I10,
-    IIl1Il => V('APP_ID'),
-    IIl1I0 => IIl1I0,
-    OIl11I => OIl11I,
-    p_format => p_format,  
+    p_Xslt => l_Xslt,
+    p_app_id => V('APP_ID'),
+    p_page_id => p_page_id,
+    p_region_name => p_region_name,
+    p_format => p_format,  --default F_TEXT,
     p_fileext => p_fileext,
     po_error => po_error,
-    p_template => I100I11, 
+    p_template => l_template, --default null,
     p_external_params => p_external_params
   );
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O100I11',
+    p_procedure => 'XslTransformApex',
     P_SQLERRM => sqlerrm
   );
   raise;
 end;
- 
-$if CCOMPILING.g_utl_file_privilege $then
 
+
+$if CCOMPILING.g_utl_file_privilege $then
+/** Return otput of XSLT transformation
+  *
+  * @param p_Xml input XML
+  * @param p_xsltDir ORA Directory of XSLT file
+  * @param p_xsltFile Filename of XSLT file
+  * @param p_out_dir ORA Directory of output file
+  * @param p_out_fileName Filename of output file
+  * @param p_TemplateDir Oracle server directory of Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_TemplateFile Template filename in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param P_NLS_CHARSET Charset of XSLT file (e.g. 'EE8MSWIN1250' for windows-1250)
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @return output of XSLT transformation on input XML
+  */
 Procedure XslTransform
 (
 p_Xml                   IN    CLOB,
@@ -1950,19 +2265,25 @@ p_xsltDir               IN    varchar2,
 p_xsltFile              IN    varchar2,
 p_out_dir               IN    VARCHAR2,
 p_out_fileName          IN    VARCHAR2,
-p_format                IN    number, 
-p_TemplateDir           IN    VARCHAR2, 
-p_TemplateFile          IN    VARCHAR2, 
+p_format                IN    number, --default F_TEXT,
+p_TemplateDir           IN    VARCHAR2, -- default null,
+p_TemplateFile          IN    VARCHAR2, -- default null,
 P_NLS_CHARSET           IN    VARCHAR2 default null,
 p_external_params       IN    varchar2 default null
 ) as
- 
 
+/*
+p           DBMS_XSLPROCESSOR.Processor;
+ss          DBMS_XSLPROCESSOR.Stylesheet;
+xmldoc      DBMS_XMLDOM.DOMDOCUMENT;
+Xslt        CLOB;
+xsltDoc     DBMS_XMLDOM.DOMDOCUMENT;
+*/
 l_output    BLOB;
+--l_OOXML     BLOB;
+l_length    number;
+l_error     VARCHAR2(4000);
 
-l100II1    number;
-l100Ill     boolean;
- 
 begin
   DBMS_LOB.CREATETEMPORARY(l_output, false);
   l_output := XslTransform(
@@ -1970,13 +2291,13 @@ begin
     p_xsltDir => p_xsltDir,
     p_xsltFile => p_xsltFile,
     p_format => p_format,
-    po_error => l100Ill,
+    po_error => l_error,
     p_Template => pak_blob_util.READ2CLOB(p_TemplateDir, p_TemplateFile, nvl(NLS_CHARSET_ID(P_NLS_CHARSET), 0)),
     P_NLS_CHARSET => P_NLS_CHARSET,
     p_external_params => p_external_params
   );
- 
- 
+
+
   if l_output is null then
     pak_xslt_log.WriteLog(
       'XslTransform finished output null',
@@ -1984,8 +2305,8 @@ begin
       p_procedure => 'XslTransform - XML as CLOB'
     );
   else
-    l100II1 := dbms_lob.getlength(l_output);
-    if l100II1 = 0 then
+    l_length := dbms_lob.getlength(l_output);
+    if l_length = 0 then
       pak_xslt_log.WriteLog(
         'XslTransform finished output zero length',
         p_log_type => pak_xslt_log.g_error,
@@ -1993,17 +2314,23 @@ begin
       );
     else
       pak_xslt_log.WriteLog(
-        'XslTransform finished OK output CLOB length '||to_char(l100II1),
+        'XslTransform finished OK output CLOB length '||to_char(l_length),
         p_procedure => 'XslTransform - XML as CLOB'
       );
     end if;
   end if;
- 
+
   pak_blob_util.Blob2File(p_out_dir, p_out_fileName, l_output);
- 
-  
- 
-  
+
+  /*
+  if l_OOXML is not null then
+    pak_blob_util.Blob2File(p_out_dir, p_out_fileName, l_OOXML);
+  else
+    --dbms_xslprocessor.clob2file(l_output, p_out_dir, p_out_fileName, nvl(NLS_CHARSET_ID(P_NLS_CHARSET), 0));
+  end if;
+  */
+
+  ----dbms_xslprocessor.clob2file(l_output, p_out_dir, p_out_fileName||'.xml', nvl(NLS_CHARSET_ID(P_NLS_CHARSET), 0));
   pak_xslt_log.WriteLog(
       'dbms_xslprocessor.clob2file finished OK',
       p_procedure => 'XslTransform - XML as CLOB'
@@ -2021,34 +2348,36 @@ exception
   raise;
 end XslTransform;
 $end
- 
 
-  function I100I1l(
+
+
+--vrne konÄTnico (doc, txt,.. )
+  function GetFileType(
     P_FILENAME VARCHAR2
   )
   return varchar2
   AS
-  Il01I1 varchar2(20);
-  l100I1l number;
+  l_ret varchar2(20);
+  l_pos number;
   BEGIN
- 
-    l100I1l := INSTR(P_FILENAME, '.', -1, 1);
-    if l100I1l > 0 then
-      Il01I1 := lower(SUBSTR(P_FILENAME, l100I1l + 1));
+
+    l_pos := INSTR(P_FILENAME, '.', -1, 1);
+    if l_pos > 0 then
+      l_ret := lower(SUBSTR(P_FILENAME, l_pos + 1));
     end if;
- 
-    return Il01I1;
+
+    return l_ret;
   end;
- 
-  function O100II0(
+
+  function GetMimeType(
     P_FILENAME VARCHAR2
   )
   return varchar2
   AS
   BEGIN
- 
+
     return
-    case I100I1l(P_FILENAME)
+    case GetFileType(P_FILENAME)
       when 'doc'  then 'application/msword'
       when 'docx' then 'application/msword'
       when 'rtf'  then 'application/rtf'
@@ -2056,66 +2385,66 @@ $end
       when 'xlsx' then 'application/excel'
       else 'application/octet'
     end;
-  END O100II0;
- 
- 
+  END GetMimeType;
+
+
 procedure DownloadBlob(
-    IIl1Il IN NUMBER,
-    OIll1l IN OUT BLOB,
+    P_APP_ID IN NUMBER,
+    P_BLOB IN OUT BLOB,
     P_FILENAME VARCHAR2,
-    IIllI0 boolean default true,
-    OIllI1 varchar2 default 'application/octet'
+    P_TEMPORARY boolean default true,
+    P_MIMETYPE varchar2 default 'application/octet'
   )
   as
-    I100II0 varchar2(50);
-    l100II1 number;
-    O100II1 number;
+    L_MIMETYPE varchar2(50);
+    l_length number;
+    l_workspace_id number;
   begin
-   apex_application.g_flow_id := IIl1Il;
- 
+   apex_application.g_flow_id := P_APP_ID;
+
     IF NOT nvl(wwv_flow_custom_auth_std.is_session_valid, false) then
-      htp.p('Unauthorized access - file will not be downloaded. app_id '||to_char(IIl1Il));
- 
+      htp.p('Unauthorized access - file will not be downloaded. app_id '||to_char(p_app_id));
+
       pak_xslt_log.WriteLog(
         'Unauthorized access from : '|| sys_context('userenv','ip_address') ,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'DownloadBlob'
       );
- 
+
       RETURN;
     END IF;
- 
-    I100II0 := nvl(OIllI1, O100II0(p_filename));
-    l100II1 := DBMS_LOB.GETLENGTH(OIll1l);
- 
-    
-  
-  
-      
-      
-      
- 
-  owa_util.mime_header( nvl(I100II0,'application/octet'), FALSE );
- 
-  
-  htp.p('Content-length: ' || l100II1);
-  
+
+    L_MIMETYPE := nvl(P_MIMETYPE, getmimetype(p_filename));
+    l_length := DBMS_LOB.GETLENGTH(p_Blob);
+
+    --
+  -- set up HTTP header
+  --
+      -- use an NVL around the mime type and
+      -- if it is a null set it to application/octect
+      -- application/octect may launch a download window from windows
+
+  owa_util.mime_header( nvl(L_MIMETYPE,'application/octet'), FALSE );
+
+  -- set the size so the browser knows how much to download
+  htp.p('Content-length: ' || l_length);
+  -- the filename will be used by the browser if the users does a save as
   htp.p('Content-Disposition: attachment; filename="'||p_filename||'"');
-  
+  -- close the headers
   owa_util.http_header_close;
- 
-  
- 
-  wpg_docload.download_file(OIll1l);
-  if IIllI0 then
-    DBMS_LOB.FREETEMPORARY(OIll1l);
+
+  -- download the BLOB
+
+  wpg_docload.download_file(p_blob);
+  if P_TEMPORARY then
+    DBMS_LOB.FREETEMPORARY(p_blob);
   end if;
- 
+
   pak_xslt_log.WriteLog(
-        'Downloaded : '||p_filename||' MIME '||nvl(I100II0,'application/octet') ,
+        'Downloaded : '||p_filename||' MIME '||nvl(L_MIMETYPE,'application/octet') ,
         p_procedure => 'DownloadBlob'
   );
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -2126,101 +2455,207 @@ exception
   );
   raise;
 end;
- 
+
 procedure DownloadConvertOutput
 (
-IIl1Il        number
-,OIllII    BLOB
+P_APP_ID        number
+,p_document    BLOB
 ,p_file_name   VARCHAR2
 ,p_mime         VARCHAR2 default 'application/octet'
-,IIllIl        boolean default false
+,p_error        VARCHAR2 default null
 ,p_blob_csid    number default NLS_CHARSET_ID('UTF8')
-,IIlll0 boolean default false
+,p_convertblob boolean default false
 ,p_convertblob_param varchar2 default null
-,OIlll1    varchar2 default V('APP_USER')
-,IIlllI number default 0
+,P_APP_USER    varchar2 default V('APP_USER')
+,P_RUN_IN_BACKGROUND number default 0
 )
 as
-I100III BLOB;
-l100III NUMBER;
-O100IIl number default 0;
-I100IIl number;
-l100Il0 number default 1;
-O100Il0 number default 1;
-l100Ill varchar(10);
+l_binBlob BLOB;
+l_warning NUMBER;
+l_lang_context number default 0;
+l_blob_csid number;
+l_src_offset number default 1;
+l_dest_offset number default 1;
+--l_error varchar(10);
 l_convertblob varchar(10);
- 
 
- 
+--l_filetype varchar2(5);
+
 begin
-  if IIlll0 = true then 
-    l_convertblob := 'true'; 
-  elsif  IIlll0 = true then 
-    l_convertblob := 'false'; 
+  if p_convertblob = true then
+    l_convertblob := 'true';
+  elsif  p_convertblob = true then
+    l_convertblob := 'false';
   end if;
-  
-  if IIllIl = true then 
-    l100Ill := 'true'; 
-  elsif IIllIl = false then 
-    l100Ill := 'false'; 
+
+  /*
+  if p_error = true then
+    l_error := 'true';
+  elsif p_error = false then
+    l_error := 'false';
   end if;
-  
+  */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   pak_xslt_log.WriteLog(
-        'Start IIl1Il: '||IIl1Il||' OIllII lenght: '||dbms_lob.getlength(OIllII)||
+        'Start P_APP_ID: '||P_APP_ID||' p_document lenght: '||dbms_lob.getlength(p_document)||
         ' p_file_name: ' ||p_file_name||' p_mime '||p_mime||
-        ' IIlll0: '||l_convertblob||' IIllIl: '||l100Ill
-        --' OOXML length: '||dbms_lob.getlength(OIlI10),
- 
+        ' p_convertblob: '||l_convertblob||' p_error: '||p_error
+
+
+
+
+        --' OOXML length: '||dbms_lob.getlength(p_OOXML),
+
         ,p_procedure => 'DownloadConvertOutput'
   );
- 
- 
-  
-  
-  I100III := OIllII;
-  I100IIl := nvl(p_blob_csid, NLS_CHARSET_ID('UTF8'));
- 
+
+
+  --l_filetype := upper(substr(p_file_name, nullif( instr(p_file_name,'.', -1) +1, 1) ));
+  /*
+  if p_OOXML is not null then
+    l_binBlob := p_OOXML;
+    l_blob_csid := null; --binary ZIP no encoding
+  else
+    l_binBlob := pak_blob_util.clob2blob(p_document, p_blob_csid);
+    l_blob_csid := nvl(p_blob_csid, NLS_CHARSET_ID('UTF8'));
+  end if;
+  */
+  l_binBlob := p_document;
+  l_blob_csid := nvl(p_blob_csid, NLS_CHARSET_ID('UTF8'));
+
   pak_xslt_log.WriteLog(
-        'CLOB OIllII lenght: '||dbms_lob.getlength(OIllII)||
-        ' converted to I100III length: '||dbms_lob.getlength(I100III),
- 
+        'CLOB p_document lenght: '||dbms_lob.getlength(p_document)||
+        ' converted to l_binBlob length: '||dbms_lob.getlength(l_binBlob),
+
         p_procedure => 'DownloadConvertOutput'
   );
- 
+
   pak_xslt_log.WriteLog(
         'Start ConvertBLOB p_convertblob_param: '||p_convertblob_param||
-        ' converted to I100III length: '||dbms_lob.getlength(I100III)||
-        ' IIlll0: '||l_convertblob||' IIllIl: '||l100Ill,
- 
+        ' converted to l_binBlob length: '||dbms_lob.getlength(l_binBlob)||
+        ' p_convertblob: '||l_convertblob||' p_error: '||p_error,
+
+
+
+
+
+
+
+
         p_procedure => 'DownloadConvertOutput'
   );
- 
-  if IIlll0 = true and nvl(IIllIl, false) = false then
-    ConvertBLOB(I100III, p_convertblob_param, I100IIl, OIlll1, IIlllI);
+
+  if p_convertblob = true and p_error is null then
+    ConvertBLOB(l_binBlob, p_convertblob_param, l_blob_csid, P_APP_USER, P_RUN_IN_BACKGROUND);
   else
       pak_xslt_log.WriteLog(
         'NOT starting ConvertBLOB p_convertblob_param: '||p_convertblob_param||
-        ' converted to I100III length: '||dbms_lob.getlength(I100III)||
-        ' IIlll0: '||l_convertblob||' IIllIl: '||l100Ill ,
+        ' converted to l_binBlob length: '||dbms_lob.getlength(l_binBlob)||
+        ' p_convertblob: '||l_convertblob||' p_error: '||p_error ,
         p_procedure => 'DownloadConvertOutput');
   end if;
- 
+
   pak_xslt_log.WriteLog(
         'Finish ConverBLOB p_convertblob_param: '||p_convertblob_param||
-        ' converted to I100III length: '||dbms_lob.getlength(I100III),
- 
+        ' converted to l_binBlob length: '||dbms_lob.getlength(l_binBlob),
+
         p_procedure => 'DownloadConvertOutput'
   );
- 
-  
-  if I100III is not null then
-    
-      
-    
-      DownloadBlob(IIl1Il, I100III, p_file_name, OIllI1 => p_mime);
-    
+
+  --DBMS_LOB.FREETEMPORARY(pio_document);
+  if l_binBlob is not null then
+    --if p_error then
+      --DownloadBlob(P_APP_ID, l_binBlob, 'error.txt', p_mimetype => 'text/plain'); --full version
+    --else
+      DownloadBlob(P_APP_ID, l_binBlob, p_file_name, p_mimetype => p_mime);
+    --end if;
   end if;
- 
+
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -2231,43 +2666,60 @@ exception
   );
   raise;
 end;
- 
-procedure OIll10(
-  IIll11            IN  varchar2,
+
+procedure DownloadStaticFile(
+  p_staticFile            IN  varchar2,
   p_mime                 in  VARCHAR2 default 'application/octet'
 )
 as
-I100Il1 number;
-l100Il1 varchar2(10);
+l_file_id number;
+l_apex_ver varchar2(10);
 begin
   SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1)
-  into l100Il1
+  into l_apex_ver
   FROM apex_release;
- 
-  select id into I100Il1
+
+  select id into l_file_id
   from wwv_flow_files
-  where (file_type = 'STATIC_FILE' or l100Il1 = '4.1') and filename = IIll11;
- 
-  apex_util.get_file(I100Il1, p_mime);
+  where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1') and filename = p_staticFile;
+
+  apex_util.get_file(l_file_id, p_mime);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'OIll10',
+    p_procedure => 'DownloadStaticFile',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
-$if CCOMPILING.g_utl_file_privilege $then
 
+
+
+
+$if CCOMPILING.g_utl_file_privilege $then
+/** Return otput of XSLT transformation
+  *
+  * @param p_xmlDir ORA Directory of input XML
+  * @param p_xmlFname input XML filename
+  * @param p_xsltDir ORA Directory of XSLT file
+  * @param p_xsltFile Filename of XSLT file
+  * @param p_out_dir ORA Directory of output file
+  * @param p_out_fileName Filename of output file
+  * @param P_NLS_CHARSET Charset of XSLT file (e.g. 'EE8MSWIN1250' for windows-1250)
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @return output of XSLT transformation on input XML
+  */
 Procedure XslTransform
 (
 p_xmlDir          IN  VARCHAR2,
 p_xmlFname        IN  VARCHAR2,
 p_xsltDir         IN  varchar2,
-p_xsltFile        IN  varchar2,
+p_xsltFname       IN  varchar2,
 p_outDir          IN  VARCHAR2,
 p_outFname        IN  VARCHAR2,
 P_NLS_CHARSET     IN  VARCHAR2 default null,
@@ -2276,30 +2728,30 @@ p_TemplateDir     IN  VARCHAR2 default null,
 p_TemplateFile    IN  VARCHAR2 default null,
 p_external_params IN    varchar2 default null
 ) as
-IlII1l         CLOB;
- 
- 
-begin
+l_Xml         CLOB;
 
- 
-  IlII1l := pak_blob_util.READ2CLOB(p_xmlDir, p_xmlFname); 
+
+begin
+--WE8ISO8859P2
+
+  l_Xml := pak_blob_util.READ2CLOB(p_xmlDir, p_xmlFname); --, P_NLS_CHARSET);
   XslTransform
   (
-    p_Xml               => IlII1l,
+    p_Xml               => l_Xml,
     p_xsltDir           => p_xsltDir,
-    p_xsltFile          => p_xsltFile,
+    p_xsltFile          => p_xsltFname,
     p_out_dir           => p_outDir,
     p_out_fileName      => p_outFname,
-    p_format            => p_format, 
-    p_TemplateDir       => p_TemplateDir, 
-    p_TemplateFile      => p_TemplateFile, 
+    p_format            => p_format, --default F_TEXT,
+    p_TemplateDir       => p_TemplateDir, -- default null,
+    p_TemplateFile      => p_TemplateFile, -- default null,
     P_NLS_CHARSET       => P_NLS_CHARSET,
     p_external_params   => p_external_params
   );
-  dbms_lob.freetemporary(IlII1l);
+  dbms_lob.freetemporary(l_Xml);
 exception
   when others then
-  dbms_lob.freetemporary(IlII1l);
+  dbms_lob.freetemporary(l_Xml);
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
@@ -2309,15 +2761,191 @@ exception
   raise;
 end XslTransform;
 $end
- 
+
+/** returns otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single input XML
+  *
+  * @param p_Xml input XML
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_TemplateFile Filename of Template uploaded inro static files (in Flat OPC format) from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * @param p_log_level Log level in job.
+  * See format notes at p_external_params parameter.
+  */
+
+function XslTransform
+(
+p_Xml                   IN OUT CLOB,
+p_xsltStaticFile        IN  varchar2,
+p_page_id               IN number,
+p_region_name           IN varchar2,
+p_filename              in  VARCHAR2,
+pi_regionAttrs          in tab_string,
+pi_reportTypes          IN OUT t_coltype_tables,
+--p_mime                  in  VARCHAR2 default 'application/octet',
+p_format                IN  number default null,
+p_templateStaticFile    in  VARCHAR2 default null,
+p_external_params       IN  varchar2 default null,
+p_second_XsltStaticFile  IN  varchar2 default null,
+p_second_external_params IN  varchar2 default null,
+--p_convertblob_param      IN  varchar2 default null,
+p_log_level              IN  number   default null,
+p_security_group_id      IN  number   default null --,
+--p_app_user               IN  varchar2 default V('APP_USER'),
+--p_run_in_background      IN  number default 0
+) return BLOB
+as
+l_document  BLOB;
+l_error     VARCHAR2(400);
+--l_first_document CLOB;
+l_file_csid number;
+--l_OOXML BLOB;
+l_start_time PLS_INTEGER;
+l_fileext varchar2(10);
+
+begin
+
+  l_fileext := lower(substr(p_filename, nullif( instr(p_filename,'.', -1) +1, 1) ));
+
+  if p_log_level is not null then
+    pak_xslt_log.SetLevel(p_log_level);
+  end if;
+
+  if p_security_group_id is not null then
+    wwv_flow_api.set_security_group_id(p_security_group_id);
+  end if;
+
+
+  l_start_time := dbms_utility.get_time();
+  ----dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug4.xml');
+  pak_xml_convert.xmlConvert(p_Xml, p_filename, pi_regionAttrs, pi_reportTypes);--, pio_endOffset => l_offset);
+  ----dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug5.xml');
+  pak_xslt_log.WriteLog(
+    'Query2Report.ConvertXml finished'
+    ,p_procedure => 'XslTransform'
+    , p_start_time => l_start_time
+  );
+
+  l_start_time := dbms_utility.get_time();
+
+  pak_xslt_log.WriteLog( p_description => 'XslTransform started length(p_xml) '||dbms_lob.getlength(p_xml)||
+                                ' p_xsltStaticFile: '||p_xsltStaticFile||
+                                ' p_page_id: '||p_page_id||
+                                ' p_region_name: '||p_region_name||
+                                ' p_filename: '||p_filename||
+                                --' p_mime: '||p_mime||
+                                ' p_format: '||p_format||
+                                ' p_external_params: '||p_external_params||
+                                ' p_second_XsltStaticFile: '||p_second_XsltStaticFile||
+                                ' p_second_external_params: '||p_second_external_params||
+                                --' p_convertblob_param: '||p_convertblob_param||
+                                ' p_log_level: '||p_log_level--||
+                                --' p_security_group_id: '||p_security_group_id||
+                                --' P_APP_USER: '||P_APP_USER--||
+                                --' P_RUN_IN_BACKGROUND: '||P_RUN_IN_BACKGROUND,
+                                ,p_procedure => 'XslTransform'
+                              );
+
+  pak_xslt_log.WriteLog( p_description => 'XslTransform started - pi_reportTypes: '||PAK_XML_CONVERT.LogColTypes(pi_reportTypes),
+                                p_procedure => 'XslTransform'
+                              );
+
+  if p_second_XsltStaticFile is not null then
+    l_document := XslTransformApex(
+      p_Xml => p_Xml,
+      p_xsltStaticFile => p_XsltStaticFile,
+      p_page_id => p_page_id,
+      p_region_name => p_region_name,
+      po_file_csid => l_file_csid,
+      p_format => F_XML,
+      p_fileext => 'xml',
+      po_error => l_error,
+      p_templateStaticFile => null, --default null,
+      p_external_params => p_external_params
+    );
+
+
+    if l_error is null then
+      l_document := XslTransformApex( --first output must be XML
+        p_Xml => pak_blob_util.blob2clob(l_document),
+        p_xsltStaticFile => p_second_XsltStaticFile,
+        p_page_id => p_page_id,
+        p_region_name => p_region_name,
+        po_file_csid => l_file_csid,
+        p_format => p_format,
+        p_fileext => l_fileext,
+        po_error => l_error,
+        p_templateStaticFile => p_templateStaticFile, --default null,
+        p_external_params => p_second_external_params
+      );
+    end if;
+  else
+    l_document := XslTransformApex(
+      p_Xml => p_Xml,
+      p_xsltStaticFile => p_XsltStaticFile,
+      p_page_id => p_page_id,
+      p_region_name => p_region_name,
+      po_file_csid => l_file_csid,
+      p_format => p_format,
+      p_fileext => l_fileext,
+      po_error => l_error,
+      p_templateStaticFile => p_templateStaticFile, --default null,
+      p_external_params => p_external_params
+    );
+  end if;
+
+
+  pak_xslt_log.WriteLog( 'XslTransform finished ',
+                                p_procedure => 'XslTransform',
+                                p_start_time => l_start_time
+                              );
+
+   return l_document;
+exception
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'XslTransform',
+    p_sqlerrm => sqlerrm
+  );
+  raise;
+end XslTransform;
+
+
+/** Download otput or do some action  defined in ConvertBlob procedure with otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single input XML
+  *
+  * @param p_Xml input XML
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_mime Mime type of downloaded file
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_TemplateFile Filename of Template uploaded inro static files (in Flat OPC format) from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertBLOB procedure.
+  * @param p_log_level Log level in job.
+  * See format notes at p_external_params parameter.
+  */
+
 
 Procedure XslTransformAndDownload
 (
 p_Xml                   IN OUT CLOB,
 p_xsltStaticFile        IN  varchar2,
-IIl1I0               IN number,
-OIl11I           IN varchar2,
+p_page_id               IN number,
+p_region_name           IN varchar2,
 p_filename              in  VARCHAR2,
+pi_regionAttrs          in tab_string,
+pi_reportTypes          IN OUT t_coltype_tables,
 p_mime                  in  VARCHAR2 default 'application/octet',
 p_format                IN  number default null,
 p_templateStaticFile    in  VARCHAR2 default null,
@@ -2325,119 +2953,52 @@ p_external_params       IN  varchar2 default null,
 p_second_XsltStaticFile  IN  varchar2 default null,
 p_second_external_params IN  varchar2 default null,
 p_convertblob_param      IN  varchar2 default null,
-ll0000              IN  number   default null,
-Ol0000      IN  number   default null,
-OIlll1               IN  varchar2 default V('APP_USER'),
-IIlllI      IN  number default 0
+p_log_level              IN  number   default null,
+p_security_group_id      IN  number   default null,
+p_app_user               IN  varchar2 default V('APP_USER'),
+p_run_in_background      IN  number default 0
 ) as
-IlII1l       CLOB;
-O100IlI  BLOB;
-I100IlI      BLOB;
-l100Ill     boolean default false;
+l_document  BLOB;
+l_error     VARCHAR2(400);
+l_file_csid number;
+l_start_time PLS_INTEGER;
 
-O100Ill number;
-
-OlII11 PLS_INTEGER;
-l_fileext varchar2(10);
- 
 begin
- 
-  l_fileext := lower(substr(p_filename, nullif( instr(p_filename,'.', -1) +1, 1) ));
- 
-  if ll0000 is not null then
-    pak_xslt_log.SetLevel(ll0000);
-  end if;
- 
-  if Ol0000 is not null then
-    wwv_flow_api.set_security_group_id(Ol0000);
-  end if;
- 
-  OlII11 := dbms_utility.get_time();
-  
-  query2report.OIll1I(p_Xml);
-  
-  pak_xslt_log.WriteLog(
-    'Query2Report.ConvertXml finished'
-    ,p_procedure => 'XslTransformAndDownload'
-    , p_start_time => OlII11
-  );
- 
-  OlII11 := dbms_utility.get_time();
- 
-  pak_xslt_log.WriteLog( p_description => 'XslTransformAndDownload started length(p_xml) '||dbms_lob.getlength(p_xml)||
-                                ' p_xsltStaticFile: '||p_xsltStaticFile||
-                                ' IIl1I0: '||IIl1I0||
-                                ' OIl11I: '||OIl11I||
-                                ' p_filename: '||p_filename||
-                                ' p_mime: '||p_mime||
-                                ' p_format: '||p_format||
-                                ' p_external_params: '||p_external_params||
-                                ' p_second_XsltStaticFile: '||p_second_XsltStaticFile||
-                                ' p_second_external_params: '||p_second_external_params||
-                                ' p_convertblob_param: '||p_convertblob_param||
-                                ' ll0000: '||ll0000||
-                                ' Ol0000: '||Ol0000||
-                                ' OIlll1: '||OIlll1||
-                                ' IIlllI: '||IIlllI,
-                                p_procedure => 'XslTransformAndDownload'
-                              );
- 
-  if p_second_XsltStaticFile is not null then
-    O100IlI := O100I11(
-      p_Xml => p_Xml,
-      p_xsltStaticFile => p_XsltStaticFile,
-      IIl1I0 => IIl1I0,
-      OIl11I => OIl11I,
-      po_file_csid => O100Ill,
-      p_format => F_XML,
-      p_fileext => 'xml',
-      po_error => l100Ill,
-      p_templateStaticFile => null, 
-      p_external_params => p_external_params
+
+  l_start_time := dbms_utility.get_time();
+
+  l_document :=
+    XslTransform
+    (
+        p_Xml            ,
+        p_xsltStaticFile ,
+        p_page_id         ,
+        p_region_name      ,
+        p_filename         ,
+        pi_regionAttrs     ,
+        pi_reportTypes      ,
+        p_format             ,
+        p_templateStaticFile  ,
+        p_external_params      ,
+        p_second_XsltStaticFile ,
+        p_second_external_params,
+        p_log_level             ,
+        p_security_group_id
     );
- 
- 
-      if not nvl(l100Ill, false) then
-      O100IlI := O100I11( 
-        p_Xml => pak_blob_util.blob2clob(O100IlI),
-        p_xsltStaticFile => p_second_XsltStaticFile,
-        IIl1I0 => IIl1I0,
-        OIl11I => OIl11I,
-        po_file_csid => O100Ill,
-        p_format => p_format,
-        p_fileext => l_fileext,
-        po_error => l100Ill,
-        p_templateStaticFile => p_templateStaticFile, 
-        p_external_params => p_second_external_params
-      );
-    end if;
-  else
-    O100IlI := O100I11(
-      p_Xml => p_Xml,
-      p_xsltStaticFile => p_XsltStaticFile,
-      IIl1I0 => IIl1I0,
-      OIl11I => OIl11I,
-      po_file_csid => O100Ill,
-      p_format => p_format,
-      p_fileext => l_fileext,
-      po_error => l100Ill,
-      p_templateStaticFile => p_templateStaticFile, 
-      p_external_params => p_external_params
-    );
-  end if;
-  DownloadConvertOutput(V('APP_ID'), O100IlI, p_filename,
-              IIllIl => l100Ill,
-              p_blob_csid => O100Ill,
+
+  DownloadConvertOutput(V('APP_ID'), l_document, p_filename,
+              p_error => l_error,
+              p_blob_csid => l_file_csid,
               p_mime => p_mime,
-              IIlll0 => true,
+              p_convertblob => true,
               p_convertblob_param => p_convertblob_param,
-              OIlll1 => OIlll1,
-              IIlllI => IIlllI
+              p_app_user => p_app_user,
+              p_run_in_background => p_run_in_background
               );
- 
+
   pak_xslt_log.WriteLog( 'XslTransformAndDownload finished ',
                                 p_procedure => 'XslTransformAndDownload',
-                                p_start_time => OlII11
+                                p_start_time => l_start_time
                               );
 exception
   when others then
@@ -2449,15 +3010,33 @@ exception
   );
   raise;
 end XslTransformAndDownload;
- 
 
+/** Download otput or do some action  defined in ConvertBlob procedure with otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single input XML
+  *
+  * @param p_id_temporary_xml ID of input XML in temporary_xml table
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_mime Mime type of downloaded file
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_TemplateFile Filename of Template uploaded inro static files (in Flat OPC format) from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertBLOB procedure.
+  * @param p_log_level Log level in job.
+  * See format notes at p_external_params parameter.
+  */
 Procedure XslTransformAndDownloadXMLID
 (
-Il0001      IN  NUMBER,
+p_id_temporary_xml      IN  NUMBER,
 p_xsltStaticFile        IN  varchar2,
-IIl1I0               IN NUMBER,
-OIl11I           IN VARCHAR2,
-p_filename              in  VARCHAR2,
+p_page_id               IN NUMBER,
+p_region_name           IN VARCHAR2,
+p_filename              in VARCHAR2,
+p_regionAttrs           in VARCHAR2,
+p_reportTypes           IN VARCHAR2,
 p_mime                  in  VARCHAR2 default 'application/octet',
 p_format                IN  number default null,
 p_templateStaticFile    in  VARCHAR2 default null,
@@ -2465,47 +3044,56 @@ p_external_params       IN  varchar2 default null,
 p_second_XsltStaticFile  IN  varchar2 default null,
 p_second_external_params IN  varchar2 default null,
 p_convertblob_param      IN  varchar2 default null,
-ll0000              IN  number   default null,
-Ol0000      IN  number   default null,
-OIlll1               IN  varchar2 default V('APP_USER'),
-IIlllI      IN  number default 0
+p_log_level              IN  number   default null,
+p_security_group_id      IN  number   default null,
+p_app_user               IN  varchar2 default V('APP_USER'),
+p_run_in_background      IN  number default 0
 ) as
-I100l00 CLOB;
-OlII11 PLS_INTEGER;
+l_xmlclob CLOB;
+l_start_time PLS_INTEGER;
+l_regionAttrs Query2Report.tab_string;
+l_reportTypes Query2Report.t_coltype_tables;
 begin
-  pak_xslt_log.Setlevel(ll0000);
- 
-  OlII11 := dbms_utility.get_time();
- 
-  pak_xslt_log.WriteLog( p_description => 'Background XslTransformAndDownloadXMLID started Il0001 '||Il0001||
+  pak_xslt_log.Setlevel(p_log_level);
+
+  l_start_time := dbms_utility.get_time();
+
+  pak_xslt_log.WriteLog( p_description => 'Background XslTransformAndDownloadXMLID started p_id_temporary_xml '||p_id_temporary_xml||
                                 ' p_xsltStaticFile: '||p_xsltStaticFile||
-                                ' IIl1I0: '||IIl1I0||
-                                ' OIl11I: '||OIl11I||
+                                ' p_page_id: '||p_page_id||
+                                ' p_region_name: '||p_region_name||
                                 ' p_filename: '||p_filename||
+                                ' p_regionAttrs: '||p_regionAttrs||
+                                ' p_reportTypes: '||p_reportTypes||
                                 ' p_mime: '||p_mime||
                                 ' p_format: '||p_format||
                                 ' p_external_params: '||p_external_params||
                                 ' p_second_XsltStaticFile: '||p_second_XsltStaticFile||
                                 ' p_second_external_params: '||p_second_external_params||
                                 ' p_convertblob_param: '||p_convertblob_param||
-                                ' ll0000: '||ll0000||
-                                ' Ol0000: '||Ol0000||
-                                ' OIlll1: '||OIlll1||
-                                ' IIlllI: '||IIlllI,
+                                ' p_log_level: '||p_log_level||
+                                ' p_security_group_id: '||p_security_group_id||
+                                ' P_APP_USER: '||P_APP_USER||
+                                ' P_RUN_IN_BACKGROUND: '||P_RUN_IN_BACKGROUND,
                                 p_procedure => 'XslTransformAndDownloadXMLID'
                               );
- 
-  select xmlclob into I100l00
+
+  select xmlclob into l_xmlclob
   from temporary_xml
-  where id_temporary_xml = Il0001;
- 
+  where id_temporary_xml = p_id_temporary_xml;
+
+  l_regionAttrs := PAK_XML_CONVERT.DeserializeRegionAttrs(p_regionAttrs);
+  l_reportTypes := PAK_XML_CONVERT.DeserializeColTypes(p_reportTypes);
+
   XslTransformAndDownload
   (
-    I100l00,
+    l_xmlclob,
     p_xsltStaticFile,
-    IIl1I0,
-    OIl11I,
+    p_page_id,
+    p_region_name,
     p_filename  ,
+    l_regionAttrs,
+    l_reportTypes,
     p_mime,
     p_format,
     p_templateStaticFile,
@@ -2513,24 +3101,24 @@ begin
     p_second_XsltStaticFile ,
     p_second_external_params,
     p_convertblob_param     ,
-    ll0000             ,
-    Ol0000     ,
-    OIlll1              ,
-    IIlllI
+    p_log_level             ,
+    p_security_group_id     ,
+    p_app_user              ,
+    p_run_in_background
   );
- 
+
   delete from temporary_xml
-  where id_temporary_xml = Il0001;
+  where id_temporary_xml = p_id_temporary_xml;
   commit;
- 
+
   pak_xslt_log.WriteLog( 'Background XslTransformAndDownloadXMLID finished ',
                                 p_procedure => 'XslTransformAndDownloadXMLID',
-                                p_start_time => OlII11
+                                p_start_time => l_start_time
                               );
 exception when others then
   rollback;
   delete from temporary_xml
-  where id_temporary_xml = Il0001;
+  where id_temporary_xml = p_id_temporary_xml;
   commit;
   pak_xslt_log.WriteLog(
     'Error',
@@ -2540,17 +3128,35 @@ exception when others then
   );
   raise;
 end XslTransformAndDownloadXMLID;
- 
- 
 
- 
-Procedure ll0001
+
+/** Execute below procedure as job with DBMS_SCHEDULER package
+  *
+  * @param p_Xml input XML
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_mime Mime type of downloaded file
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_TemplateFile Filename of Template uploaded inro static files (in Flat OPC format) from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertBLOB procedure.
+  * @param p_log_level Log level in job.
+  * See format notes at p_external_params parameter.
+  */
+
+Procedure XslTransformAndDownloadJob
 (
-Il0001    IN  number,
+p_id_temporary_xml    IN  number,
 p_xsltStaticFile        IN  varchar2,
-IIl1I0               IN number,
-OIl11I           IN varchar2,
+p_page_id               IN number,
+p_region_name           IN varchar2,
 p_filename              in  VARCHAR2,
+p_regionAttrs          in tab_string,
+p_reportTypes          IN t_coltype_tables,
 p_mime                  in  VARCHAR2 default 'application/octet',
 p_format                IN  number default null,
 p_templateStaticFile    in  VARCHAR2 default null,
@@ -2558,116 +3164,145 @@ p_external_params       IN  varchar2 default null,
 p_second_XsltStaticFile  IN  varchar2 default null,
 p_second_external_params IN  varchar2 default null,
 p_convertblob_param      IN  varchar2 default null,
-ll0000              IN  number   default null
+p_log_level              IN  number   default null
 ) as
+l_regionAttrs VARCHAR2(32000);
+l_reportTypes VARCHAR2(32000);
 begin
-  pak_xslt_log.WriteLog( 'll0001 started Il0001 '||Il0001||
+  l_regionAttrs := PAK_XML_CONVERT.SerializeRegionAttrs(p_regionAttrs);
+  l_reportTypes := PAK_XML_CONVERT.SerializeColTypes(p_reportTypes);
+
+  pak_xslt_log.WriteLog( 'XslTransformAndDownloadJob started p_id_temporary_xml '||p_id_temporary_xml||
                                 ' p_xsltStaticFile: '||p_xsltStaticFile||
-                                ' IIl1I0: '||IIl1I0||
-                                ' OIl11I: '||OIl11I||
+                                ' p_page_id: '||p_page_id||
+                                ' p_region_name: '||p_region_name||
                                 ' p_filename: '||p_filename||
+                                ' l_regionAttrs: '||l_regionAttrs||
+                                ' l_reportTypes: '||l_reportTypes||
                                 ' p_mime: '||p_mime||
                                 ' p_format: '||p_format||
                                 ' p_external_params: '||p_external_params||
                                 ' p_second_XsltStaticFile: '||p_second_XsltStaticFile||
                                 ' p_second_external_params: '||p_second_external_params||
                                 ' p_convertblob_param: '||p_convertblob_param||
-                                ' ll0000: '||ll0000,
- 
-                                p_procedure => 'll0001'
+                                ' p_log_level: '||p_log_level,
+
+                                p_procedure => 'XslTransformAndDownloadJob'
                               );
- 
- 
+
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 1,
-                                        argument_value    => Il0001);
- 
+                                        argument_value    => p_id_temporary_xml);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 2,
                                         argument_value    => p_xsltStaticFile);
- 
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 3,
-                                        argument_value    => IIl1I0);
- 
+                                        argument_value    => p_page_id);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 4,
-                                        argument_value    => OIl11I);
- 
- 
+                                        argument_value    => p_region_name);
+
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 5,
                                         argument_value    => p_filename);
- 
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 6,
-                                        argument_value    => p_mime);
- 
+                                        argument_value    => l_regionAttrs);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 7,
-                                        argument_value    => p_format);
- 
+                                        argument_value    => l_reportTypes);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 8,
-                                        argument_value    => p_templateStaticFile);
- 
- 
+                                        argument_value    => p_mime);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 9,
-                                        argument_value    => p_external_params);
- 
+                                        argument_value    => p_format);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 10,
-                                        argument_value    => p_second_XsltStaticFile);
- 
+                                        argument_value    => p_templateStaticFile);
+
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 11,
-                                        argument_value    => p_second_external_params);
- 
+                                        argument_value    => p_external_params);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 12,
-                                        argument_value    => p_convertblob_param);
- 
+                                        argument_value    => p_second_XsltStaticFile);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 13,
-                                        argument_value    => ll0000);
- 
+                                        argument_value    => p_second_external_params);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 14,
-                                        argument_value    => apex_custom_auth.get_security_group_id);
- 
+                                        argument_value    => p_convertblob_param);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 15,
-                                        argument_value    => V('APP_USER'));
- 
+                                        argument_value    => p_log_level);
+
   dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
                                         argument_position => 16,
+                                        argument_value    => apex_custom_auth.get_security_group_id);
+
+  dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
+                                        argument_position => 17,
+                                        argument_value    => V('APP_USER'));
+
+  dbms_scheduler.set_job_argument_value(job_name          => 'job_XslTransformAndDownload',
+                                        argument_position => 18,
                                         argument_value    => 1);
- 
+
   dbms_scheduler.run_job(job_name => 'job_XslTransformAndDownload', use_current_session => false);
- 
-  pak_xslt_log.WriteLog( 'Query2Report.ll0001 finished ',
-                                p_procedure => 'll0001'
+
+  pak_xslt_log.WriteLog( 'Query2Report.XslTransformAndDownloadJob finished ',
+                                p_procedure => 'XslTransformAndDownloadJob'
                               );
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'll0001',
+    p_procedure => 'XslTransformAndDownloadJob',
     p_sqlerrm => sqlerrm
   );
   raise;
-end ll0001;
- 
- 
+end XslTransformAndDownloadJob;
 
-function l100l00
+
+/** Return otput of (p_Xslt) or two (p_Xslt, p_second_Xslt) XSLT transformation(s) applied on single input XML (p_Xml).
+  *
+  * @param p_Xml input XML
+  * @param p_Xslt First XSLT CLOB
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_OOXML If p_format is set to g_ooxml OOXML (DOCX or XLSX) BLOB will be returned.
+  * @param p_template  Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_Xslt Second XSLT BLOB applied after p_Xslt
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @return otput of (p_Xslt) or two (p_Xslt, p_second_Xslt) XSLT transformation(s) applied on single input XML (p_Xml).
+  */
+function XslTransformEx
 (
 p_Xml                   IN  CLOB,
 p_Xslt                  IN  CLOB,
 p_format                IN  number default null,
-po_error                OUT boolean,
+po_error                OUT VARCHAR2,
 p_Template              IN    CLOB default null,
 p_external_params       IN  varchar2 default null,
 p_second_Xslt           IN  CLOB default null,
@@ -2675,13 +3310,13 @@ p_second_external_params IN  varchar2 default null
 )
 return BLOB
 as
-O100IlI  BLOB;
- 
+l_document  BLOB;
+
 begin
- 
+
   if p_second_Xslt is not null then
- 
-    O100IlI := XslTransform(
+
+    l_document := XslTransform(
       p_Xml => p_Xml,
       p_Xslt => p_Xslt,
       p_format => F_XML,
@@ -2689,10 +3324,10 @@ begin
       p_template => p_template,
       p_external_params => p_external_params
     );
- 
-    if not po_error then
-      O100IlI := XslTransform( 
-        p_Xml => pak_blob_util.blob2clob(O100IlI),
+
+    if po_error is null then
+      l_document := XslTransform( --first output must be XML
+        p_Xml => pak_blob_util.blob2clob(l_document),
         p_Xslt => p_second_Xslt,
         p_format => p_format,
         po_error => po_error,
@@ -2701,7 +3336,7 @@ begin
       );
     end if;
   else
-    O100IlI := XslTransform(
+    l_document := XslTransform(
       p_Xml => p_Xml,
       p_Xslt => p_Xslt,
       p_format => p_format,
@@ -2710,20 +3345,37 @@ begin
       p_external_params => p_external_params
     );
   end if;
-  return O100IlI;
+  return l_document;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l100l00 (both XSLT)',
+    p_procedure => 'XslTransformEx (both XSLT)',
     p_sqlerrm => sqlerrm
   );
   raise;
-end l100l00;
- 
- 
+end XslTransformEx;
 
+
+/** Download otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single input XML
+  *
+  * @param p_Xml input XML
+  * @param p_Xslt First XSLT BLOB
+  * @param p_filename Filename of downloaded output
+  * @param p_XSLT_CS Character set of first XSLT. E.g. 'EEMSWIN1250' for windows-1250 CS
+  * @param p_mime Mime type of downloaded file
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_template Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_template_CS Character set of Template in Flat OPC format. E.g. 'EEMSWIN1250' for windows-1250 CS. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_Xslt Second XSLT BLOB applied after p_Xslt
+  * @param p_second_XSLT_file_CS Character set ID of second XSLT
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  */
 Procedure XslTransformAndDownload
 (
 p_Xml                   IN  CLOB,
@@ -2736,52 +3388,52 @@ p_template              IN  BLOB  default null,
 p_template_CS           IN  varchar2 default null,
 p_external_params       IN  varchar2 default null,
 p_second_Xslt           IN  BLOB default null,
-Ol000I        in  varchar2 default null,
+p_second_XSLT_CS        in  varchar2 default null,
 p_second_external_params IN  varchar2 default null,
 p_convertblob_param      IN  varchar2 default null
 ) as
-O100IlI BLOB;
+l_document BLOB;
+--l_first_document CLOB;
 
- 
+--l_XSLT_csid number;
+--l_second_XSLT_csid number;
+--l_template_csid number;
 
+l_Xslt CLOB;
+l_second_Xslt CLOB;
+l_template CLOB;
+l_error VARCHAR2(4000);
 
-
- 
-l100I10 CLOB;
-O100l01 CLOB;
-I100I11 CLOB;
-l100Ill boolean;
- 
 begin
-  l100I10:=pak_blob_util.BLOB2CLOB(p_Xslt, NLS_CHARSET_ID(p_XSLT_CS));
+  l_Xslt:=pak_blob_util.BLOB2CLOB(p_Xslt, NLS_CHARSET_ID(p_XSLT_CS));
   if p_second_Xslt is not null then
-    O100l01:=pak_blob_util.BLOB2CLOB(p_second_Xslt, NLS_CHARSET_ID(Ol000I));
+    l_second_Xslt:=pak_blob_util.BLOB2CLOB(p_second_Xslt, NLS_CHARSET_ID(p_second_XSLT_CS));
   end if;
- 
+
   if p_template is not null then
-    I100I11 := pak_blob_util.BLOB2CLOB(p_template, NLS_CHARSET_ID(p_template_CS));
+    l_template := pak_blob_util.BLOB2CLOB(p_template, NLS_CHARSET_ID(p_template_CS));
   end if;
- 
-  O100IlI := l100l00
+
+  l_document := XslTransformEx
   (
     p_Xml => p_Xml,
-    p_Xslt => l100I10,
+    p_Xslt => l_Xslt,
     p_format => p_format,
-    po_error => l100Ill,
-    p_template => I100I11,
+    po_error => l_error,
+    p_template => l_template,
     p_external_params => p_external_params,
-    p_second_Xslt => O100l01,
+    p_second_Xslt => l_second_Xslt,
     p_second_external_params => p_second_external_params
   );
- 
-  DownloadConvertOutput(V('APP_ID'), O100IlI, p_filename,
-    IIllIl => l100Ill,
-    p_blob_csid => nvl(NLS_CHARSET_ID(Ol000I), NLS_CHARSET_ID(p_XSLT_CS)),
+
+  DownloadConvertOutput(V('APP_ID'), l_document, p_filename,
+    p_error => l_error,
+    p_blob_csid => nvl(NLS_CHARSET_ID(p_second_XSLT_CS), NLS_CHARSET_ID(p_XSLT_CS)),
     p_mime => p_mime,
-    IIlll0 => true,
+    p_convertblob => true,
     p_convertblob_param => p_convertblob_param
   );
-  
+  --dbms_lob.freetemporary(l_document);
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -2792,447 +3444,480 @@ exception
   );
   raise;
 end XslTransformAndDownload;
- 
 
- procedure I100l01(
+/** Create "starter" XSLT transformation from text produced by MS Office when
+  * saving document in format which is not XML, HTML, RTF or MHT.
+  * "starter" XSLT transformation means that if you apply XSLT to custom XML
+  * you get the original text. No XML data will be included in resulted text.
+  * You should build your specific XSLT for transforming XML from this starter XSLT.
+  *
+  * @param pio_rtf CLOB On input this CLOB is in RTF or MHT format on output this is starter XSLT.
+  * @param p_no_esc Set this to true if format contains special XML characters (<,>," and &).
+  */
+ procedure Text2XSLT(
   pio_rtf     IN OUT NOCOPY CLOB
 )
 as
-l100I10 CLOB;
-l100l0I number default 1;
-O100l0I boolean;
-l10000I constant number := 4000;
- 
+l_xslt CLOB;
+l_text_offset number default 1;
+l_no_esc boolean;
+c_amount constant number := 4000;
+
 begin
-  dbms_lob.createtemporary(l100I10, false);
-  DBMS_LOB.WRITEAPPEND(l100I10, length(OllI1I), OllI1I);
-  O100l0I := dbms_lob.instr(pio_rtf, '<') > 0 or dbms_lob.instr(pio_rtf, '>') > 0
+  dbms_lob.createtemporary(l_xslt, false);
+  DBMS_LOB.WRITEAPPEND(l_xslt, length(g_start_xslt_text), g_start_xslt_text);
+  l_no_esc := dbms_lob.instr(pio_rtf, '<') > 0 or dbms_lob.instr(pio_rtf, '>') > 0
             or dbms_lob.instr(pio_rtf, '"') > 0 or dbms_lob.instr(pio_rtf, '&') > 0;
- 
-  while l100l0I <= dbms_lob.getlength(pio_rtf)
-  loop 
-    if O100l0I then
-      dbms_lob.writeappend(l100I10, length(lllI1l), lllI1l);
+
+  while l_text_offset <= dbms_lob.getlength(pio_rtf)
+  loop --we limit text section to c_amount chars
+    if l_no_esc then
+      dbms_lob.writeappend(l_xslt, length(g_startstr_txt_no_esc), g_startstr_txt_no_esc);
     else
-      dbms_lob.writeappend(l100I10, length(OllII1), OllII1);
+      dbms_lob.writeappend(l_xslt, length(g_startstr_txt), g_startstr_txt);
     end if;
- 
-    dbms_lob.copy(l100I10, pio_rtf, l10000I, dbms_lob.getlength(l100I10)+1, l100l0I);
- 
-    l100l0I := l100l0I + l10000I;
- 
-    
- 
-    if O100l0I then
-      dbms_lob.writeappend(l100I10, length(OllI1l), OllI1l);
+
+    dbms_lob.copy(l_xslt, pio_rtf, c_amount, dbms_lob.getlength(l_xslt)+1, l_text_offset);
+
+    l_text_offset := l_text_offset + c_amount;
+
+    --DBMS_LOB.APPEND(l_xslt, pio_rtf);
+
+    if l_no_esc then
+      dbms_lob.writeappend(l_xslt, length(g_endStr_txt_no_esc), g_endStr_txt_no_esc);
     else
-      dbms_lob.writeappend(l100I10, length(IllII1), IllII1);
+      dbms_lob.writeappend(l_xslt, length(g_endStr_txt), g_endStr_txt);
     end if;
   end loop;
-  DBMS_LOB.WRITEAPPEND(l100I10, length(IllI1I), IllI1I);
-  pio_rtf := l100I10; 
- 
-  
-  
-  dbms_lob.freetemporary(l100I10);
+  DBMS_LOB.WRITEAPPEND(l_xslt, length(g_end_xslt), g_end_xslt);
+  pio_rtf := l_xslt; --ÄTe ne dela nared copy
+
+  --close meta tags if needed
+  --end of closing meta tags
+  dbms_lob.freetemporary(l_xslt);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I100l01 CLOB',
+    p_procedure => 'Text2XSLT CLOB',
     p_sqlerrm => sqlerrm
   );
   raise;
-end I100l01;
- 
+end Text2XSLT;
 
- procedure I100l0l(
+/** Create "starter" XSLT transformation from text produced by Wordpad or MS Office when
+  * saving document as RTF.
+  * "starter" XSLT transformation means that if you apply XSLT to custom XML
+  * you get the original RTF. No XML data will be included in resulted text.
+  * You should build your specific XSLT for transforming XML to
+  * RTF from this starter XSLT.
+  * @param pio_rtf CLOB input this CLOB is in RTFformat on output this is starter XSLT.
+  * @param p_no_esc Set this to true if format contains special XML characters (<,>," and &).
+  */
+ procedure RTF2XSLT(
   pio_rtf     IN OUT NOCOPY CLOB
 )
 as
 begin
-  
-  I100l01(pio_rtf);
+  --RemoveRTFComments(pio_rtf);
+  text2xslt(pio_rtf);
 end;
- 
- 
 
- procedure l100l0l(
+
+/** Create "starter" XSLT transformation from text produced by MS Office when
+  * saving document as MHT.
+  * "starter" XSLT transformation means that if you apply XSLT to custom XML
+  * you get the original MHT document. No XML data will be included in resulted text.
+  * You should build your specific XSLT for transforming XML to
+  * Office MHT format from this starter XSLT.
+  * @param pio_mht On input this CLOB is in MHT format on output this is starter XSLT.
+  */
+ procedure MHT2XSLT(
   pio_mht     IN OUT NOCOPY CLOB
 )
 as
 begin
-  I100l01(pio_mht);
+  text2xslt(pio_mht);
 end;
- 
- 
 
- 
 
-procedure O100l10(
+-------------------XML-----------------------------------
+
+/** Replaces part of clob which start at offset p_start_pos and ends at
+  * p_end_pos with replacment string
+  *
+  * @param pio_clob CLOB
+  * @param p_start_pos Offset of block to replace
+  * @param p_end_pos Offset of end of block to replace
+  * @param p_replacement Replacement string
+  */
+procedure ReplaceClobPart(
   pio_clob IN OUT NOCOPY CLOB,
-  I100l10 number,
-  l100l11 number,
-  O100l11 varchar2)
+  p_start_pos number,
+  p_end_pos number,
+  p_replacement varchar2)
 as
-Ol0l11 clob;
+l_temp clob;
 begin
-  dbms_lob.createtemporary(Ol0l11, false);
-  dbms_lob.copy(Ol0l11, pio_clob, I100l10 - 1);
-  dbms_lob.writeappend(Ol0l11, length(O100l11), O100l11);
+  dbms_lob.createtemporary(l_temp, false);
+  dbms_lob.copy(l_temp, pio_clob, p_start_pos - 1);
+  dbms_lob.writeappend(l_temp, length(p_replacement), p_replacement);
   dbms_lob.copy(
-    Ol0l11,
+    l_temp,
     pio_clob,
-    dbms_lob.getlength(pio_clob) - l100l11 + 1,
-    dbms_lob.getlength(Ol0l11)+1,
-    l100l11
+    dbms_lob.getlength(pio_clob) - p_end_pos + 1,
+    dbms_lob.getlength(l_temp)+1,
+    p_end_pos
   );
-  pio_clob := Ol0l11;
-  dbms_lob.freetemporary(Ol0l11);
+  pio_clob := l_temp;
+  dbms_lob.freetemporary(l_temp);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O100l10',
+    p_procedure => 'ReplaceClobPart',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure I100l1I(
+/** Change xmlns default definitions in child nodes into references on main xmlns definitions in DOCUMENT node.
+  * This procedure workarounds Oracle bug
+  * @param pio_xml CLOB represent XML got when saving Office document as XML
+  */
+procedure ReorganizeXmlns(
   pio_xml IN OUT NOCOPY CLOB
 )
 as
-l100l1I varchar2(32000);
-I1000I1 number default 1;
-O100l1l number;
-I100l1l number;
-l100lI0 number;
-O100lI0 varchar2(4000);
-I100lI1 varchar2(4000);
-Oll0Il varchar2(32000);
-l100lI1 number;
-O100lII number;
- 
-I100lII number;
+l_main_xmlns varchar2(32000);
+l_cur_pos number default 1;
+l_end_attr_pos number;
+l_end_element_pos number;
+l_end_element_name_pos number;
+l_element_name varchar2(4000);
+l_xmlns varchar2(4000);
+l_element varchar2(32000);
+l_start_xmlns_pos number;
+l_end_xmlns_pos number;
 
-l100lIl number;
-O100lIl number;
-I100ll0 number;
-l100ll0 number;
-O100ll1 number;
-I100ll1 varchar2(20);
- 
+l_space_pos number;
+--l_end_attr_pos number;
+l_close_tag_pos number;
+l_wb_xmlns_pos number;
+l_wb_xmlns_start_pos number;
+l_xmlns_alias_pos number;
+l_xmlns_alias_end_pos number;
+l_xmlns_alias varchar2(20);
+
 begin
   loop
-    I1000I1:= dbms_lob.instr(pio_xml, '<', I1000I1);
-    exit when dbms_lob.substr(pio_xml, 1, I1000I1+1) <> '?';
-    I1000I1 := dbms_lob.instr(pio_xml, '?>', I1000I1) + length('?>');
-    if I1000I1 = 0 then
+    l_cur_pos:= dbms_lob.instr(pio_xml, '<', l_cur_pos);
+    exit when dbms_lob.substr(pio_xml, 1, l_cur_pos+1) <> '?';
+    l_cur_pos := dbms_lob.instr(pio_xml, '?>', l_cur_pos) + length('?>');
+    if l_cur_pos = 0 then
       pak_xslt_log.WriteLog(
-        'Can''Il0lI0 find closing tag ?> of XML processing instruction',
+        'Can''t find closing tag ?> of XML processing instruction',
         p_log_type => pak_xslt_log.g_error,
-        p_procedure => 'I100l1I'
+        p_procedure => 'ReorganizeXmlns'
       );
       return;
     end if;
   end loop;
-  O100l1l:= dbms_lob.instr(pio_xml, '>', I1000I1);
-  l100l1I := dbms_lob.substr(pio_xml, O100l1l - I1000I1 + 1, I1000I1 + 1);
-  I1000I1 := O100l1l;
+  l_end_attr_pos:= dbms_lob.instr(pio_xml, '>', l_cur_pos);
+  l_main_xmlns := dbms_lob.substr(pio_xml, l_end_attr_pos - l_cur_pos + 1, l_cur_pos + 1);
+  l_cur_pos := l_end_attr_pos;
   loop
-    I1000I1 := dbms_lob.instr(pio_xml, '<', I1000I1);
-    exit when nvl(I1000I1, 0) = 0;
-    I100lII := dbms_lob.instr(pio_xml, ' ', I1000I1);
-    O100l1l := dbms_lob.instr(pio_xml, '>', I1000I1);
-    l100lIl := dbms_lob.instr(pio_xml, '/>', I1000I1);
- 
-    if I100lII = 0 then I100lII := dbms_lob.LOBMAXSIZE; end if;
-    if O100l1l = 0 then O100l1l := dbms_lob.LOBMAXSIZE; end if;
-    if l100lIl = 0 then l100lIl := dbms_lob.LOBMAXSIZE; end if;
- 
-    l100lI0 := least(I100lII, O100l1l, l100lIl);
- 
-    exit when O100l1l = dbms_lob.LOBMAXSIZE or l100lI0 = dbms_lob.LOBMAXSIZE;
-    O100lI0 := dbms_lob.substr(pio_xml, l100lI0 - I1000I1 -1, I1000I1 + 1);
- 
-    if substr(O100lI0, 1, 1)<>'/' then 
-      if l100lIl + 1 = O100l1l then
-        I100l1l := l100lIl + length('/>');
+    l_cur_pos := dbms_lob.instr(pio_xml, '<', l_cur_pos);
+    exit when nvl(l_cur_pos, 0) = 0;
+    l_space_pos := dbms_lob.instr(pio_xml, ' ', l_cur_pos);
+    l_end_attr_pos := dbms_lob.instr(pio_xml, '>', l_cur_pos);
+    l_close_tag_pos := dbms_lob.instr(pio_xml, '/>', l_cur_pos);
+
+    if l_space_pos = 0 then l_space_pos := dbms_lob.LOBMAXSIZE; end if;
+    if l_end_attr_pos = 0 then l_end_attr_pos := dbms_lob.LOBMAXSIZE; end if;
+    if l_close_tag_pos = 0 then l_close_tag_pos := dbms_lob.LOBMAXSIZE; end if;
+
+    l_end_element_name_pos := least(l_space_pos, l_end_attr_pos, l_close_tag_pos);
+
+    exit when l_end_attr_pos = dbms_lob.LOBMAXSIZE or l_end_element_name_pos = dbms_lob.LOBMAXSIZE;
+    l_element_name := dbms_lob.substr(pio_xml, l_end_element_name_pos - l_cur_pos -1, l_cur_pos + 1);
+
+    if substr(l_element_name, 1, 1)<>'/' then --not closing tag
+      if l_close_tag_pos + 1 = l_end_attr_pos then
+        l_end_element_pos := l_close_tag_pos + length('/>');
       else
-        I100l1l := dbms_lob.instr(pio_xml, '</'||O100lI0||'>', I1000I1);
-        exit when I100l1l = 0;
-        I100l1l := I100l1l + length('</'||O100lI0||'>');
+        l_end_element_pos := dbms_lob.instr(pio_xml, '</'||l_element_name||'>', l_cur_pos);
+        exit when l_end_element_pos = 0;
+        l_end_element_pos := l_end_element_pos + length('</'||l_element_name||'>');
       end if;
- 
-      if instr(dbms_lob.substr(pio_xml, O100l1l - I1000I1 + 1, I1000I1),'xmlns="') > 0 then 
-        Oll0Il := dbms_lob.substr(pio_xml, I100l1l - I1000I1 + 1, I1000I1);
-        l100lI1 := instr(Oll0Il, 'xmlns=') + length('xmlns=');
-        O100lII := instr(Oll0Il, '"', l100lI1 , 2);
-        exit when O100lII = 0;
-        I100lI1 := substr(Oll0Il, l100lI1, O100lII - l100lI1 + 1);
-        O100lIl := instr(l100l1I, I100lI1);
-        if O100lIl > 0 then 
-          I100ll0 := instr(l100l1I, 'xmlns:', O100lIl - length(l100l1I), 1);
-          exit when I100ll0 = 0;
-          l100ll0 := I100ll0 + length('xmlns:');
-          O100ll1 := instr(l100l1I, '=', l100ll0);
-          I100ll1 := substr(l100l1I, l100ll0, O100ll1 - l100ll0);
-          Oll0Il := replace(Oll0Il, ' xmlns='||I100lI1);
-          Oll0Il := replace(Oll0Il, '<', '<'||I100ll1||':');
-          Oll0Il := replace(Oll0Il, '<'||I100ll1||':/', '</'||I100ll1||':');
-          
-          O100l10(pio_xml, I1000I1, I100l1l, Oll0Il);
-          I1000I1 := I1000I1 + length(Oll0Il) + 1;
+
+      if instr(dbms_lob.substr(pio_xml, l_end_attr_pos - l_cur_pos + 1, l_cur_pos),'xmlns="') > 0 then --extract whole element
+        l_element := dbms_lob.substr(pio_xml, l_end_element_pos - l_cur_pos + 1, l_cur_pos);
+        l_start_xmlns_pos := instr(l_element, 'xmlns=') + length('xmlns=');
+        l_end_xmlns_pos := instr(l_element, '"', l_start_xmlns_pos , 2);
+        exit when l_end_xmlns_pos = 0;
+        l_xmlns := substr(l_element, l_start_xmlns_pos, l_end_xmlns_pos - l_start_xmlns_pos + 1);
+        l_wb_xmlns_pos := instr(l_main_xmlns, l_xmlns);
+        if l_wb_xmlns_pos > 0 then --change child namespace with parent (global) one
+          l_wb_xmlns_start_pos := instr(l_main_xmlns, 'xmlns:', l_wb_xmlns_pos - length(l_main_xmlns), 1);
+          exit when l_wb_xmlns_start_pos = 0;
+          l_xmlns_alias_pos := l_wb_xmlns_start_pos + length('xmlns:');
+          l_xmlns_alias_end_pos := instr(l_main_xmlns, '=', l_xmlns_alias_pos);
+          l_xmlns_alias := substr(l_main_xmlns, l_xmlns_alias_pos, l_xmlns_alias_end_pos - l_xmlns_alias_pos);
+          l_element := replace(l_element, ' xmlns='||l_xmlns);
+          l_element := replace(l_element, '<', '<'||l_xmlns_alias||':');
+          l_element := replace(l_element, '<'||l_xmlns_alias||':/', '</'||l_xmlns_alias||':');
+          --replace old element with changed element
+          ReplaceClobPart(pio_xml, l_cur_pos, l_end_element_pos, l_element);
+          l_cur_pos := l_cur_pos + length(l_element) + 1;
         else
-          I1000I1 := I100l1l +1;
-        end if;  
- 
+          l_cur_pos := l_end_element_pos +1;
+        end if;  --we don' count on nested child default xmlns, so we skip to the beginning of next element
+
       else
-        I1000I1 := O100l1l +1;
+        l_cur_pos := l_end_attr_pos +1;
       end if;
-    else 
-      I1000I1 := O100l1l +1; 
+    else --it is closing tag
+      l_cur_pos := l_end_attr_pos +1; --skip closing tag
     end if;
   end loop;
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I100l1I',
+    p_procedure => 'ReorganizeXmlns',
     p_sqlerrm => sqlerrm
   );
   raise;
- 
+
 end;
- 
-function l100llI(
+
+function ReadElementOpeningTag(
   p_xml IN CLOB
-  ,O100llI varchar2
+  ,p_element_name varchar2
 )
 return varchar2
 as
-Il01I1 varchar2(4000);
-lll0II number;
-Oll0I1 number;
-I100lll number;
+l_ret varchar2(4000);
+l_start number;
+l_end number;
+l_amount number;
 begin
-  lll0II := dbms_lob.instr(p_xml, '<'||O100llI);
-  Oll0I1 :=  dbms_lob.instr(p_xml, '>', lll0II);
- 
-  if nvl(lll0II, 0) = 0 or nvl(Oll0I1, 0) = 0
+  l_start := dbms_lob.instr(p_xml, '<'||p_element_name);
+  l_end :=  dbms_lob.instr(p_xml, '>', l_start);
+
+  if nvl(l_start, 0) = 0 or nvl(l_end, 0) = 0
   then
     return null;
   end if;
-  I100lll := Oll0I1 - lll0II + 1;
-  dbms_lob.read(p_xml, I100lll, lll0II, Il01I1);
-  return Il01I1;
+  l_amount := l_end - l_start + 1;
+  dbms_lob.read(p_xml, l_amount, l_start, l_ret);
+  return l_ret;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l100llI',
+    p_procedure => 'ReadElementOpeningTag',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
-FUNCTION l100lll (llI0Il VARCHAR2, O101000 out boolean) RETURN tab_string
+
+FUNCTION SplitXMLNS (p_in_string VARCHAR2, po_xmlns_exists out boolean) RETURN tab_string
   IS
- 
-  ll01I1       number :=0;
-  IlI0l0     number :=0;
-  llI0l1  varchar2(32000) := replace(llI0Il,'>');
- 
-  OlI0l1 tab_string := tab_string();
- 
+
+  i       number :=0;
+  pos     number :=0;
+  lv_str  varchar2(32000) := replace(p_in_string,'>');
+
+  strings tab_string := tab_string();
+
   BEGIN
-      
-      O101000 := false;
-      IlI0l0 := instr(llI0l1,' ',1,1);
-      
-      WHILE ( IlI0l0 != 0) LOOP
-         ll01I1 := ll01I1 + 1;
-         
-         IF llI0l1 like 'xmlns:%' and llI0l1 not like 'xmlns:xsl=%' THEN
-           OlI0l1.extend;
-           OlI0l1(OlI0l1.count) := trim(substr(llI0l1,1,IlI0l0));
-         ELSIF llI0l1 like 'xmlns=%' THEN
-            O101000 := true;
+      -- determine first chuck of string
+      po_xmlns_exists := false;
+      pos := instr(lv_str,' ',1,1);
+      -- while there are chunks left, loop
+      WHILE ( pos != 0) LOOP
+         i := i + 1;
+         -- create array element for chuck of string
+         IF lv_str like 'xmlns:%' and lv_str not like 'xmlns:xsl=%' THEN
+           strings.extend;
+           strings(strings.count) := trim(substr(lv_str,1,pos));
+         ELSIF lv_str like 'xmlns=%' THEN
+            po_xmlns_exists := true;
          END IF;
-         
-         llI0l1 := substr(llI0l1,IlI0l0+1,length(llI0l1));
-         
-         IlI0l0 := instr(llI0l1,' ',1,1);
-         
-         IF IlI0l0 = 0 and llI0l1 like 'xmlns:%' and llI0l1 not like 'xmlns:xsl=%' THEN
-            OlI0l1.extend;
-            OlI0l1(OlI0l1.count) := trim(llI0l1);
+         -- remove chunk from string
+         lv_str := substr(lv_str,pos+1,length(lv_str));
+         -- determine next chunk
+         pos := instr(lv_str,' ',1,1);
+         -- no last chunk, add to array
+         IF pos = 0 and lv_str like 'xmlns:%' and lv_str not like 'xmlns:xsl=%' THEN
+            strings.extend;
+            strings(strings.count) := trim(lv_str);
          END IF;
       END LOOP;
-      
-      RETURN OlI0l1;
+      -- return array
+      RETURN strings;
   exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l100lll',
+    p_procedure => 'SplitXMLNS',
     p_sqlerrm => sqlerrm
   );
   raise;
-END l100lll;
- 
-procedure I101000(pio_xml IN OUT NOCOPY CLOB)
+END SplitXMLNS;
+
+procedure EscapeBraces(pio_xml IN OUT NOCOPY CLOB)
 as
-l101001 number;
-O101001   number;
-OlIlI1 number := 1;
-I10100I number;
-IlIlI1 number;
-llIlII number;
-l10100I number;
-O10100l number;
-O100lI0 varchar2(400);
-I10100l varchar2(400);
-Oll0Il varchar2(32000);
+l_start_brace number;
+l_end_brace   number;
+l_offset number := 1;
+l_cur_element_start number;
+l_element_start number;
+l_element_end number;
+l_end_tag number;
+l_end_element_space number;
+l_element_name varchar2(400);
+l_element_end_tag varchar2(400);
+l_element varchar2(32000);
 begin
   loop
-    l101001 := dbms_lob.instr(pio_xml,'="{', OlIlI1);
-    exit when nvl(l101001, 0) = 0;
-    O101001 := dbms_lob.instr(pio_xml,'}"', l101001);
-    exit when nvl(O101001, 0) = 0;
-    I10100I :=  dbms_lob.instr(pio_xml,'<', OlIlI1);
-    exit when nvl(I10100I, 0) = 0;
-    IlIlI1 := I10100I;
-    while I10100I < l101001 loop
-      IlIlI1 := I10100I;
-      I10100I :=  dbms_lob.instr(pio_xml,'<', I10100I + 1);
-      if nvl(I10100I, 0)=0 then
+    l_start_brace := dbms_lob.instr(pio_xml,'="{', l_offset);
+    exit when nvl(l_start_brace, 0) = 0;
+    l_end_brace := dbms_lob.instr(pio_xml,'}"', l_start_brace);
+    exit when nvl(l_end_brace, 0) = 0;
+    l_cur_element_start :=  dbms_lob.instr(pio_xml,'<', l_offset);
+    exit when nvl(l_cur_element_start, 0) = 0;
+    l_element_start := l_cur_element_start;
+    while l_cur_element_start < l_start_brace loop
+      l_element_start := l_cur_element_start;
+      l_cur_element_start :=  dbms_lob.instr(pio_xml,'<', l_cur_element_start + 1);
+      if nvl(l_cur_element_start, 0)=0 then
         return;
       end if;
     end loop;
-    
-    l10100I := dbms_lob.instr(pio_xml,'>', IlIlI1);
-    exit when nvl(l10100I, 0) = 0;
-    O10100l := dbms_lob.instr(pio_xml,' ', IlIlI1);
-    if O10100l > 0 and O10100l < l10100I then
-      l10100I := O10100l;
+    --read element name
+    l_end_tag := dbms_lob.instr(pio_xml,'>', l_element_start);
+    exit when nvl(l_end_tag, 0) = 0;
+    l_end_element_space := dbms_lob.instr(pio_xml,' ', l_element_start);
+    if l_end_element_space > 0 and l_end_element_space < l_end_tag then
+      l_end_tag := l_end_element_space;
     end if;
-    O100lI0 := dbms_lob.substr(pio_xml, l10100I - IlIlI1 - 1, IlIlI1 + 1);
-    I10100l :='</'||O100lI0||'>';
-    llIlII := dbms_lob.instr(pio_xml, I10100l, IlIlI1);
-    if llIlII > 0 then
-      llIlII := llIlII + length(I10100l);
+    l_element_name := dbms_lob.substr(pio_xml, l_end_tag - l_element_start - 1, l_element_start + 1);
+    l_element_end_tag :='</'||l_element_name||'>';
+    l_element_end := dbms_lob.instr(pio_xml, l_element_end_tag, l_element_start);
+    if l_element_end > 0 then
+      l_element_end := l_element_end + length(l_element_end_tag);
     else
-      llIlII := dbms_lob.instr(pio_xml, '/>', IlIlI1);
-      exit when nvl(llIlII, 0) = 0;
-      llIlII := llIlII + length('/>');
+      l_element_end := dbms_lob.instr(pio_xml, '/>', l_element_start);
+      exit when nvl(l_element_end, 0) = 0;
+      l_element_end := l_element_end + length('/>');
     end if;
     pak_blob_util.clobReplace(
       pio_xml,
-      IlIlI1,
-      llIlII - 1,
-      lllI1l||
-      dbms_lob.substr(pio_xml, llIlII - IlIlI1, IlIlI1)||
-      OllI1l
+      l_element_start,
+      l_element_end - 1,
+      g_startStr_txt_no_esc||
+      dbms_lob.substr(pio_xml, l_element_end - l_element_start, l_element_start)||
+      g_endStr_txt_no_esc
     );
-    OlIlI1 := llIlII + length(lllI1l) + length(OllI1l);
+    l_offset := l_element_end + length(g_startStr_txt_no_esc) + length(g_endStr_txt_no_esc);
   end loop;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I101000',
+    p_procedure => 'EscapeBraces',
     p_sqlerrm => sqlerrm
   );
 end;
- 
- 
-procedure l101010(O101010 IN OUT NOCOPY CLOB)
+
+
+procedure EscapeBinaryBlock(pio_binary IN OUT NOCOPY CLOB)
 as
-Ol0l11 CLOB;
-I101011  constant number := 210*66;
-I100lll      number;
-OlIlI1      number := 1;
-I100001      varchar2(32000);
-l101011   number;
-O10101I    number;
+l_temp CLOB;
+c_blocklimit  constant number := 210*66;
+l_amount      number;
+l_offset      number := 1;
+l_buffer      varchar2(32000);
+l_buffsz   number;
+l_after_sz    number;
 begin
-  dbms_lob.CreateTemporary(Ol0l11, false);
-  dbms_lob.WriteAppend(Ol0l11, length(IllII0), IllII0);
-  I100lll := I101011;
+  dbms_lob.CreateTemporary(l_temp, false);
+  dbms_lob.WriteAppend(l_temp, length(g_startStr_txt_no_esc_lb), g_startStr_txt_no_esc_lb);
+  l_amount := c_blocklimit;
   loop
-    exit when OlIlI1 > dbms_lob.getlength(O101010) or I100lll = 0;
-    dbms_lob.read(O101010, I100lll, OlIlI1, I100001);
-    l101011 := length(I100001);
-    I100001 := replace(I100001, chr(13)||chr(10), lllII0||chr(13)||chr(10)||IllII0);
-    if length(I100001) = l101011 then
-      I100001 := replace(I100001, chr(10), lllII0||chr(10)||IllII0);
+    exit when l_offset > dbms_lob.getlength(pio_binary) or l_amount = 0;
+    dbms_lob.read(pio_binary, l_amount, l_offset, l_buffer);
+    l_buffsz := length(l_buffer);
+    l_buffer := replace(l_buffer, chr(13)||chr(10), g_endStr_txt_no_esc_lb||chr(13)||chr(10)||g_startStr_txt_no_esc_lb);
+    if length(l_buffer) = l_buffsz then
+      l_buffer := replace(l_buffer, chr(10), g_endStr_txt_no_esc_lb||chr(10)||g_startStr_txt_no_esc_lb);
     end if;
-    dbms_lob.WriteAppend(Ol0l11, length(I100001), I100001);
-    OlIlI1 := OlIlI1 + I100lll;
+    dbms_lob.WriteAppend(l_temp, length(l_buffer), l_buffer);
+    l_offset := l_offset + l_amount;
   end loop;
-  
-  
-  dbms_lob.WriteAppend(Ol0l11, length(lllII0), lllII0);
-  O101010 := Ol0l11;
-  dbms_lob.freeTemporary(Ol0l11);
+  --pak_blob_util.clobReplaceAll(pio_binary, g_crlf, g_endStr_txt_no_esc_lb||g_crlf||g_startStr_txt_no_esc_lb);
+  --dbms_lob.Copy(l_temp, pio_binary, dbms_lob.getlength(pio_binary), dbms_lob.getlength(l_temp)+1, 1);
+  dbms_lob.WriteAppend(l_temp, length(g_endStr_txt_no_esc_lb), g_endStr_txt_no_esc_lb);
+  pio_binary := l_temp;
+  dbms_lob.freeTemporary(l_temp);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l101010',
+    p_procedure => 'EscapeBinaryBlock',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
- 
-procedure I10101I(pio_xml IN OUT NOCOPY CLOB)
+
+
+procedure EscapeBinaryData(pio_xml IN OUT NOCOPY CLOB)
 as
-l10101l varchar2(40);
-O10101l varchar2(40);
-OlIlI1 number := 1;
-I101011 constant number := 210*66;
-I100001 varchar2(32000);
-I1010I0 number;
-l1010I0 number;
-O1010I1 CLOB;
+l_binaryStartTag varchar2(40);
+l_binaryEndTag varchar2(40);
+l_offset number := 1;
+c_blocklimit constant number := 210*66;
+l_buffer varchar2(32000);
+l_startBinary number;
+l_endBinary number;
+l_binaryBlock CLOB;
 begin
   if dbms_lob.instr(pio_xml,'<pkg:package ') > 0 then
-    l10101l := '<pkg:binaryData';
+    l_binaryStartTag := '<pkg:binaryData';
   else
-    l10101l := '<w:binData';
+    l_binaryStartTag := '<w:binData';
   end if;
-  O10101l := '</'||substr(l10101l,2)||'>';
+  l_binaryEndTag := '</'||substr(l_binaryStartTag,2)||'>';
   loop
-    
-    I1010I0 := dbms_lob.instr(pio_xml, l10101l, OlIlI1);
-    exit when nvl(I1010I0, 0) = 0;
-    I1010I0 := dbms_lob.instr(pio_xml, '>', I1010I0 + length(l10101l));
-    exit when nvl(I1010I0, 0) = 0;
-    I1010I0 := I1010I0 + 1;
-    
-    l1010I0 := dbms_lob.instr(pio_xml, O10101l, I1010I0);
-    exit when nvl(l1010I0, 0) = 0;
-    if l1010I0 - I1010I0 > I101011 then
-      dbms_lob.CreateTemporary(O1010I1, false);
-      dbms_lob.Copy(O1010I1, pio_xml, l1010I0-I1010I0, 1, I1010I0);
-      l101010(O1010I1);
-      pak_blob_util.clobReplace(pio_xml, I1010I0, l1010I0 - 1, O1010I1);
-      OlIlI1 := I1010I0 + dbms_lob.getlength(O1010I1) + length(O10101l);
-      dbms_lob.freeTemporary(O1010I1);
+    --find start of binary block
+    l_startBinary := dbms_lob.instr(pio_xml, l_binaryStartTag, l_offset);
+    exit when nvl(l_startBinary, 0) = 0;
+    l_startBinary := dbms_lob.instr(pio_xml, '>', l_startBinary + length(l_binaryStartTag));
+    exit when nvl(l_startBinary, 0) = 0;
+    l_startBinary := l_startBinary + 1;
+    --find end of binary block
+    l_endBinary := dbms_lob.instr(pio_xml, l_binaryEndTag, l_startBinary);
+    exit when nvl(l_endBinary, 0) = 0;
+    if l_endBinary - l_startBinary > c_blocklimit then
+      dbms_lob.CreateTemporary(l_binaryBlock, false);
+      dbms_lob.Copy(l_binaryBlock, pio_xml, l_endBinary-l_startBinary, 1, l_startBinary);
+      EscapeBinaryBlock(l_binaryBlock);
+      pak_blob_util.clobReplace(pio_xml, l_startBinary, l_endBinary - 1, l_binaryBlock);
+      l_offset := l_startBinary + dbms_lob.getlength(l_binaryBlock) + length(l_binaryEndTag);
+      dbms_lob.freeTemporary(l_binaryBlock);
     else
-      OlIlI1 := l1010I0 + length(O10101l);
+      l_offset := l_endBinary + length(l_binaryEndTag);
     end if;
   end loop;
 exception
@@ -3240,141 +3925,155 @@ exception
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I10101I',
+    p_procedure => 'EscapeBinaryData',
     p_sqlerrm => sqlerrm
   );
   RAISE;
 end;
- 
 
-procedure I1010I1(
+/** When creating starter XSLT transformation it moves xmlns atributes from <w:wordDocument> element
+  * to <xsl:stylesheet> element
+  *
+  * @param pio_xml CLOB XML Spreadsheet 2003 or Word 2003 XML.
+  */
+procedure MoveXMLNS(
   pio_xml IN OUT NOCOPY CLOB,
-  l1010II varchar2,
-  O1010II varchar2 default 'xsl:stylesheet'
+  p_from_DOCUMENT_element varchar2,
+  p_to_DOCUMENT_element varchar2 default 'xsl:stylesheet'
 )
 as
-I1010Il varchar2(4000);
-l1010Il varchar2(4000);
-O1010l0 varchar2(4000);
-I1010l0 varchar2(4000);
-I100lI1 tab_string;
-l1010l1 boolean;
- 
+l_xsl_stylesheet varchar2(4000);
+l_xsl_stylesheet_new varchar2(4000);
+l_doc_DOCUMENT_element varchar2(4000);
+l_doc_DOCUMENT_element_new varchar2(4000);
+l_xmlns tab_string;
+l_xmlns_exists boolean;
+
 begin
-  O1010l0 := l100llI(pio_xml, l1010II);--'w:wordDocument'
-  I1010Il := l100llI(pio_xml, O1010II);
-  if O1010l0 is null or I1010Il is null then
+  l_doc_DOCUMENT_element := ReadElementOpeningTag(pio_xml, p_from_DOCUMENT_element);--'w:wordDocument'
+  l_xsl_stylesheet := ReadElementOpeningTag(pio_xml, p_to_DOCUMENT_element);
+  if l_doc_DOCUMENT_element is null or l_xsl_stylesheet is null then
     return;
   end if;
-  I100lI1 := l100lll(O1010l0, l1010l1);
-  I1010l0 := O1010l0;
-  l1010Il := I1010Il;
-  for ll01I1 in 1..I100lI1.count loop
-    pak_xslt_log.WriteLog('I100lI1(ll01I1): '||I100lI1(ll01I1)||'#', p_procedure => 'I1010I1');
-    I1010l0 := replace(I1010l0, ' '||I100lI1(ll01I1));
-    l1010Il := replace(l1010Il,'>',' '||I100lI1(ll01I1)||'>');
+  l_xmlns := SplitXMLNS(l_doc_DOCUMENT_element, l_xmlns_exists);
+  l_doc_DOCUMENT_element_new := l_doc_DOCUMENT_element;
+  l_xsl_stylesheet_new := l_xsl_stylesheet;
+  for i in 1..l_xmlns.count loop
+    pak_xslt_log.WriteLog('l_xmlns(i): '||l_xmlns(i)||'#', p_procedure => 'MoveXMLNS');
+    l_doc_DOCUMENT_element_new := replace(l_doc_DOCUMENT_element_new, ' '||l_xmlns(i));
+    l_xsl_stylesheet_new := replace(l_xsl_stylesheet_new,'>',' '||l_xmlns(i)||'>');
   end loop;
   pak_xslt_log.WriteLog(
-    'O1010l0: '||O1010l0||' I1010l0: '||I1010l0,
-    p_procedure => 'I1010I1'
+    'l_doc_DOCUMENT_element: '||l_doc_DOCUMENT_element||' l_doc_DOCUMENT_element_new: '||l_doc_DOCUMENT_element_new,
+    p_procedure => 'MoveXMLNS'
   );
- 
+
   pak_xslt_log.WriteLog(
-    'I1010Il: '||I1010Il||' l1010Il: '||l1010Il,
-    p_procedure => 'I1010I1'
+    'l_xsl_stylesheet: '||l_xsl_stylesheet||' l_xsl_stylesheet_new: '||l_xsl_stylesheet_new,
+    p_procedure => 'MoveXMLNS'
   );
-  if l1010l1 then 
-    I1010l0 := lllI1l||I1010l0||OllI1l;
-    pak_blob_util.clobReplaceAll(pio_xml, '</'||l1010II||'>', lllI1l||'</'||l1010II||'>'||OllI1l);
+  if l_xmlns_exists then --enclose xml element in xsl:text
+    l_doc_DOCUMENT_element_new := g_startStr_txt_no_esc||l_doc_DOCUMENT_element_new||g_endStr_txt_no_esc;
+    pak_blob_util.clobReplaceAll(pio_xml, '</'||p_from_DOCUMENT_element||'>', g_startStr_txt_no_esc||'</'||p_from_DOCUMENT_element||'>'||g_endStr_txt_no_esc);
   end if;
-  pak_blob_util.clobReplaceAll(pio_xml, O1010l0, I1010l0);
-  pak_blob_util.clobReplaceAll(pio_xml, I1010Il, l1010Il);
- 
+  pak_blob_util.clobReplaceAll(pio_xml, l_doc_DOCUMENT_element, l_doc_DOCUMENT_element_new);
+  pak_blob_util.clobReplaceAll(pio_xml, l_xsl_stylesheet, l_xsl_stylesheet_new);
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I1010I1',
+    p_procedure => 'MoveXMLNS',
     p_sqlerrm => sqlerrm
   );
   raise;
-end I1010I1;
- 
+end MoveXMLNS;
 
-procedure O1010l1(
+/** Create starter XSLT transformation from XML produced
+  * by MS Office (Excel when saving document as XML Spreadsheet 2003 or by MS Word
+  * when saving as XML)
+  * starter XSLT transformation means that if you apply XSLT to custom suorce XML
+  * you get the original XML. No suorce XML data will be included in
+  * resulted destination XML (saved by MS Office).
+  * You should build your specific XSLT for transforming XML produced by MS Office*
+  * from this starter XSLT.
+  *
+  * @param pio_xml CLOB On input this CLOB is in XML Spreadsheet 2003 or Word 2003 XML format on output is starter XSLT.
+  */
+procedure XML2XSLT(
   pio_xml IN OUT NOCOPY CLOB
 )
 as
-I1000I1 number;
-I1010lI number;
-l1010lI varchar2(4000);
-O1010ll varchar2(4000);
-I1010ll varchar2(4000);
-l101100 number;
-O101100 varchar2(4000):=
+l_cur_pos number;
+l_end_pi_attr number;
+l_xml_pi varchar2(4000);
+l_xml_pi_name varchar2(4000);
+l_xml_pi_attr varchar2(4000);
+l_xml_pi_space_pos number;
+l_start_xslt_xml varchar2(4000):=
   '<?xml version="1.0"?>'|| g_crlf||
   '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">'|| g_crlf||
   '<xsl:output method="xml" ';
-ll01I1 number default 0;
-Ol0l11 CLOB;
- 
+i number default 0;
+l_temp CLOB;
+
 begin
-  
-  
-  I100l1I(pio_xml);
-  
-  I1000I1 := dbms_lob.instr(pio_xml, '<?');
-  if I1000I1 > 0 then
-    I1000I1 := I1000I1 + length('<?');
-    I1010lI := dbms_lob.instr(pio_xml, '?>', I1000I1)-1;
-    l1010lI := dbms_lob.substr(pio_xml,  I1010lI - I1000I1 + 1, I1000I1);
-    if substr(l1010lI, 1, 4) = 'xml ' then
-      O101100 := O101100||substr(l1010lI, 4)||'/>'||g_crlf||
+  --l_cur_pos := dbms_lob.instr(pio_xml, '<?xml version="1.0"?>');
+  --l_cur_pos := l_cur_pos + length('<?xml version="1.0"?>') + 1;
+  ReorganizeXmlns(pio_xml);
+  ------dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug2.xml');
+  l_cur_pos := dbms_lob.instr(pio_xml, '<?');
+  if l_cur_pos > 0 then
+    l_cur_pos := l_cur_pos + length('<?');
+    l_end_pi_attr := dbms_lob.instr(pio_xml, '?>', l_cur_pos)-1;
+    l_xml_pi := dbms_lob.substr(pio_xml,  l_end_pi_attr - l_cur_pos + 1, l_cur_pos);
+    if substr(l_xml_pi, 1, 4) = 'xml ' then
+      l_start_xslt_xml := l_start_xslt_xml||substr(l_xml_pi, 4)||'/>'||g_crlf||
       '<xsl:template match="/">'|| g_crlf|| g_crlf;
-      I1000I1 := I1010lI + length('?>') + 1;
+      l_cur_pos := l_end_pi_attr + length('?>') + 1;
     else
-      O101100 := O101100||'version="1.0"/>'||g_crlf||
+      l_start_xslt_xml := l_start_xslt_xml||'version="1.0"/>'||g_crlf||
       '<xsl:template match="/">'|| g_crlf|| g_crlf;
-      I1000I1 :=1;
+      l_cur_pos :=1;
     end if;
- 
+
     loop
-      I1000I1 := dbms_lob.instr(pio_xml, '<?', I1000I1);
-      exit when I1000I1 = 0;
-      ll01I1 := ll01I1 + 1;
-      I1000I1 := I1000I1 + length('<?');
-      I1010lI := dbms_lob.instr(pio_xml, '?>', I1000I1)-1;
-      l1010lI := dbms_lob.substr(pio_xml,  I1010lI - I1000I1 + 1, I1000I1);
-      l101100 := instr(l1010lI, ' ');
-      if l101100 > 0 then
-        O101100 := O101100||g_crlf||
-        '<xsl:processing-instruction name="'||substr(l1010lI, 1, l101100 -1)||'">'||substr(l1010lI, l101100 + 1)||'</xsl:processing-instruction>'||g_crlf;
+      l_cur_pos := dbms_lob.instr(pio_xml, '<?', l_cur_pos);
+      exit when l_cur_pos = 0;
+      i := i + 1;
+      l_cur_pos := l_cur_pos + length('<?');
+      l_end_pi_attr := dbms_lob.instr(pio_xml, '?>', l_cur_pos)-1;
+      l_xml_pi := dbms_lob.substr(pio_xml,  l_end_pi_attr - l_cur_pos + 1, l_cur_pos);
+      l_xml_pi_space_pos := instr(l_xml_pi, ' ');
+      if l_xml_pi_space_pos > 0 then
+        l_start_xslt_xml := l_start_xslt_xml||g_crlf||
+        '<xsl:processing-instruction name="'||substr(l_xml_pi, 1, l_xml_pi_space_pos -1)||'">'||substr(l_xml_pi, l_xml_pi_space_pos + 1)||'</xsl:processing-instruction>'||g_crlf;
       else
-        O101100 := O101100||g_crlf||
-        '<xsl:processing-instruction name="'||l1010lI||'"/>'||g_crlf;
+        l_start_xslt_xml := l_start_xslt_xml||g_crlf||
+        '<xsl:processing-instruction name="'||l_xml_pi||'"/>'||g_crlf;
       end if;
     end loop;
-    dbms_lob.createtemporary(Ol0l11, false);
-    DBMS_LOB.WRITEAPPEND(Ol0l11, length(O101100), O101100);
-    
+    dbms_lob.createtemporary(l_temp, false);
+    DBMS_LOB.WRITEAPPEND(l_temp, length(l_start_xslt_xml), l_start_xslt_xml);
+    --dbms_lob.append(l_temp, pio_xml);
     DBMS_LOB.COPY (
-      Ol0l11,
+      l_temp,
       pio_xml,
-      dbms_lob.getlength(pio_xml) - I1010lI - 2,
-      dbms_lob.getlength(Ol0l11)+1,
-      I1010lI + 3
+      dbms_lob.getlength(pio_xml) - l_end_pi_attr - 2,
+      dbms_lob.getlength(l_temp)+1,
+      l_end_pi_attr + 3
     );
-    DBMS_LOB.WRITEAPPEND(Ol0l11, length(IllI1I), IllI1I);
-    
-    I1010I1(Ol0l11, 'w:wordDocument');
-    I1010I1(Ol0l11, 'Workbook');
-    
-    I101000(Ol0l11);
-    
-    I10101I(Ol0l11);
-    pio_xml := Ol0l11;
-    dbms_lob.freetemporary(Ol0l11);
+    DBMS_LOB.WRITEAPPEND(l_temp, length(g_end_xslt), g_end_xslt);
+    --pak_blob_util.clobReplaceAll(l_temp, '><','>'||chr(13)||chr(10)||'<');
+    MoveXMLNS(l_temp, 'w:wordDocument');
+    MoveXMLNS(l_temp, 'Workbook');
+    ----dbms_xslprocessor.clob2file(l_temp, 'XMLDIR', 'debug3.xml');
+    EscapeBraces(l_temp);
+    ----dbms_xslprocessor.clob2file(l_temp, 'XMLDIR', 'debug4.xml');
+    EscapeBinaryData(l_temp);
+    pio_xml := l_temp;
+    dbms_lob.freetemporary(l_temp);
   else
     pak_xslt_log.WriteLog(
     'Input document is not XML',
@@ -3382,341 +4081,378 @@ begin
     p_procedure => 'XMLWrap CLOB'
   );
   end if;
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O1010l1 CLOB',
+    p_procedure => 'XML2XSLT CLOB',
     p_sqlerrm => sqlerrm
   );
   raise;
-end O1010l1;
- 
+end XML2XSLT;
 
- 
+----------------------HTML--------------------------------------------
 
-procedure I101101(
-  l101101 IN OUT NOCOPY CLOB
+/** Put attribute values in HTML in quotas (") and add starting and ending xsl tags
+  *
+  * @param pio_html CLOB represents HTML
+  */
+procedure MSWordHTMLQAttrXSlWrap(
+  pio_html IN OUT NOCOPY CLOB
 )
 as
-l100I10 CLOB;
-O10110I number default 0;
-I10110I number default 0;
-l10110l number default 0;
-O10110l number;
-I101110 varchar2(1);
-l101110 number default 0;
-I100lII number default 0;
-O101111 number default 0;
-I101111 number default 1;
-l10111I varchar2(32767);
- 
+l_xslt CLOB;
+l_eq_pos number default 0;
+l_next_eq_pos number default 0;
+l_next_gt_pos number default 0;
+l_start_of_attr number;
+l_start_of_attr_char varchar2(1);
+l_end_of_attr number default 0;
+l_space_pos number default 0;
+l_crlf_pos number default 0;
+l_copy_offset number default 1;
+l_end_of_html varchar2(32767);
+
 begin
-  dbms_lob.createtemporary(l100I10, false);
- 
-  DBMS_LOB.WRITEAPPEND(l100I10, length(lllI11), lllI11);
- 
+  dbms_lob.createtemporary(l_xslt, false);
+
+  DBMS_LOB.WRITEAPPEND(l_xslt, length(g_start_xslt_html), g_start_xslt_html);
+
   loop
-    O10110I := dbms_lob.instr(l101101, '=', O10110I + 1);
-    exit when nvl(O10110I, 0) = 0;
-    O10110l := O10110I + 1;
-    I101110 := dbms_lob.substr(l101101, 1, O10110l);
-    if I101110 in ('''', '"') then
-      l101110 := dbms_lob.instr(l101101, I101110, O10110l + 1);
-      O10110I := l101110; 
-    else  
-      I10110I := dbms_lob.instr(l101101, '=', O10110l);
-      l10110l := dbms_lob.instr(l101101, '>', O10110l);
- 
-      if I10110I < l10110l and I10110I > 0 then
-        
-        l101110 := O10110l;
-        while I100lII <  I10110I and l101110 > 0
+    l_eq_pos := dbms_lob.instr(pio_html, '=', l_eq_pos + 1);
+    exit when nvl(l_eq_pos, 0) = 0;
+    l_start_of_attr := l_eq_pos + 1;
+    l_start_of_attr_char := dbms_lob.substr(pio_html, 1, l_start_of_attr);
+    if l_start_of_attr_char in ('''', '"') then
+      l_end_of_attr := dbms_lob.instr(pio_html, l_start_of_attr_char, l_start_of_attr + 1);
+      l_eq_pos := l_end_of_attr; --no need to search for '=' inside this attribute, so skip this
+    else  --attribute not in quotas
+      l_next_eq_pos := dbms_lob.instr(pio_html, '=', l_start_of_attr);
+      l_next_gt_pos := dbms_lob.instr(pio_html, '>', l_start_of_attr);
+
+      if l_next_eq_pos < l_next_gt_pos and l_next_eq_pos > 0 then
+        --find first space in reverse order
+        l_end_of_attr := l_start_of_attr;
+        while l_space_pos <  l_next_eq_pos and l_end_of_attr > 0
         loop
-          I100lII := dbms_lob.instr(l101101, ' ', l101110 +1);
-          O101111 := dbms_lob.instr(l101101, Query2Report.g_crlf, l101110 +1);
-          if nvl(I100lII,0) = 0 and nvl(O101111, 0) = 0 then
-            I100lII := 0;
-          elsif nvl(I100lII,0) = 0 then
-            I100lII := O101111;
-          elsif nvl(O101111, 0) = 0 then
-            null; 
+          l_space_pos := dbms_lob.instr(pio_html, ' ', l_end_of_attr +1);
+          l_crlf_pos := dbms_lob.instr(pio_html, Query2Report.g_crlf, l_end_of_attr +1);
+          if nvl(l_space_pos,0) = 0 and nvl(l_crlf_pos, 0) = 0 then
+            l_space_pos := 0;
+          elsif nvl(l_space_pos,0) = 0 then
+            l_space_pos := l_crlf_pos;
+          elsif nvl(l_crlf_pos, 0) = 0 then
+            null; --l_space_pos already has right value
           else
-            I100lII := least(I100lII, O101111);
+            l_space_pos := least(l_space_pos, l_crlf_pos);
           end if;
-          exit when I100lII > I10110I or nvl(I100lII,0) = 0;
-          l101110 := I100lII;
+          exit when l_space_pos > l_next_eq_pos or nvl(l_space_pos,0) = 0;
+          l_end_of_attr := l_space_pos;
         end loop;
-        if nvl(l101110,0) > 0 then
-          l101110 := l101110 - 1;
-          while dbms_lob.substr(l101101, 1, l101110) in (' ',chr(13), chr(10))
+        if nvl(l_end_of_attr,0) > 0 then
+          l_end_of_attr := l_end_of_attr - 1;
+          while dbms_lob.substr(pio_html, 1, l_end_of_attr) in (' ',chr(13), chr(10))
           loop
-            exit when l101110 <= O10110l;
-            l101110 := l101110 - 1;
+            exit when l_end_of_attr <= l_start_of_attr;
+            l_end_of_attr := l_end_of_attr - 1;
           end loop;
         end if;
       end if;
- 
-      if (l10110l < I10110I or I10110I = 0) and l10110l > 0 then
-        
-        l101110 := l10110l - 1;
-        while dbms_lob.substr(l101101, 1, l101110) in (' ','/','>',chr(13), chr(10))
+
+      if (l_next_gt_pos < l_next_eq_pos or l_next_eq_pos = 0) and l_next_gt_pos > 0 then
+        --find first space in reverse order
+        l_end_of_attr := l_next_gt_pos - 1;
+        while dbms_lob.substr(pio_html, 1, l_end_of_attr) in (' ','/','>',chr(13), chr(10))
         loop
-          exit when l101110 <= O10110l;
-          l101110 := l101110 - 1;
+          exit when l_end_of_attr <= l_start_of_attr;
+          l_end_of_attr := l_end_of_attr - 1;
         end loop;
- 
-        
+
+        /*
+        l_end_of_attr := dbms_lob.instr(pio_html, ' ', l_next_eq_pos, -1);
+        if nvl(l_end_of_attr,0) > 0 then
+          l_end_of_attr := l_end_of_attr - 1;
+        end if;
+        */
       end if;
-    end if; 
-    pak_xslt_log.WriteLog('Attribute: '||to_char(O10110l)||' - '||to_char(l101110)||' : '||
-      dbms_lob.substr(l101101, l101110 - O10110l + 1, O10110l), p_procedure => 'I101101' );
-      
-      
-      DBMS_LOB.COPY(l100I10, l101101, O10110l - I101111, dbms_lob.getlength(l100I10)+1, I101111);
-      I101110 := dbms_lob.substr(l101101, 1, O10110l);
-      if I101110 not in ('''','"') then 
-        DBMS_LOB.WRITEAPPEND(l100I10, 1, '"');
-      else 
-        l101110 := dbms_lob.instr(l101101, I101110, O10110l + 1);
+    end if; --attribute not in quotas
+    pak_xslt_log.WriteLog('Attribute: '||to_char(l_start_of_attr)||' - '||to_char(l_end_of_attr)||' : '||
+      dbms_lob.substr(pio_html, l_end_of_attr - l_start_of_attr + 1, l_start_of_attr), p_procedure => 'MSWordHTMLQAttrXSlWrap' );
+      --append html chunk before element attribute
+      --DBMS_LOB.WRITEAPPEND(l_xslt, l_start_of_attr - l_copy_offset, dbms_lob.substr(pio_html, l_start_of_attr - l_copy_offset, l_copy_offset));
+      DBMS_LOB.COPY(l_xslt, pio_html, l_start_of_attr - l_copy_offset, dbms_lob.getlength(l_xslt)+1, l_copy_offset);
+      l_start_of_attr_char := dbms_lob.substr(pio_html, 1, l_start_of_attr);
+      if l_start_of_attr_char not in ('''','"') then --append quote
+        DBMS_LOB.WRITEAPPEND(l_xslt, 1, '"');
+      else --attribute have spaces, so we must move l_end_of_attr from space to closing quote example: meta tag in MS Word HTML
+        l_end_of_attr := dbms_lob.instr(pio_html, l_start_of_attr_char, l_start_of_attr + 1);
       end if;
-      
-      
-      DBMS_LOB.COPY(l100I10, l101101, l101110 - O10110l + 1, dbms_lob.getlength(l100I10)+1, O10110l);
-      if dbms_lob.substr(l101101, 1, l101110) not in ('''','"') then 
-        DBMS_LOB.WRITEAPPEND(l100I10, 1, '"');
+      --append attribute
+      --DBMS_LOB.WRITEAPPEND(l_xslt, l_end_of_attr - l_start_of_attr + 1, dbms_lob.substr(pio_html, l_end_of_attr - l_start_of_attr + 1, l_start_of_attr));
+      DBMS_LOB.COPY(l_xslt, pio_html, l_end_of_attr - l_start_of_attr + 1, dbms_lob.getlength(l_xslt)+1, l_start_of_attr);
+      if dbms_lob.substr(pio_html, 1, l_end_of_attr) not in ('''','"') then --append quote
+        DBMS_LOB.WRITEAPPEND(l_xslt, 1, '"');
       end if;
-      I101111 := l101110 + 1;
+      l_copy_offset := l_end_of_attr + 1;
   end loop;
-  l10111I := dbms_lob.substr(l101101, offset => I101111);
-  DBMS_LOB.WRITEAPPEND(l100I10, length(l10111I), l10111I);
- 
-  DBMS_LOB.WRITEAPPEND(l100I10, length(IllI1I), IllI1I);
-  l101101 := l100I10;
- 
-  dbms_lob.freetemporary(l100I10);
+  l_end_of_html := dbms_lob.substr(pio_html, offset => l_copy_offset);
+  DBMS_LOB.WRITEAPPEND(l_xslt, length(l_end_of_html), l_end_of_html);
+
+  DBMS_LOB.WRITEAPPEND(l_xslt, length(g_end_xslt), g_end_xslt);
+  pio_html := l_xslt;
+
+  dbms_lob.freetemporary(l_xslt);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I101101',
+    p_procedure => 'MSWordHTMLQAttrXSlWrap',
     p_sqlerrm => sqlerrm
   );
   raise;
-end I101101;
- 
- 
+end MSWordHTMLQAttrXSlWrap;
 
-procedure O10111I(
+
+/** Enclose p_findStr with p_startStr and p_endStr at offset pio_cur_pos,
+  * set pio_cur_pos to the end of p_endStr
+  *
+  * @param pio_clob CLOB
+  * @param pio_cur_pos Offset of p_findStr string to enclose, set to the end of p_endStr at the return
+  * @param p_findStr String to enclose
+  * @param p_startStr String on the left of p_findStr
+  * @param p_endStr String on the right of p_findStr
+  */
+procedure EncloseString(
   pio_clob IN OUT NOCOPY CLOB,
-  I10111l in out number,
-  l10111l varchar2,
-  O1011I0 varchar2,
-  I1011I0 varchar2
+  pio_cur_pos in out number,
+  p_findStr varchar2,
+  p_startStr varchar2,
+  p_endStr varchar2
 )
 as
 begin
-  if I10111l > 0 then
-    I10010I(pio_clob, O1011I0, I10111l);
-    I10111l := I10111l + length(O1011I0) + length(l10111l);
-    I10010I(pio_clob, I1011I0, I10111l);
-    I10111l := I10111l + length(I1011I0);
+  if pio_cur_pos > 0 then
+    InsertString(pio_clob, p_startStr, pio_cur_pos);
+    pio_cur_pos := pio_cur_pos + length(p_startStr) + length(p_findStr);
+    InsertString(pio_clob, p_endStr, pio_cur_pos);
+    pio_cur_pos := pio_cur_pos + length(p_endStr);
   end if;
 end;
- 
 
-procedure O10111I(
+/** Enclose all occurrences of p_findStr with p_startStr and p_endStr
+  *
+  * @param pio_clob CLOB
+  * @param p_findStr String to enclose
+  * @param p_startStr String on the left of p_findStr
+  * @param p_endStr String on the right of p_findStr
+  */
+procedure EncloseString(
   pio_clob IN OUT NOCOPY CLOB,
-  l10111l varchar2,
-  O1011I0 varchar2,
-  I1011I0 varchar2
+  p_findStr varchar2,
+  p_startStr varchar2,
+  p_endStr varchar2
 )
 as
- I1000I1 number default 1;
+ l_cur_pos number default 1;
 begin
   loop
-    I1000I1 := dbms_lob.instr(pio_clob, l10111l, I1000I1);
-    exit when I1000I1 = 0;
-    O10111I(pio_clob, I1000I1, l10111l, O1011I0, I1011I0);
+    l_cur_pos := dbms_lob.instr(pio_clob, p_findStr, l_cur_pos);
+    exit when l_cur_pos = 0;
+    EncloseString(pio_clob, l_cur_pos, p_findStr, p_startStr, p_endStr);
   end loop;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O10111I',
+    p_procedure => 'EncloseString',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure l1011I1(
+/** Enclose all occurrences of p_findStr in <xsl:text disable-output-escaping="yes"> element
+  *
+  * @param pio_clob CLOB
+  * @param p_findStr String to enclose
+  */
+procedure XslEncloseString(
   pio_clob IN OUT NOCOPY CLOB,
-  l10111l varchar2
+  p_findStr varchar2
 )
 as
 begin
-  O10111I(pio_clob, l10111l, lllI1l, OllI1l);
+  EncloseString(pio_clob, p_findStr, g_startStr_txt_no_esc, g_endStr_txt_no_esc);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l1011I1 (all)',
+    p_procedure => 'XslEncloseString (all)',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure l1011I1(
+/** Enclose p_findStr with <xsl:text disable-output-escaping="yes"> element at offset pio_cur_pos,
+  * set pio_cur_pos to the end of closing tag </xsl:text>
+  *
+  * @param pio_clob CLOB
+  * @param pio_cur_pos Offset of p_findStr string to enclose, set to the end of p_endStr at the return
+  * @param p_findStr String to enclose
+  */
+procedure XslEncloseString(
   pio_clob IN OUT NOCOPY CLOB,
-  I10111l in out number,
-  l10111l varchar2
+  pio_cur_pos in out number,
+  p_findStr varchar2
 )
 as
 begin
-  O10111I(pio_clob, I10111l, l10111l, lllI1l, OllI1l);
+  EncloseString(pio_clob, pio_cur_pos, p_findStr, g_startStr_txt_no_esc, g_endStr_txt_no_esc);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l1011I1 (one)',
+    p_procedure => 'XslEncloseString (one)',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure O1011I1(
+/** Enclose HTML or XML comments with <xsl:text disable-output-escaping="yes"> element and CDATA
+  * @param pio_clob CLOB
+  */
+procedure XslEncloseComments(
   pio_clob IN OUT NOCOPY CLOB
 )
 as
-  I1000I1 number default 1;
+  l_cur_pos number default 1;
 begin
   loop
-    I1000I1 := dbms_lob.instr(pio_clob, '<!--', I1000I1);
-    exit when I1000I1 = 0;
-    I10010I(pio_clob, lllI1l, I1000I1);
-    I1000I1 := I1000I1 + length(lllI1l);
-    I1000I1 := dbms_lob.instr(pio_clob, '-->', I1000I1);
-    if I1000I1 = 0 then
+    l_cur_pos := dbms_lob.instr(pio_clob, '<!--', l_cur_pos);
+    exit when l_cur_pos = 0;
+    InsertString(pio_clob, g_startStr_txt_no_esc, l_cur_pos);
+    l_cur_pos := l_cur_pos + length(g_startStr_txt_no_esc);
+    l_cur_pos := dbms_lob.instr(pio_clob, '-->', l_cur_pos);
+    if l_cur_pos = 0 then
       pak_xslt_log.WriteLog(
         'There is no closing tag --> for comment',
         p_log_type => pak_xslt_log.g_error,
-        p_procedure => 'O1011I1'
+        p_procedure => 'XslEncloseComments'
       );
       exit;
     end if;
-    I1000I1 := I1000I1 + length('-->');
-    I10010I(pio_clob, OllI1l, I1000I1);
-    I1000I1 := I1000I1 + length(OllI1l);
+    l_cur_pos := l_cur_pos + length('-->');
+    InsertString(pio_clob, g_endStr_txt_no_esc, l_cur_pos);
+    l_cur_pos := l_cur_pos + length(g_endStr_txt_no_esc);
   end loop;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'O1011I1',
+    p_procedure => 'XslEncloseComments',
     p_sqlerrm => sqlerrm
   );
   raise;
-end O1011I1;
- 
- 
+end XslEncloseComments;
 
-procedure I1011II(
+
+/** Enclose all not xml tags like <meta in HTML with <xsl:text disable-output-escaping="yes"> element
+  * and CDATA section
+  * @param pio_clob CLOB
+  */
+procedure EncloseNonXmlElements(
   pio_clob IN OUT NOCOPY CLOB
 )
 as
-  I1000I1 number default 1;
-  I100l1l number;
-  O100lI0 varchar2(200);
- 
-  l1011II number;
-  I100lII number;
-  O101111 number;
-  O1011Il number;
-  l100lIl number;
+  l_cur_pos number default 1;
+  l_end_element_pos number;
+  l_element_name varchar2(200);
+ -- l_closing_tag_pos number;
+  l_closing_gt_pos number;
+  l_space_pos number;
+  l_crlf_pos number;
+  l_end_tag_pos number;
+  l_close_tag_pos number;
 begin
-  I1000I1 := length(lllI11) + 1;
+  l_cur_pos := length(g_start_xslt_html) + 1;
   loop
-    I1000I1 := dbms_lob.instr(pio_clob, '<', I1000I1);
-    exit when I1000I1 = 0;
-    I100lII := dbms_lob.instr(pio_clob, ' ', I1000I1);
-    O101111 := dbms_lob.instr(pio_clob, Query2Report.g_crlf, I1000I1);
- 
-    if nvl(I100lII,0) = 0 and nvl(O101111, 0) = 0 then
-      I100lII := 0;
-    elsif nvl(I100lII,0) = 0 then
-      I100lII := O101111;
-    elsif nvl(O101111, 0) = 0 then
-      null; 
+    l_cur_pos := dbms_lob.instr(pio_clob, '<', l_cur_pos);
+    exit when l_cur_pos = 0;
+    l_space_pos := dbms_lob.instr(pio_clob, ' ', l_cur_pos);
+    l_crlf_pos := dbms_lob.instr(pio_clob, Query2Report.g_crlf, l_cur_pos);
+
+    if nvl(l_space_pos,0) = 0 and nvl(l_crlf_pos, 0) = 0 then
+      l_space_pos := 0;
+    elsif nvl(l_space_pos,0) = 0 then
+      l_space_pos := l_crlf_pos;
+    elsif nvl(l_crlf_pos, 0) = 0 then
+      null; --l_space_pos already has right value
     else
-      I100lII := least(I100lII, O101111);
+      l_space_pos := least(l_space_pos, l_crlf_pos);
     end if;
- 
-    O1011Il := dbms_lob.instr(pio_clob, '>', I1000I1);
-    l100lIl := dbms_lob.instr(pio_clob, '/>', I1000I1);
- 
-    if I100lII = 0 then I100lII := dbms_lob.LOBMAXSIZE; end if;
-    if O1011Il = 0 then O1011Il := dbms_lob.LOBMAXSIZE; end if;
-    if l100lIl = 0 then l100lIl := dbms_lob.LOBMAXSIZE; end if;
- 
-    I100l1l := least(I100lII, O1011Il, l100lIl);
- 
-    exit when I100l1l = dbms_lob.LOBMAXSIZE;
-    O100lI0 := dbms_lob.substr(pio_clob, I100l1l - I1000I1 -1, I1000I1 + 1);
-    if substr(O100lI0, 1,1) = '/' then
-      I1000I1 := dbms_lob.instr(pio_clob, '>', I1000I1) + 1;
+
+    l_end_tag_pos := dbms_lob.instr(pio_clob, '>', l_cur_pos);
+    l_close_tag_pos := dbms_lob.instr(pio_clob, '/>', l_cur_pos);
+
+    if l_space_pos = 0 then l_space_pos := dbms_lob.LOBMAXSIZE; end if;
+    if l_end_tag_pos = 0 then l_end_tag_pos := dbms_lob.LOBMAXSIZE; end if;
+    if l_close_tag_pos = 0 then l_close_tag_pos := dbms_lob.LOBMAXSIZE; end if;
+
+    l_end_element_pos := least(l_space_pos, l_end_tag_pos, l_close_tag_pos);
+
+    exit when l_end_element_pos = dbms_lob.LOBMAXSIZE;
+    l_element_name := dbms_lob.substr(pio_clob, l_end_element_pos - l_cur_pos -1, l_cur_pos + 1);
+    if substr(l_element_name, 1,1) = '/' then--it is closing tag
+      l_cur_pos := dbms_lob.instr(pio_clob, '>', l_cur_pos) + 1;
     else
-      if O100lI0 like '![CDATA[%' then 
-        I1000I1 := dbms_lob.instr(pio_clob, ']]>', I1000I1);
-        if I1000I1 = 0 then
+      if l_element_name like '![CDATA[%' then --excluse CDATA part
+        l_cur_pos := dbms_lob.instr(pio_clob, ']]>', l_cur_pos);
+        if l_cur_pos = 0 then
           pak_xslt_log.WriteLog(
             'There is no closing tag ]]> for CDATA',
             p_log_type => pak_xslt_log.g_error,
-            p_procedure => 'I1011II'
+            p_procedure => 'EncloseNonXmlElements'
           );
           exit;
         else
-          I1000I1 := I1000I1 + length(']]>') + 1;
+          l_cur_pos := l_cur_pos + length(']]>') + 1;
         end if;
-      else 
-        
-        if O100lI0 like '!--%' then
-          I1000I1 := dbms_lob.instr(pio_clob, '-->', I1000I1);
-          if I1000I1 = 0 then
+      else --element is not HTML comment
+        --exclude HTML comments
+        if l_element_name like '!--%' then
+          l_cur_pos := dbms_lob.instr(pio_clob, '-->', l_cur_pos);
+          if l_cur_pos = 0 then
             pak_xslt_log.WriteLog(
               'There is no closing tag --> for comment',
               p_log_type => pak_xslt_log.g_error,
-              p_procedure => 'I1011II'
+              p_procedure => 'EncloseNonXmlElements'
             );
             exit;
           else
-            I1000I1 := I1000I1 + length('-->') + 1;
+            l_cur_pos := l_cur_pos + length('-->') + 1;
           end if;
-        else 
-          l1011II := dbms_lob.instr(pio_clob, '>', I1000I1);
-          exit when l1011II = 0;
-          if dbms_lob.substr(pio_clob, 2, l1011II - 1) = '/>' then 
-            I1000I1 := l1011II + 1;
-          else 
-            if lower(O100lI0) in ('meta','link','br')
-              and dbms_lob.instr(pio_clob, '</'||O100lI0||'>', I1000I1) = 0
-            then 
-              
-              I10010I(pio_clob, lllI1l, I1000I1);
-              l1011II := l1011II + length(lllI1l);
-              I10010I(pio_clob, OllI1l, l1011II + 1);
-              I1000I1 := l1011II + length(OllI1l);
-            else 
-              I1000I1 := l1011II + 1;
+        else --element is not HTML comment
+          l_closing_gt_pos := dbms_lob.instr(pio_clob, '>', l_cur_pos);
+          exit when l_closing_gt_pos = 0;
+          if dbms_lob.substr(pio_clob, 2, l_closing_gt_pos - 1) = '/>' then --element XML closed, it doesn't have nested elements
+            l_cur_pos := l_closing_gt_pos + 1;
+          else --element has nested element or it's not XML closed
+            if lower(l_element_name) in ('meta','link','br')
+              and dbms_lob.instr(pio_clob, '</'||l_element_name||'>', l_cur_pos) = 0
+            then --it's not XML closed so enclose element with xls:text element
+              --TODO: Enclose element
+              InsertString(pio_clob, g_startStr_txt_no_esc, l_cur_pos);
+              l_closing_gt_pos := l_closing_gt_pos + length(g_startStr_txt_no_esc);
+              InsertString(pio_clob, g_endStr_txt_no_esc, l_closing_gt_pos + 1);
+              l_cur_pos := l_closing_gt_pos + length(g_endStr_txt_no_esc);
+            else --element has nested element
+              l_cur_pos := l_closing_gt_pos + 1;
             end if;
           end if;
         end if;
@@ -3728,36 +4464,38 @@ exception
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I1011II',
+    p_procedure => 'EncloseNonXmlElements',
     p_sqlerrm => sqlerrm
   );
   raise;
-end I1011II;
- 
+end EncloseNonXmlElements;
 
-function I1011Il(
-  l1011l0 varchar2
+/** Returns true if p_esc_code is HTML escape code
+  * @param p_esc_code Candidate for HTML escape code
+  */
+function IsHtmlEscCode(
+  p_esc_code varchar2
 )
 return boolean
 as
-O1011l0 number;
+l_code_length number;
 begin
-  if substr(l1011l0,1,1) <> '&' then return false; end if; 
-  O1011l0 := length(l1011l0);
-  if substr(l1011l0,O1011l0,O1011l0) <> ';' then return false; end if; 
-  if substr(l1011l0, 2, 1) = '#' then 
-    for ll01I1 in 3..O1011l0-1
+  if substr(p_esc_code,1,1) <> '&' then return false; end if; --must start with &
+  l_code_length := length(p_esc_code);
+  if substr(p_esc_code,l_code_length,l_code_length) <> ';' then return false; end if; --must end with ;
+  if substr(p_esc_code, 2, 1) = '#' then --it must be integer code
+    for i in 3..l_code_length-1
     loop
-      if ascii(substr(l1011l0, ll01I1, 1)) not between ascii('0') and ascii('9') then
+      if ascii(substr(p_esc_code, i, 1)) not between ascii('0') and ascii('9') then
         return false;
       end if;
     end loop;
   else
-    for ll01I1 in 2..O1011l0-1
+    for i in 2..l_code_length-1
     loop
-      if ascii(substr(l1011l0, ll01I1, 1)) not between ascii('0') and ascii('9') and
-         ascii(substr(l1011l0, ll01I1, 1)) not between ascii('Ol0lI0') and ascii('z') and
-         ascii(substr(l1011l0, ll01I1, 1)) not between ascii('Ol0lI0') and ascii('Z')
+      if ascii(substr(p_esc_code, i, 1)) not between ascii('0') and ascii('9') and
+         ascii(substr(p_esc_code, i, 1)) not between ascii('a') and ascii('z') and
+         ascii(substr(p_esc_code, i, 1)) not between ascii('A') and ascii('Z')
       then
         return false;
       end if;
@@ -3769,48 +4507,51 @@ exception
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I1011Il',
+    p_procedure => 'IsHtmlEscCode',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure I1011l1(
+/*TODO
+/** Enclose all html escape chars like &nbsp; with <xsl:text disable-output-escaping="yes"> element
+  * @param pio_clob CLOB
+  */
+procedure EncloseEscapeChars(
   pio_clob IN OUT NOCOPY CLOB
 )
 as
-I1000I1 number default 1;
-l1011l1 number;
-O1011lI varchar2(8);
-I1011lI number default 1;
-l1011ll number default 1;
-O1011ll number;
+l_cur_pos number default 1;
+l_end_esc_char number;
+l_escape_code varchar2(8);
+l_start_comment number default 1;
+l_end_comment number default 1;
+l_amp_pos number;
 begin
   loop
-    I1000I1 := dbms_lob.instr(pio_clob, '&', I1000I1);
-    while nvl(I1011lI, 0) > 0 and nvl(l1011ll, 0) > 0
+    l_cur_pos := dbms_lob.instr(pio_clob, '&', l_cur_pos);
+    while nvl(l_start_comment, 0) > 0 and nvl(l_end_comment, 0) > 0
     loop
-      I1011lI := dbms_lob.instr(pio_clob, '<!--', I1011lI);
-      l1011ll := dbms_lob.instr(pio_clob, '-->', l1011ll);
-      exit when l1011ll > I1000I1 or I1011lI = 0 or l1011ll = 0;
-      l1011ll := l1011ll + length('-->');
-      I1011lI := l1011ll;
+      l_start_comment := dbms_lob.instr(pio_clob, '<!--', l_start_comment);
+      l_end_comment := dbms_lob.instr(pio_clob, '-->', l_end_comment);
+      exit when l_end_comment > l_cur_pos or l_start_comment = 0 or l_end_comment = 0;
+      l_end_comment := l_end_comment + length('-->');
+      l_start_comment := l_end_comment;
     end loop;
- 
-    exit when I1000I1 = 0;
-    if I1000I1 between I1011lI and l1011ll then 
-      I1000I1 := l1011ll + length('-->');
+
+    exit when l_cur_pos = 0;
+    if l_cur_pos between l_start_comment and l_end_comment then --escape char is part of comment, skip comment
+      l_cur_pos := l_end_comment + length('-->');
     else
-      l1011l1 := dbms_lob.instr(pio_clob, ';', I1000I1);
-      exit when l1011l1 = 0;
-      if l1011l1 - I1000I1 <= 7 then 
-        O1011lI := dbms_lob.substr(pio_clob, l1011l1 - I1000I1 + 1, I1000I1);
-        if I1011Il(O1011lI) then
-          l1011I1(pio_clob, I1000I1, O1011lI);
+      l_end_esc_char := dbms_lob.instr(pio_clob, ';', l_cur_pos);
+      exit when l_end_esc_char = 0;
+      if l_end_esc_char - l_cur_pos <= 7 then --could be HTML escape code
+        l_escape_code := dbms_lob.substr(pio_clob, l_end_esc_char - l_cur_pos + 1, l_cur_pos);
+        if IsHtmlEscCode(l_escape_code) then
+          XslEncloseString(pio_clob, l_cur_pos, l_escape_code);
         end if;
       else
-        I1000I1 := I1000I1 + 8;
+        l_cur_pos := l_cur_pos + 8;
       end if;
     end if;
   end loop;
@@ -3819,225 +4560,270 @@ exception
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I1011l1',
+    p_procedure => 'EncloseEscapeChars',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure I101I00(
+/** Create starter XSLT transformation from HTML produced by MS Office (Word) when saving document as HTML.
+  * starter XSLT transformation means that if you apply XSLT to custom XML
+  * you get the original HTML. No XML data will be included in resulted HTML.
+  * You should build your specific XSLT for transforming XML to
+  * MS Office (Word) HTML from this starter XSLT.
+  *
+  * @param pio_clob IN - MS Word HTML CLOB OUT - Starter XSLT
+  */
+procedure HTML2XSLT(
   pio_clob IN OUT NOCOPY CLOB
 )
 as
 begin
-  I101101(pio_clob);
-  I1011l1(pio_clob);
-  O1011I1(pio_clob);
-  I1011II(pio_clob);
+  MSWordHTMLQAttrXSlWrap(pio_clob);
+  EncloseEscapeChars(pio_clob);
+  XslEncloseComments(pio_clob);
+  EncloseNonXmlElements(pio_clob);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I101I00(CLOB)',
+    p_procedure => 'HTML2XSLT(CLOB)',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure l101I00(
+/** Creates Starter XSLT from Building block file and then download it
+* @param p_BBFile Building block file
+* @param p_BBformat Format of Building block file from XSLT processor point of view: F_TEXT, F_HTML, F_XML
+* @param p_BB_no_esc_sc Applied only when p_BBformat is F_TEXT. If true then not escape XML special characters.
+* You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+* You should not escape special characters if Building block file is in MHT format.
+*/
+procedure DownloadStarterXSLT(
   p_BBFile                  IN varchar2,
-  O101I01                IN number
+  p_BBformat                IN number
 )
 as
-I101I01 CLOB;
-O100Ill number;
+l_clob CLOB;
+l_file_csid number;
 begin
-  I101I01 := pak_blob_util.StaticFile2CLOB(p_BBFile, O100Ill);
-  if O101I01 = F_MHT then
-    l100l0l(I101I01);
-  elsif O101I01 = F_RTF then
-    I100l0l(I101I01);
-  elsif O101I01 = F_TEXT then
-    I100l01(I101I01);
-  elsif O101I01 = F_HTML then
-    I101I00(I101I01);
-  elsif O101I01 = F_XML then
-    O1010l1(I101I01);
+  l_clob := pak_blob_util.StaticFile2CLOB(p_BBFile, l_file_csid);
+  if p_BBformat = F_MHT then
+    MHT2XSLT(l_clob);
+  elsif p_BBformat = F_RTF then
+    RTF2XSLT(l_clob);
+  elsif p_BBformat = F_TEXT then
+    Text2XSLT(l_clob);
+  elsif p_BBformat = F_HTML then
+    HTML2XSLT(l_clob);
+  elsif p_BBformat = F_XML then
+    XML2XSLT(l_clob);
   end if;
-  DownloadConvertOutput(V('APP_ID'), pak_blob_util.clob2blob(I101I01, O100Ill), p_BBFile||'.Starter.xslt',
-    IIllIl => false,
+  DownloadConvertOutput(V('APP_ID'), pak_blob_util.clob2blob(l_clob, l_file_csid), p_BBFile||'.Starter.xslt',
+    p_error => null,
+
+
+
+
+
+
+
     p_mime => 'application/xslt+xml',
-    p_blob_csid => O100Ill
+    p_blob_csid => l_file_csid
   );
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l101I00',
+    p_procedure => 'DownloadStarterXSLT',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
- 
-procedure OIll10(
+/** Downloads one of the static files or starter XSLT depend on p_dwld_type
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_dwld_type What to download: XSLT, second XSLT, building block file, starter XSLT
+  * @param p_mime Mime type of downloaded file
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @param p_BBFile Building block file
+  * @param p_BB_no_esc_sc Applied only when p_format is F_TEXT. If true then not escape XML special characters.
+  * You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+  * You should not escape special characters if Building block file is in MHT format.
+  */
+
+procedure DownloadStaticFile(
   p_xsltStaticFile          IN varchar2,
   p_second_XsltStaticFile   IN varchar2 default null,
-  
-  
+  --p_BBFile                  IN varchar2 default null,
+  --p_BB_no_esc_sc            IN boolean default false,
   p_dwld_type               in number,
   p_mime                    in VARCHAR2 default 'application/octet'
 )
 as
 begin
   if p_dwld_type = g_dwld_xslt then
-    OIll10(p_xsltStaticFile, 'application/xslt+xml');
+    DownloadStaticFile(p_xsltStaticFile, 'application/xslt+xml');
   elsif p_dwld_type = g_dwld_second_xslt then
     if p_second_xsltStaticFile is not null then
-      OIll10(p_second_xsltStaticFile, 'application/xslt+xml');
+      DownloadStaticFile(p_second_xsltStaticFile, 'application/xslt+xml');
     end if;
-  
+  /*
+  elsif p_dwld_type = g_dwld_bb then
+    if p_BBFile is not null then
+      DownloadStaticFile(p_BBFile, p_mime);
+    end if;
+  elsif p_dwld_type = g_dwld_starter_xslt then
+    if p_BBFile is not null then
+      DownloadStarterXSLT(p_BBFile, p_format, p_BB_no_esc_sc);
+    end if;
+    */
   end if;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'OIll10',
+    p_procedure => 'DownloadStaticFile',
     p_sqlerrm => sqlerrm
   );
   raise;
-end OIll10;
- 
-function l101I0I(
-  O101I0I varchar2,
+end DownloadStaticFile;
+
+function GetAttrValue(
+  p_attrs varchar2,
   p_name varchar2
 )
 return varchar2
 as
-lll0II number;
-Oll0I1 number;
+l_start number;
+l_end number;
 begin
-  lll0II := instr(O101I0I,p_name||'="');
-  if lll0II > 0 then
-    lll0II := lll0II + length(p_name||'="');
-    Oll0I1 := instr(O101I0I,'"', lll0II + 1);
-    if Oll0I1 > lll0II then
-      return substr(O101I0I, lll0II, Oll0I1 - lll0II);
+  l_start := instr(p_attrs,p_name||'="');
+  if l_start > 0 then
+    l_start := l_start + length(p_name||'="');
+    l_end := instr(p_attrs,'"', l_start + 1);
+    if l_end > l_start then
+      return substr(p_attrs, l_start, l_end - l_start);
     end if;
   end if;
   return null;
 end;
- 
-function I101I0l(
+
+function AddStringToFilename(
     P_FILENAME VARCHAR2,
-    IlI110 VARCHAR2
+    P_STRING VARCHAR2
   )
   return varchar2
   AS
-  l101I0l number;
+  l_koncnica number;
   BEGIN
-    if IlI110 is null then
+    if P_STRING is null then
       return P_FILENAME;
     end if;
-    l101I0l := INSTR(P_FILENAME, '.', -1, 1);
-    if l101I0l > 0 then
-      return SUBSTR(P_FILENAME, 1, l101I0l-1)||'_'||IlI110||SUBSTR(P_FILENAME, l101I0l);
+    l_koncnica := INSTR(P_FILENAME, '.', -1, 1);
+    if l_koncnica > 0 then
+      return SUBSTR(P_FILENAME, 1, l_koncnica-1)||'_'||P_STRING||SUBSTR(P_FILENAME, l_koncnica);
     else
-      return P_FILENAME||'_'||IlI110;
+      return P_FILENAME||'_'||P_STRING;
     end if;
-  END I101I0l;
- 
-  function O101I10(IlI110 varchar2)
+  END AddStringToFilename;
+
+  function IsInteger(p_string varchar2)
   return boolean
   as
   begin
-    if LENGTH(TRIM(TRANSLATE(IlI110, '0123456789', ' '))) is null then return true;
+    if LENGTH(TRIM(TRANSLATE(p_string, '0123456789', ' '))) is null then return true;
     else return false; end if;
   end;
- 
-  function I101I10(
+
+  function AddNumberToFilename(
     P_FILENAME VARCHAR2,
-    l101I11 NUMBER
+    P_NUM NUMBER
   )
   return varchar2
   AS
-  l101I0l number(5);
-  O101I11 number(5);
-  IlIII1 varchar2(300);
-  I101I1I varchar2(50);
+  l_koncnica number(5);
+  l_zacetek number(5);
+  l_filename varchar2(300);
+  l_num varchar2(50);
   BEGIN
-    
-    l101I0l := INSTR(P_FILENAME, '.', -1, 1);
-    O101I11 := INSTR(P_FILENAME, '_', -1, 1);
- 
-    if O101I11 >0 and l101I0l > 0 then
-      I101I1I := substr(p_filename, O101I11+1, l101I0l - O101I11 -1);
-      if O101I10(I101I1I) then
-        IlIII1 := replace(p_filename, '_'||I101I1I||'.', '_'||to_char(l101I11)||'.');
+    --if already exists number at the end of filename
+    l_koncnica := INSTR(P_FILENAME, '.', -1, 1);
+    l_zacetek := INSTR(P_FILENAME, '_', -1, 1);
+
+    if l_zacetek >0 and l_koncnica > 0 then
+      l_num := substr(p_filename, l_zacetek+1, l_koncnica - l_zacetek -1);
+      if IsInteger(l_num) then
+        l_filename := replace(p_filename, '_'||l_num||'.', '_'||to_char(p_num)||'.');
       else
-        IlIII1 := I101I0l(P_FILENAME, to_char(l101I11));
+        l_filename := AddStringToFilename(P_FILENAME, to_char(P_NUM));
       end if;
-    elsif O101I11 >0 then
-      I101I1I := substr(p_filename, O101I11+1);
-      if O101I10(I101I1I) then
-        IlIII1 := replace(p_filename, '_'||I101I1I, '_'||to_char(l101I11));
+    elsif l_zacetek >0 then
+      l_num := substr(p_filename, l_zacetek+1);
+      if IsInteger(l_num) then
+        l_filename := replace(p_filename, '_'||l_num, '_'||to_char(p_num));
       else
-        IlIII1 := I101I0l(P_FILENAME, to_char(l101I11));
+        l_filename := AddStringToFilename(P_FILENAME, to_char(P_NUM));
       end if;
     else
-      IlIII1 := I101I0l(P_FILENAME, to_char(l101I11));
+      l_filename := AddStringToFilename(P_FILENAME, to_char(P_NUM));
     end if;
-    return IlIII1;
-  END I101I10;
- 
-function Il001l(
-  IIl1I0 number,
+    return l_filename;
+  END AddNumberToFilename;
+
+function XMLOrSourceFilename(
+  p_page_id number,
   pi_regionAttrs tab_string
 )
 return varchar2
 as
-Il01I1 varchar2(4000);
-l101I1I varchar2(4000);
-O101I1l varchar2(4000);
+l_ret varchar2(4000);
+l_name varchar2(4000);
+l_IR_name varchar2(4000);
 begin
-  if IIl1I0 = V('APP_PAGE_ID') then
-    Il01I1 := 'Ol0lI0'||V('APP_ID')||'_Q'||IIl1I0;
+  if p_page_id = V('APP_PAGE_ID') then
+    l_ret := 'A'||V('APP_ID')||'_Q'||p_page_id;
   else
-    Il01I1 :=  'Ol0lI0'||V('APP_ID')||'_P'||IIl1I0;
+    l_ret :=  'A'||V('APP_ID')||'_P'||p_page_id;
   end if;
-  for ll01I1 in 1..pi_regionAttrs.count loop
-    if pi_regionAttrs(ll01I1) is not null then
-      l101I1I := l101I0I(pi_regionAttrs(ll01I1),'name');
-      O101I1l := l101I0I(pi_regionAttrs(ll01I1),'IR_name');
-      if l101I1I is not null then
-        Il01I1:= Il01I1||'_'||l101I1I;
+  for i in 1..pi_regionAttrs.count loop
+    if pi_regionAttrs(i) is not null then
+      l_name := GetAttrValue(pi_regionAttrs(i),'name');
+      l_IR_name := GetAttrValue(pi_regionAttrs(i),'IR_name');
+      if l_name is not null then
+        l_ret:= l_ret||'_'||l_name;
       end if;
-      if O101I1l is not null then
-        Il01I1:= Il01I1||'_IR_'||O101I1l;
+      if l_IR_name is not null then
+        l_ret:= l_ret||'_IR_'||l_IR_name;
       end if;
     end if;
   end loop;
-  Il01I1 := trim(substr(translate(Il01I1,'?,''":;?*+()/\|&%$#! '||query2report.g_crlf,'______________________'),1, 255));
-  return Il01I1;
+  l_ret := trim(substr(translate(l_ret,'?,''":;?*+()/\|&%$#! '||query2report.g_crlf,'______________________'),1, 255));
+  return l_ret;
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Il001l',
+    p_procedure => 'XMLOrSourceFilename',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
-function Il001l(
-  IIl1I0 number,
+
+function XMLOrSourceFilename(
+  p_page_id number,
   pi_regionAttr1 varchar2,
   pi_regionAttr2 varchar2,
   pi_regionAttr3 varchar2,
@@ -4046,60 +4832,60 @@ function Il001l(
 )
 return varchar2
 as
-OlIII0 tab_string := tab_string();
+l_regionAttrs tab_string := tab_string();
 begin
   if pi_regionAttr1 is not null then
-    OlIII0.extend;
-    OlIII0(OlIII0.count) := pi_regionAttr1;
+    l_regionAttrs.extend;
+    l_regionAttrs(l_regionAttrs.count) := pi_regionAttr1;
   end if;
   if pi_regionAttr2 is not null then
-    OlIII0.extend;
-    OlIII0(OlIII0.count) := pi_regionAttr2;
+    l_regionAttrs.extend;
+    l_regionAttrs(l_regionAttrs.count) := pi_regionAttr2;
   end if;
   if pi_regionAttr3 is not null then
-    OlIII0.extend;
-    OlIII0(OlIII0.count) := pi_regionAttr3;
+    l_regionAttrs.extend;
+    l_regionAttrs(l_regionAttrs.count) := pi_regionAttr3;
   end if;
   if pi_regionAttr4 is not null then
-    OlIII0.extend;
-    OlIII0(OlIII0.count) := pi_regionAttr4;
+    l_regionAttrs.extend;
+    l_regionAttrs(l_regionAttrs.count) := pi_regionAttr4;
   end if;
   if pi_regionAttr5 is not null then
-    OlIII0.extend;
-    OlIII0(OlIII0.count) := pi_regionAttr5;
+    l_regionAttrs.extend;
+    l_regionAttrs(l_regionAttrs.count) := pi_regionAttr5;
   end if;
-  return Il001l(IIl1I0, OlIII0);
+  return XMLOrSourceFilename(p_page_id, l_regionAttrs);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Il001l varchar2 ver.',
+    p_procedure => 'XMLOrSourceFilename varchar2 ver.',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
-procedure ll001l(
+
+procedure Insert_XPM_XML(
   p_filename varchar2,
   p_xml clob
 )as
-IlIII1 varchar2(400);
-ll1Il1 number;
-I101I1I number := 0;
-IlII1l BLOB;
+l_filename varchar2(400);
+l_count number;
+l_num number := 0;
+l_xml BLOB;
 begin
-  IlIII1 := p_filename;
+  l_filename := p_filename;
   loop
-    select count(*) into ll1Il1 from xpm_xml where fname = IlIII1||'.xml';
-    if ll1Il1 = 0 then
-      IlII1l := pak_blob_util.CLOB2BLOB(p_xml);
-      insert into xpm_xml(fname, xmlblob) values(IlIII1||'.xml', IlII1l);
-      dbms_lob.freetemporary(IlII1l);
+    select count(*) into l_count from xpm_xml where fname = l_filename||'.xml';
+    if l_count = 0 then
+      l_xml := pak_blob_util.CLOB2BLOB(p_xml);
+      insert into xpm_xml(fname, xmlblob) values(l_filename||'.xml', l_xml);
+      dbms_lob.freetemporary(l_xml);
       return;
     else
-      I101I1I := I101I1I + 1;
-      IlIII1 := I101I10(IlIII1,I101I1I);
+      l_num := l_num + 1;
+      l_filename := AddNumberToFilename(l_filename,l_num);
     end if;
   end loop;
 exception
@@ -4107,15 +4893,41 @@ exception
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'll001l',
+    p_procedure => 'Insert_XPM_XML',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
- 
+-------------------------------------------------------PUBLIC Query2DownloadReport and Query2CLOBReport procedures--------------------------------------------
 
+/** Queries data with multiple selects in pi_selectQueries then convert data to temporary XML.
+  * XML fragment which contains data from N-th single select is embeeded in DOCUMENT/ROWSET element
+  * with attributes pi_regionAttrs(N).
+  * One (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformations
+  * are applied to temporary XML. Output is then downloaded in APEX enviroment.
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param pi_regionAttrs Set of ROWSET elemenents attributes
+  * @param pi_selectQueries Set of selects from which we build temporary XML
+  * @param pi_maxRows Set of max rows limits of fetching rows for build temporary XML
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_mime Mime type of downloaded file
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_TemplateFile Filename of Template uploaded inro static files (in Flat OPC format) from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @param p_BBFile Building block file
+  * @param p_BB_no_esc_sc Applied only when p_format is F_TEXT. If true then not escape XML special characters.
+  * You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+  * You should not escape special characters if Building block file is in MHT format.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertBLOB procedure
+  */
 procedure Query2DownloadReport
 (
   p_xsltStaticFile          IN varchar2,
@@ -4123,60 +4935,65 @@ procedure Query2DownloadReport
   pi_regionAttrs            in tab_string,
   pi_selectQueries          IN tab_string,
   pi_maxRows                IN tab_integer,
-  IIl1I0                 IN number default V('APP_PAGE_ID'),
+  p_page_id                 IN number default V('APP_PAGE_ID'),
   p_dwld_type               in number default g_dwld_transformed,
   p_mime                    in VARCHAR2 default 'application/octet',
   p_format                  IN number default null,
-  p_templateStaticFile      in  VARCHAR2, 
+  p_templateStaticFile      in  VARCHAR2, --default null,
   p_external_params         IN varchar2 default null,
   p_second_XsltStaticFile   IN varchar2 default null,
   p_second_external_params  IN varchar2 default null,
-  
-  
+  --p_BBFile                 IN varchar2 default null,
+  --p_BB_no_esc_sc            IN boolean default false,
   p_convertblob_param       IN varchar2 default null
 )
 as
-IlII1l CLOB;
-IlIII1 varchar2(400);
- 
+l_xml CLOB;
+l_filename varchar2(400);
+l_reportTypes t_coltype_tables;
+
 begin
- 
-  if p_dwld_type in (g_dwld_xml, IIlIl0, g_dwld_transformed) then
-    IlII1l := ll001I(pi_regionAttrs, pi_selectQueries, O100101(pi_selectQueries), pi_maxRows);
-    
-    if p_dwld_type in (g_dwld_xml, IIlIl0) then
-      IlIII1 := Il001l(IIl1I0, pi_regionAttrs);
-      DownloadConvertOutput(V('APP_ID'), pak_blob_util.clob2blob(IlII1l), IlIII1||'.xml',
-          IIllIl => false,
+
+  if p_dwld_type in (g_dwld_xml, g_dwld_xml_copyto_xpm, g_dwld_transformed) then
+    l_reportTypes := ReportTypesElement(pi_selectQueries);
+    l_xml := Query2Xml(pi_regionAttrs, pi_selectQueries, l_reportTypes, pi_maxRows);
+    --dbms_xslprocessor.clob2file(l_xml, 'XMLDIR', 'debug1.xml');
+    if p_dwld_type in (g_dwld_xml, g_dwld_xml_copyto_xpm) then
+      l_filename := XMLOrSourceFilename(p_page_id, pi_regionAttrs);
+      DownloadConvertOutput(V('APP_ID'), pak_blob_util.clob2blob(l_xml), l_filename||'.xml',
+          p_error => null,
           p_mime => 'text/xml');
-      if p_dwld_type = IIlIl0 then
-        ll001l(IlIII1, IlII1l);
+
+      if p_dwld_type = g_dwld_xml_copyto_xpm then
+        insert_xpm_xml(l_filename, l_xml);
       end if;
     else
-      
+      ----dbms_xslprocessor.clob2file(pio_xml, 'XMLDIR', 'debug2.xml');
       XslTransformAndDownload(
-        p_Xml => IlII1l,
+        p_Xml => l_xml,
         p_xsltStaticFile => p_xsltStaticFile,
-        IIl1I0  => null,
-        OIl11I => null,
+        p_page_id  => null,
+        p_region_name => null,
         p_filename => p_filename,
+        pi_regionAttrs => pi_regionAttrs,
+        pi_reportTypes => l_reportTypes,
         p_mime => p_mime,
         p_format => p_format,
-        p_templateStaticFile => p_templateStaticFile, 
+        p_templateStaticFile => p_templateStaticFile, --default null,
         p_external_params => p_external_params,
         p_second_XsltStaticFile => p_second_XsltStaticFile,
         p_second_external_params => p_second_external_params,
         p_convertblob_param => p_convertblob_param
       );
- 
+
     end if;
-    dbms_lob.freetemporary(IlII1l);
+    dbms_lob.freetemporary(l_xml);
   else
-    OIll10(
+    DownloadStaticFile(
       p_xsltStaticFile,
       p_second_XsltStaticFile,
-      
-      
+      --p_BBFile,
+      --p_BB_no_esc_sc,
       p_dwld_type,
       p_mime
     );
@@ -4193,8 +5010,45 @@ exception
   rollback;
   raise;
 end;
- 
 
+/** Queries data with multiple selects in pi_selectQueries then convert data to temporary XML.
+  * XML fragment which contains data from N-th single select is embeeded in DOCUMENT/ROWSET element
+  * with attributes pi_regionAttrN.
+  * One (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformations
+  * are applied to temporary XML. Output is then downloaded in APEX enviroment.
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_mime Mime type of downloaded file
+  * @param pi_regionAttr1 First ROWSET elemenent attributes.
+  * @param pi_selectQuery1 First select from which we build temporary XML. All data is embeeded in pi_regionAttr1 element.
+  * @param pi_maxRows1 Number of max rows fetched from first select
+  * @param pi_regionAttr2 Second ROWSET elemenent attributes.
+  * @param pi_selectQuery2 Second select from which we build temporary XML. All data is embeeded in pi_regionAttr2 element.
+  * @param pi_maxRows2 Number of max rows fetched from second select
+  * @param pi_regionAttr3 Third ROWSET elemenent attributes.
+  * @param pi_selectQuery3 Third select from which we build temporary XML. All data is embeeded in pi_regionAttr3 element.
+  * @param pi_maxRows3 Number of max rows fetched from third select
+  * @param pi_regionAttr4 Fourth ROWSET elemenent attributes.
+  * @param pi_selectQuery4 Fourth select from which we build temporary XML. All data is embeeded in pi_regionAttr4 element.
+  * @param pi_maxRows4 Number of max rows fetched from fourth select
+  * @param pi_regionAttr5 Fifth ROWSET elemenent attributes.
+  * @param pi_selectQuery5 Fifth select from which we build temporary XML. All data is embeeded in pi_regionAttr5 element.
+  * @param pi_maxRows5 Number of max rows fetched from fifth select
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @param p_BBFile Building block file
+  * @param p_BBescapeSC Applied only when p_format is F_TEXT. If true then not escape XML special characters.
+  * You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+  * You should not escape special characters if Building block file is in MHT format.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertBLOB procedure
+  */
 procedure Query2DownloadReport
 (
   p_xsltStaticFile  IN varchar2,
@@ -4216,76 +5070,92 @@ procedure Query2DownloadReport
   ,pi_regionAttr5 in varchar2 default null
   ,pi_selectQuery5   IN varchar2 default null
   ,pi_maxRows5       IN pls_integer default 20
-  ,IIl1I0         IN number default V('APP_PAGE_ID')
+  ,p_page_id         IN number default V('APP_PAGE_ID')
   ,p_format                IN  number default null
   ,p_templateStaticFile    in  VARCHAR2 default null
   ,p_external_params       IN  varchar2 default null
   ,p_second_XsltStaticFile  IN  varchar2 default null
   ,p_second_external_params IN  varchar2 default null,
-  
-  
+  --p_BBFile                 IN varchar2 default null,
+  --p_BB_no_esc_sc            IN boolean default false,
   p_convertblob_param       IN varchar2 default null
 )
 as
-IlII1l CLOB;
-IlIII1 varchar2(400);
+l_xml CLOB;
+l_filename varchar2(400);
+l_reportTypes1 T_COLTYPE_TABLE;
+l_reportTypes2 T_COLTYPE_TABLE;
+l_reportTypes3 T_COLTYPE_TABLE;
+l_reportTypes4 T_COLTYPE_TABLE;
+l_reportTypes5 T_COLTYPE_TABLE;
+l_reportTypes t_coltype_tables;
 begin
-  if p_dwld_type in (g_dwld_xml, IIlIl0, g_dwld_transformed) then
-    IlII1l := ll001I
+  if p_dwld_type in (g_dwld_xml, g_dwld_xml_copyto_xpm, g_dwld_transformed) then
+    l_reportTypes1 := ReportTypesElementTab(pi_selectQuery1);
+    l_reportTypes2 := ReportTypesElementTab(pi_selectQuery2);
+    l_reportTypes3 := ReportTypesElementTab(pi_selectQuery3);
+    l_reportTypes4 := ReportTypesElementTab(pi_selectQuery4);
+    l_reportTypes5 := ReportTypesElementTab(pi_selectQuery5);
+
+    l_xml := Query2Xml
     (
       pi_regionAttr1
       ,pi_selectQuery1
-      ,OIllll(pi_selectQuery1)
+      ,l_reportTypes1
       ,pi_maxRows1
       ,pi_regionAttr2
       ,pi_selectQuery2
-      ,OIllll(pi_selectQuery2)
+      ,l_reportTypes2
       ,pi_maxRows2
       ,pi_regionAttr3
       ,pi_selectQuery3
-      ,OIllll(pi_selectQuery3)
+      ,l_reportTypes3
       ,pi_maxRows3
       ,pi_regionAttr4
       ,pi_selectQuery4
-      ,OIllll(pi_selectQuery4)
+      ,l_reportTypes4
       ,pi_maxRows4
       ,pi_regionAttr5
       ,pi_selectQuery5
-      ,OIllll(pi_selectQuery5)
+      ,l_reportTypes5
       ,pi_maxRows5
     );
-    
-    if p_dwld_type in (g_dwld_xml, IIlIl0) then
-      IlIII1 := Il001l(IIl1I0, pi_regionAttr1, pi_regionAttr2, pi_regionAttr3, pi_regionAttr4, pi_regionAttr5);
-      DownloadConvertOutput(V('APP_ID'),  pak_blob_util.clob2blob(IlII1l), IlIII1||'.xml',
-                            IIllIl => false,
+    --dbms_xslprocessor.clob2file(l_xml, 'XMLDIR', 'debug1.xml');
+    if p_dwld_type in (g_dwld_xml, g_dwld_xml_copyto_xpm) then
+      l_filename := XMLOrSourceFilename(p_page_id, pi_regionAttr1, pi_regionAttr2, pi_regionAttr3, pi_regionAttr4, pi_regionAttr5);
+      DownloadConvertOutput(V('APP_ID'),  pak_blob_util.clob2blob(l_xml), l_filename||'.xml',
+                            p_error => null,
                             p_mime => 'text/xml');
-      if p_dwld_type = IIlIl0 then
-        ll001l(IlIII1, IlII1l);
+
+      if p_dwld_type = g_dwld_xml_copyto_xpm then
+        insert_xpm_xml(l_filename, l_xml);
       end if;
     else
+      l_reportTypes := t_coltype_tables(l_reportTypes1, l_reportTypes2, l_reportTypes3, l_reportTypes4, l_reportTypes5);
       XslTransformAndDownload(
-        p_Xml => IlII1l,
+        p_Xml => l_xml,
         p_xsltStaticFile => p_xsltStaticFile,
-        IIl1I0 => null,
-        OIl11I => null,
+        p_page_id => null,
+        p_region_name => null,
         p_filename => p_filename,
+        pi_regionAttrs => tab_string(pi_regionAttr1, pi_regionAttr2, pi_regionAttr3, pi_regionAttr4, pi_regionAttr5),
+        pi_reportTypes => l_reportTypes,
         p_mime => p_mime,
         p_format => p_format,
-        p_templateStaticFile => p_templateStaticFile, 
+        p_templateStaticFile => p_templateStaticFile, --default null,
         p_external_params => p_external_params,
         p_second_XsltStaticFile => p_second_XsltStaticFile,
         p_second_external_params => p_second_external_params,
         p_convertblob_param => p_convertblob_param
       );
     end if;
-    dbms_lob.freetemporary(IlII1l);
+    dbms_lob.freetemporary(l_xml);
   else
-    OIll10(
+    DownloadStaticFile(
       p_xsltStaticFile,
       p_second_XsltStaticFile,
-      
-      
+      --p_BBFile,
+      --p_BB_no_esc_sc,
       p_dwld_type,
       p_mime
     );
@@ -4302,8 +5172,46 @@ exception
   rollback;
   raise;
 end;
- 
 
+/** Queries data with multiple selects in pi_selectQueries then convert data to temporary XML.
+  * XML fragment which contains data from N-th single select is embeeded in DOCUMENT/ROWSET element
+  * with attributes pi_regionAttrN.
+  * One (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformations
+  * are applied to temporary XML. Output is then downloaded in APEX enviroment.
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_mime Mime type of downloaded file
+  * @param pi_regionAttr1 First ROWSET elemenent attributes.
+  * @param pi_selectQuery1 First select from which we build temporary XML. All data is embeeded in pi_regionAttr1 element.
+  * @param pi_maxRows1 Number of max rows fetched from first select
+  * @param pi_regionAttr2 Second ROWSET elemenent attributes.
+  * @param pi_selectQuery2 Second select from which we build temporary XML. All data is embeeded in pi_regionAttr2 element.
+  * @param pi_maxRows2 Number of max rows fetched from second select
+  * @param pi_regionAttr3 Third ROWSET elemenent attributes.
+  * @param pi_selectQuery3 Third select from which we build temporary XML. All data is embeeded in pi_regionAttr3 element.
+  * @param pi_maxRows3 Number of max rows fetched from third select
+  * @param pi_regionAttr4 Fourth ROWSET elemenent attributes.
+  * @param pi_selectQuery4 Fourth select from which we build temporary XML. All data is embeeded in pi_regionAttr4 element.
+  * @param pi_maxRows4 Number of max rows fetched from fourth select
+  * @param pi_regionAttr5 Fifth ROWSET elemenent attributes.
+  * @param pi_selectQuery5 Fifth select from which we build temporary XML. All data is embeeded in pi_regionAttr5 element.
+  * @param pi_maxRows5 Number of max rows fetched from fifth select
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param p_TemplateFile Filename of Template uploaded inro static files (in Flat OPC format) from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @param p_BBFile Building block file
+  * @param p_BBescapeSC Applied only when p_BBformat is F_TEXT. If true then not escape XML special characters.
+  * You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+  * You should not escape special characters if Building block file is in MHT format.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertBLOB procedure
+  */
 procedure Query2DownloadReport
 (
   p_xsltStaticFile  IN varchar2,
@@ -4325,77 +5233,82 @@ procedure Query2DownloadReport
   ,pi_regionAttr5 in varchar2 default null
   ,pi_selectQuery5   IN SYS_REFCURSOR default null
   ,pi_maxRows5       IN pls_integer default 20
-  ,IIl1I0         IN number default V('APP_PAGE_ID')
+  ,p_page_id         IN number default V('APP_PAGE_ID')
   ,p_format                IN    number default null
   ,p_templateStaticFile    in  VARCHAR2 default null
   ,p_external_params       IN    varchar2 default null
   ,p_second_XsltStaticFile  IN  varchar2 default null
   ,p_second_external_params IN  varchar2 default null,
-  
-  
+  --p_BBFile                 IN varchar2 default null,
+  --p_BB_no_esc_sc            IN boolean default false,
   p_convertblob_param       IN varchar2 default null
 )
 as
-IlII1l CLOB;
-IlIII1 varchar2(400);
+l_xml CLOB;
+l_filename varchar2(400);
+l_reportTypes t_coltype_table;
+l_reportTypesTbl t_coltype_tables;
 begin
-  if p_dwld_type in (g_dwld_xml, IIlIl0, g_dwld_transformed) then
- 
-    IlII1l := ll001I
+  if p_dwld_type in (g_dwld_xml, g_dwld_xml_copyto_xpm, g_dwld_transformed) then
+
+    l_xml := Query2Xml
     (
       pi_regionAttr1
       ,pi_selectQuery1
-      ,null
+      ,l_reportTypes
       ,pi_maxRows1
       ,pi_regionAttr2
       ,pi_selectQuery2
-      ,null
+      ,l_reportTypes
       ,pi_maxRows2
       ,pi_regionAttr3
       ,pi_selectQuery3
-      ,null
+      ,l_reportTypes
       ,pi_maxRows3
       ,pi_regionAttr4
       ,pi_selectQuery4
-      ,null
+      ,l_reportTypes
       ,pi_maxRows4
       ,pi_regionAttr5
       ,pi_selectQuery5
-      ,null
+      ,l_reportTypes
       ,pi_maxRows5
     );
-    
-    if p_dwld_type in (g_dwld_xml, IIlIl0) then
-      IlIII1 := Il001l(IIl1I0, pi_regionAttr1, pi_regionAttr2, pi_regionAttr3, pi_regionAttr4, pi_regionAttr5);
-      DownloadConvertOutput(V('APP_ID'),  pak_blob_util.clob2blob(IlII1l), IlIII1||'.xml',
-                            IIllIl => false,
+    --dbms_xslprocessor.clob2file(l_xml, 'XMLDIR', 'debug1.xml');
+    if p_dwld_type in (g_dwld_xml, g_dwld_xml_copyto_xpm) then
+      l_filename := XMLOrSourceFilename(p_page_id, pi_regionAttr1, pi_regionAttr2, pi_regionAttr3, pi_regionAttr4, pi_regionAttr5);
+      DownloadConvertOutput(V('APP_ID'),  pak_blob_util.clob2blob(l_xml), l_filename||'.xml',
+                            p_error => null,
                             p_mime => 'text/xml');
-      if p_dwld_type = IIlIl0 then
-        ll001l(IlIII1, IlII1l);
+
+      if p_dwld_type = g_dwld_xml_copyto_xpm then
+        insert_xpm_xml(l_filename, l_xml);
       end if;
     else
       XslTransformAndDownload(
-        p_Xml => IlII1l,
+        p_Xml => l_xml,
         p_xsltStaticFile => p_xsltStaticFile,
-        IIl1I0 => null,
-        OIl11I => null,
+        p_page_id => null,
+        p_region_name => null,
         p_filename => p_filename,
+        pi_regionAttrs => tab_string(pi_regionAttr1, pi_regionAttr2, pi_regionAttr3, pi_regionAttr4, pi_regionAttr5),
+        pi_reportTypes => l_reportTypesTbl,
         p_mime => p_mime,
         p_format => p_format,
-        p_templateStaticFile => p_templateStaticFile, 
+        p_templateStaticFile => p_templateStaticFile, --default null,
         p_external_params => p_external_params,
         p_second_XsltStaticFile => p_second_XsltStaticFile,
         p_second_external_params => p_second_external_params,
         p_convertblob_param => p_convertblob_param
       );
     end if;
-    dbms_lob.freetemporary(IlII1l);
+    dbms_lob.freetemporary(l_xml);
   else
-    OIll10(
+    DownloadStaticFile(
       p_xsltStaticFile,
       p_second_XsltStaticFile,
-      
-      
+      --p_BBFile,
+      --p_BB_no_esc_sc,
       p_dwld_type,
       p_mime
     );
@@ -4412,8 +5325,29 @@ exception
   rollback;
   raise;
 end;
- 
 
+/** Queries data with multiple selects in pi_selectQueries then convert data to temporary XML.
+  * XML fragment which contains data from N-th single select is embeeded in DOCUMENT/ROWSET element
+  * with attributes pi_regionAttrs(N).
+  * One (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformations
+  * are applied to temporary XML to return tarnsformed output. Temporary XML is output parameter.
+  *
+  * @param p_Xslt CLOB with first XSLT
+  * @param pi_regionAttrs Set of ROWSET elemenents attributes
+  * @param pi_selectQueries Set of selects from which we build temporary XML
+  * @param pi_maxRows Set of max rows limits of fetching rows for build temporary XML
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_OOXML If p_format is set to g_ooxml OOXML (DOCX or XLSX) BLOB will be returned.
+  * @param p_template  Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_Xslt CLOB with XSLT applied after first XSLT (p_Xslt)
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @po_Xml Temporary XML is output parameter.
+  * @return Result of one or two XSLT on temporary XML.
+  */
 function Query2ClobReport
 (
   p_Xslt                    IN CLOB,
@@ -4421,7 +5355,7 @@ function Query2ClobReport
   pi_selectQueries          IN tab_string,
   pi_maxRows                IN tab_integer,
   p_format                  IN number default null,
-  po_error                  OUT boolean,
+  po_error                  OUT varchar2,
   p_Template                IN CLOB default null,
   p_external_params         IN varchar2 default null,
   p_second_Xslt             IN CLOB default null,
@@ -4430,11 +5364,12 @@ function Query2ClobReport
 )
 return BLOB
 as
- 
+l_reportTypes t_coltype_tables;
 begin
-    po_xml := ll001I(pi_regionAttrs, pi_selectQueries, O100101(pi_selectQueries), pi_maxRows);
-    
-    return l100l00
+    l_reportTypes := ReportTypesElement(pi_selectQueries);
+    po_xml := Query2Xml(pi_regionAttrs, pi_selectQueries, l_reportTypes, pi_maxRows);
+    --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug.xml');
+    return XslTransformEx
     (
       p_Xml => po_Xml,
       p_Xslt => p_Xslt,
@@ -4455,8 +5390,44 @@ exception
   );
   raise;
 end Query2ClobReport;
- 
 
+/** Queries data with multiple selects in pi_selectQueries then convert data to temporary XML.
+  * XML fragment which contains data from N-th single select is embeeded in DOCUMENT/ROWSET element
+  * with attributes pi_regionAttrN.
+  * One (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformations
+  * are applied to temporary XML. Output is then downloaded in APEX enviroment.
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_mime Mime type of downloaded file
+  * @param pi_regionAttr1 First child of DOCUMENT node
+  * @param pi_selectQuery1 First select from which we build temporary XML. All data is embeeded in pi_regionAttr1 element.
+  * @param pi_maxRows1 Number of max rows fetched from first select
+  * @param pi_regionAttr2 Second child of DOCUMENT node.
+  * @param pi_selectQuery2 Second select from which we build temporary XML. All data is embeeded in pi_regionAttr2 element.
+  * @param pi_maxRows2 Number of max rows fetched from second select
+  * @param pi_regionAttr3 Third child of DOCUMENT node
+  * @param pi_selectQuery3 Third select from which we build temporary XML. All data is embeeded in pi_regionAttr3 element.
+  * @param pi_maxRows3 Number of max rows fetched from third select
+  * @param pi_regionAttr4 Fourth child of DOCUMENT node
+  * @param pi_selectQuery4 Fourth select from which we build temporary XML. All data is embeeded in pi_regionAttr4 element.
+  * @param pi_maxRows4 Number of max rows fetched from fourth select
+  * @param pi_regionAttr5 Fifth child of DOCUMENT node
+  * @param pi_selectQuery5 Fifth select from which we build temporary XML. All data is embeeded in pi_regionAttr5 element.
+  * @param pi_maxRows5 Number of max rows fetched from fifth select
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_OOXML If p_format is set to g_ooxml OOXML (DOCX or XLSX) BLOB will be returned.
+  * @param p_template  Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @po_Xml Temporary XML is output parameter.
+  * @return Result of one or two XSLT on temporary XML.
+  */
 function Query2ClobReport
 (
   p_Xslt              IN CLOB,
@@ -4476,7 +5447,7 @@ function Query2ClobReport
   ,pi_selectQuery5   IN varchar2 default null
   ,pi_maxRows5       IN pls_integer default 20
   ,p_format                  IN number default null
-  ,po_error                  OUT boolean
+  ,po_error                  OUT varchar2
   ,p_Template                IN CLOB default null
   ,p_external_params       IN  varchar2 default null
   ,p_second_Xslt           IN CLOB default null
@@ -4485,33 +5456,33 @@ function Query2ClobReport
 )
 return BLOB
 as
- 
+
 begin
-  po_xml := ll001I
+  po_xml := Query2Xml
   (
     pi_regionAttr1
     ,pi_selectQuery1
-    ,OIllll(pi_selectQuery1)
+    ,ReportTypesElementTab(pi_selectQuery1)
     ,pi_maxRows1
     ,pi_regionAttr2
     ,pi_selectQuery2
-    ,OIllll(pi_selectQuery2)
+    ,ReportTypesElementTab(pi_selectQuery2)
     ,pi_maxRows2
     ,pi_regionAttr3
     ,pi_selectQuery3
-    ,OIllll(pi_selectQuery3)
+    ,ReportTypesElementTab(pi_selectQuery3)
     ,pi_maxRows3
     ,pi_regionAttr4
     ,pi_selectQuery4
-    ,OIllll(pi_selectQuery4)
+    ,ReportTypesElementTab(pi_selectQuery4)
     ,pi_maxRows4
     ,pi_regionAttr5
     ,pi_selectQuery5
-    ,OIllll(pi_selectQuery5)
+    ,ReportTypesElementTab(pi_selectQuery5)
     ,pi_maxRows5
   );
-  
-  return l100l00
+  --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug1.xml');
+  return XslTransformEx
   (
     p_Xml => po_Xml,
     p_Xslt => p_Xslt,
@@ -4532,8 +5503,44 @@ exception
   );
   raise;
 end;
- 
 
+/** Queries data with multiple selects in pi_selectQueries then convert data to temporary XML.
+  * XML fragment which contains data from N-th single select is embeeded in DOCUMENT/ROWSET element
+  * with attributes pi_regionAttrN.
+  * One (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformations
+  * are applied to temporary XML. Output is then downloaded in APEX enviroment.
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_mime Mime type of downloaded file
+  * @param pi_regionAttr1 First child of DOCUMENT node
+  * @param pi_selectQuery1 First select from which we build temporary XML. All data is embeeded in pi_regionAttr1 element.
+  * @param pi_maxRows1 Number of max rows fetched from first select
+  * @param pi_regionAttr2 Second child of DOCUMENT node.
+  * @param pi_selectQuery2 Second select from which we build temporary XML. All data is embeeded in pi_regionAttr2 element.
+  * @param pi_maxRows2 Number of max rows fetched from second select
+  * @param pi_regionAttr3 Third child of DOCUMENT node
+  * @param pi_selectQuery3 Third select from which we build temporary XML. All data is embeeded in pi_regionAttr3 element.
+  * @param pi_maxRows3 Number of max rows fetched from third select
+  * @param pi_regionAttr4 Fourth child of DOCUMENT node
+  * @param pi_selectQuery4 Fourth select from which we build temporary XML. All data is embeeded in pi_regionAttr4 element.
+  * @param pi_maxRows4 Number of max rows fetched from fourth select
+  * @param pi_regionAttr5 Fifth child of DOCUMENT node
+  * @param pi_selectQuery5 Fifth select from which we build temporary XML. All data is embeeded in pi_regionAttr5 element.
+  * @param pi_maxRows5 Number of max rows fetched from fifth select
+  * @param p_format Output format. Must be set for OOXML or MHT format.
+  * @param po_OOXML If p_format is set to g_ooxml OOXML (DOCX or XLSX) BLOB will be returned.
+  * @param p_template  Template in Flat OPC format from where static parts of po_OOXML come. Actual only if p_format is set to g_ooxml.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Example: p_external_params=> 'startX=''50'' baseColor=''magenta'''
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @po_Xml Temporary XML is output parameter.
+  * @return Result of one or two XSLT on temporary XML.
+  */
 function Query2ClobReport
 (
   p_Xslt            IN CLOB,
@@ -4553,7 +5560,7 @@ function Query2ClobReport
   ,pi_selectQuery5   IN SYS_REFCURSOR default null
   ,pi_maxRows5       IN pls_integer default 20
   ,p_format                  IN number default null
-  ,po_error                  OUT boolean
+  ,po_error                  OUT varchar2
   ,p_Template                IN CLOB default null
   ,p_external_params         IN    varchar2 default null
   ,p_second_Xslt             IN CLOB default null
@@ -4562,32 +5569,33 @@ function Query2ClobReport
 )
 return BLOB
 as
+l_reportTypes t_coltype_table;
 begin
-  po_xml := ll001I
+  po_xml := Query2Xml
   (
     pi_regionAttr1
     ,pi_selectQuery1
-    ,null
+    ,l_reportTypes
     ,pi_maxRows1
     ,pi_regionAttr2
     ,pi_selectQuery2
-    ,null
+    ,l_reportTypes
     ,pi_maxRows2
     ,pi_regionAttr3
     ,pi_selectQuery3
-    ,null
+    ,l_reportTypes
     ,pi_maxRows3
     ,pi_regionAttr4
     ,pi_selectQuery4
-    ,null
+    ,l_reportTypes
     ,pi_maxRows4
     ,pi_regionAttr5
     ,pi_selectQuery5
-    ,null
+    ,l_reportTypes
     ,pi_maxRows5
   );
-  
-  return l100l00
+  --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug1.xml');
+  return XslTransformEx
   (
     p_Xml => po_Xml,
     p_Xslt => p_Xslt,
@@ -4608,27 +5616,27 @@ exception
   );
   raise;
 end;
+-------------------------------------------------END of PUBLIC Query2DownloadReport and Query2CLOBReport procedures--------------------------------------------
 
- 
- 
- procedure I101I1l(
+
+ procedure RemoveRTFComments(
   pio_rtf     IN OUT NOCOPY CLOB
 )
 as
-I1011lI number := 1;
-l1011ll   number;
-l101II0 CLOB;
+l_start_comment number := 1;
+l_end_comment   number;
+l_rtf CLOB;
 begin
-  dbms_lob.createtemporary(l101II0, false);
+  dbms_lob.createtemporary(l_rtf, false);
   loop
-    I1011lI := dbms_lob.instr(pio_rtf, '{\*\', I1011lI);
-    l1011ll := dbms_lob.instr(pio_rtf, ';}', I1011lI);
-    exit when nvl(I1011lI, 0) = 0 or nvl(l1011ll, 0) = 0;
-    dbms_lob.copy(l101II0, pio_rtf, I1011lI - 1);
-    dbms_lob.copy(l101II0, pio_rtf, dbms_lob.getlength(pio_rtf) - l1011ll - length(';}') + 1,
-                  dbms_lob.getlength(l101II0) + 1, l1011ll + length(';}'));
-    pio_rtf := l101II0;
-    dbms_lob.trim(l101II0, 0);
+    l_start_comment := dbms_lob.instr(pio_rtf, '{\*\', l_start_comment);
+    l_end_comment := dbms_lob.instr(pio_rtf, ';}', l_start_comment);
+    exit when nvl(l_start_comment, 0) = 0 or nvl(l_end_comment, 0) = 0;
+    dbms_lob.copy(l_rtf, pio_rtf, l_start_comment - 1);
+    dbms_lob.copy(l_rtf, pio_rtf, dbms_lob.getlength(pio_rtf) - l_end_comment - length(';}') + 1,
+                  dbms_lob.getlength(l_rtf) + 1, l_end_comment + length(';}'));
+    pio_rtf := l_rtf;
+    dbms_lob.trim(l_rtf, 0);
   end loop;
   if ascii(dbms_lob.substr(pio_rtf, 1, dbms_lob.getlength(pio_rtf))) = 0 then
     dbms_lob.trim(pio_rtf, dbms_lob.getlength(pio_rtf)-1);
@@ -4638,47 +5646,56 @@ exception
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'I101I1l',
+    p_procedure => 'RemoveRTFComments',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
- 
 
+
+/** Create starter XSLT transformation from template depend on template format.
+  * Starter XSLT transformation means that if you apply starter XSLT to custom input XML
+  * you will get the original template. No input XML data will be included in
+  * starter XSLT output.
+  * @param pio_templ On input BLOB represetning template, on output starter XSLT
+  * @param p_format Basic format of template f_text=0; f_html=1; f_mht=2; f_xml=3; f_rtf=4; f_ooxml=5;
+  * @param p_partsToTransform XSL Transformed parts of po_OOXML separated with comma. Actual only if p_format is set to g_ooxml.
+  * @param p_nls_charset Oracle NLS string representing template file encoding.
+  * For example p_nls_charset should be 'EE8MSWIN1250' if HTML file uses windows 1250 character set.
+*/
 procedure Template2XSLT(
-  Ol00I1     IN OUT NOCOPY BLOB,
+  pio_templ     IN OUT NOCOPY BLOB,
   p_format      number,
   p_nls_charset varchar2,
   p_partsToTransform varchar2 default null
 )
 as
-I101I01      CLOB;
+l_clob      CLOB;
+--l_file_csid number;
+l_format    number := p_format;
+l_filetype  varchar2(5);
+l_parts     varchar2(4000);
 
-OlIIl1    number := p_format;
-Oll0ll  varchar2(5);
-Oll011     varchar2(4000);
- 
- 
+
 begin
- 
+
   pak_xslt_log.WriteLog(
-    'Start Ol00I1: '||dbms_lob.getlength(Ol00I1)||' p_format: '||p_format||' p_nls_charset: '||p_nls_charset,
+    'Start pio_templ: '||dbms_lob.getlength(pio_templ)||' p_format: '||p_format||' p_nls_charset: '||p_nls_charset,
     p_procedure => 'Template2XSLT (BLOB)'
   );
- 
-  I101I01 := pak_blob_util.BLOB2CLOB(Ol00I1, NLS_CHARSET_ID(p_nls_charset));
- 
-  Template2XSLT(I101I01, p_format, p_partsToTransform);
- 
+
+  l_clob := pak_blob_util.BLOB2CLOB(pio_templ, NLS_CHARSET_ID(p_nls_charset));
+
+  Template2XSLT(l_clob, p_format, p_partsToTransform);
+
   pak_xslt_log.WriteLog(
-    'Finish Ol00I1: '||dbms_lob.getlength(Ol00I1),
+    'Finish pio_templ: '||dbms_lob.getlength(pio_templ),
     p_procedure => 'Template2XSLT (BLOB)'
   );
- 
-  Ol00I1 := pak_blob_util.CLOB2BLOB(I101I01,  NLS_CHARSET_ID(p_nls_charset));
- 
- 
+
+  pio_templ := pak_blob_util.CLOB2BLOB(l_clob,  NLS_CHARSET_ID(p_nls_charset));
+
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -4689,48 +5706,56 @@ exception
   );
   raise;
 end;
- 
 
+/** Create starter XSLT transformation from template depend on template format.
+  * Starter XSLT transformation means that if you apply starter XSLT to custom input XML
+  * you will get the original template. No input XML data will be included in
+  * starter XSLT output.
+  * @param pio_templ On input CLOB represetning template on output starter XSLT.
+  * @param p_format Basic format of template f_text=0; f_html=1; f_mht=2; f_xml=3; f_rtf=4;
+  * For example p_nls_charset should be 'EE8MSWIN1250' if HTML file uses windows 1250 character set.
+  * @param p_partsToTransform XSL Transformed parts of po_OOXML separated with comma. Actual only if p_format is set to g_ooxml.
+*/
 procedure Template2XSLT(
-  Ol00I1 IN OUT NOCOPY CLOB,
+  pio_templ IN OUT NOCOPY CLOB,
   p_format  IN number,
   p_partsToTransform IN VARCHAR2
 )
 as
 begin
- 
+
   pak_xslt_log.WriteLog(
-    'Start Ol00I1: '||dbms_lob.getlength(Ol00I1)||' p_format: '||p_format,
+    'Start pio_templ: '||dbms_lob.getlength(pio_templ)||' p_format: '||p_format,
     p_procedure => 'Query2Report.Template2XSLT (CLOB)',
     p_log_type => pak_xslt_log.g_warning
   );
- 
+
   if p_format = f_ooxml then
-    "i1lIlII11".IIlII1(Ol00I1, p_partsToTransform);
-    O1010l1(Ol00I1);
+    FLAT_OPC_PKG.FlatOPCTransfromedOnly(pio_templ, p_partsToTransform);
+    XML2XSLT(pio_templ);
   end if;
- 
+
   if p_format = f_html then
-    I101I00(Ol00I1);
+    HTML2XSLT(pio_templ);
   end if;
   if p_format = f_rtf then
-    I100l0l(Ol00I1);
+    RTF2XSLT(pio_templ);
   end if;
   if p_format = f_mht then
-    l100l0l(Ol00I1);
+    MHT2XSLT(pio_templ);
   end if;
   if p_format = f_text then
-    I100l01(Ol00I1);
+    Text2XSLT(pio_templ);
   end if;
   if p_format = f_xml then
-    O1010l1(Ol00I1);
+    XML2XSLT(pio_templ);
   end if;
- 
+
   pak_xslt_log.WriteLog(
-    'Finish Ol00I1: '||dbms_lob.getlength(Ol00I1),
+    'Finish pio_templ: '||dbms_lob.getlength(pio_templ),
     p_procedure => 'Template2XSLT (CLOB)'
   );
- 
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -4741,26 +5766,44 @@ exception
   );
   raise;
 end;
- 
-$if CCOMPILING.g_utl_file_privilege $then
 
+
+
+
+
+
+
+$if CCOMPILING.g_utl_file_privilege $then
+/** Create starter XSLT transformation from template depend on template format.
+  * Starter XSLT transformation means that if you apply starter XSLT to custom input XML
+  * you will get the original template. No input XML data will be included in
+  * starter XSLT output.
+  * @param p_format Basic format of template f_text=0; f_html=1; f_mht=2; f_xml=3; f_rtf=4;
+  * @param p_templDir Oracle directory - location of template file
+  * @param p_templFile Filename of template
+  * @param p_xsltDir Oracle directory - location of starter XSLT file
+  * @param p_xsltFile Filename of starter XSLT
+  * @param p_nls_charset Oracle NLS string representing template file encoding.
+  * For example p_nls_charset should be 'EE8MSWIN1250' if HTML file uses windows 1250 character set.
+  * @param p_partsToTransform XSL Transformed parts of po_OOXML separated with comma. Actual only if p_format is set to g_ooxml.
+*/
 procedure Template2XSLT(
   p_format number,
-  Il00II varchar2,
-  ll00II varchar2,
+  p_templDir varchar2,
+  p_templFile varchar2,
   p_xsltDir varchar2,
   p_xsltFile varchar2,
   p_nls_charset varchar2,
   p_partsToTransform varchar2 default null
 )as
-O101II0 CLOB;
- 
+l_templ CLOB;
+
 begin
-  O101II0 := pak_blob_util.READ2CLOB(Il00II, ll00II, p_nls_charset);
-  Template2XSLT(O101II0, p_format, p_partsToTransform);
- 
-  
- 
+  l_templ := pak_blob_util.READ2CLOB(p_templDir, p_templFile, p_nls_charset);
+  Template2XSLT(l_templ, p_format, p_partsToTransform);
+
+  dbms_xslprocessor.clob2file(l_templ, p_xsltDir, p_xsltFile, nvl(NLS_CHARSET_ID(p_nls_charset), 0));
+
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -4772,125 +5815,125 @@ exception
   raise;
 end;
 $end
- 
-function I101II1(
+
+function GetAttributeValues(
   p_xslt CLOB,
-  OlllI0 varchar2,
-  l101II1 varchar2
+  p_element varchar2,
+  p_attribute varchar2
 )
 return tab_string
 as
-Il01I1 tab_string := tab_string();
-O101III number;
-I101III number := 1;
-l101IIl number;
-O101IIl number;
-I101Il0 varchar(400);
-l101Il0 varchar(400);
- 
-function O101Il1(I101Il1 tab_string, p_value varchar2)
+l_ret tab_string := tab_string();
+l_start_element number;
+l_end_element number := 1;
+l_start_attribute number;
+l_end_attribute number;
+l_attribute varchar(400);
+l_attribute_val varchar(400);
+
+function ValueExists(p_tab_string tab_string, p_value varchar2)
 return boolean
 as
 begin
-  for ll01I1 in 1..I101Il1.count loop
-    if I101Il1(ll01I1)=p_value then
+  for i in 1..p_tab_string.count loop
+    if p_tab_string(i)=p_value then
       return true;
     end if;
   end loop;
   return false;
 end;
- 
+
 begin
   loop
-    O101III := dbms_lob.instr(p_xslt, '<'||OlllI0, I101III);
-    exit when nvl(O101III, 0) = 0;
-    I101III := dbms_lob.instr(p_xslt, '>', O101III);
-    exit when nvl(I101III, 0) = 0;
-    l101IIl := dbms_lob.instr(p_xslt, ' '||l101II1, O101III);
-    if l101IIl between O101III and I101III then
-      O101IIl := dbms_lob.instr(p_xslt, '"', l101IIl, 2);
-      if O101IIl between O101III and I101III then
-        I101Il0 := dbms_lob.substr(p_xslt, O101IIl - l101IIl + 1, l101IIl);
-        I101Il0 := replace(I101Il0, ' ');
-        I101Il0 := replace(I101Il0, chr(13)||chr(10));
-        I101Il0 := replace(I101Il0, chr(10));
-        if I101Il0 like l101II1||'="%"' then 
-          l101Il0 := substr(I101Il0, length(l101II1||'="')+1, length(I101Il0) - length(l101II1||'="')-1);
-          if not O101Il1(Il01I1, l101Il0) then
-            Il01I1.extend;
-            Il01I1(Il01I1.count) := l101Il0;
+    l_start_element := dbms_lob.instr(p_xslt, '<'||p_element, l_end_element);
+    exit when nvl(l_start_element, 0) = 0;
+    l_end_element := dbms_lob.instr(p_xslt, '>', l_start_element);
+    exit when nvl(l_end_element, 0) = 0;
+    l_start_attribute := dbms_lob.instr(p_xslt, ' '||p_attribute, l_start_element);
+    if l_start_attribute between l_start_element and l_end_element then
+      l_end_attribute := dbms_lob.instr(p_xslt, '"', l_start_attribute, 2);
+      if l_end_attribute between l_start_element and l_end_element then
+        l_attribute := dbms_lob.substr(p_xslt, l_end_attribute - l_start_attribute + 1, l_start_attribute);
+        l_attribute := replace(l_attribute, ' ');
+        l_attribute := replace(l_attribute, chr(13)||chr(10));
+        l_attribute := replace(l_attribute, chr(10));
+        if l_attribute like p_attribute||'="%"' then --get what is inside quotes
+          l_attribute_val := substr(l_attribute, length(p_attribute||'="')+1, length(l_attribute) - length(p_attribute||'="')-1);
+          if not ValueExists(l_ret, l_attribute_val) then
+            l_ret.extend;
+            l_ret(l_ret.count) := l_attribute_val;
           end if;
         end if;
       end if;
     end if;
   end loop;
-  return Il01I1;
+  return l_ret;
 exception
   when others then
   pak_xslt_log.WriteLog(
-    'Error OlllI0: '||OlllI0||' l101II1: '||l101II1,
+    'Error p_element: '||p_element||' p_attribute: '||p_attribute,
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Query2Report.I101II1',
+    p_procedure => 'Query2Report.GetAttributeValues',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
-function l101IlI(
+
+function GetAttrValueOffset(
   p_xslt          IN CLOB,
-  OlllI0       IN varchar2,
-  l101II1     IN varchar2,
+  p_element       IN varchar2,
+  p_attribute     IN varchar2,
   p_value         IN varchar2,
-  O101IlI      OUT number,
-  I101Ill   IN OUT number
+  po_end_tag      OUT number,
+  pio_end_element   IN OUT number
 )
 return number
 as
-O101III number;
-l101Ill number;
-l101IIl number;
-O101IIl number;
-I101Il0 varchar(400);
-l101Il0 varchar(400);
-O101l00 number;
- 
+l_start_element number;
+l_next_start_element number;
+l_start_attribute number;
+l_end_attribute number;
+l_attribute varchar(400);
+l_attribute_val varchar(400);
+l_closing_length number;
+
 begin
   loop
-    O101III := dbms_lob.instr(p_xslt, '<'||OlllI0, I101Ill);
-    exit when nvl(O101III, 0) = 0;
-    O101IlI := dbms_lob.instr(p_xslt, '>', O101III + length('<'||OlllI0));
-    I101Ill := dbms_lob.instr(p_xslt, '/>', O101III + length('<'||OlllI0));
-    O101l00 := length('/>');
-    l101Ill := dbms_lob.instr(p_xslt, '<', O101III + length('<'||OlllI0));
-    if l101Ill < I101Ill then
-      I101Ill := dbms_lob.instr(p_xslt, '</'||OlllI0||'>', O101III + length('<'||OlllI0));
-      O101l00 := length('</'||OlllI0||'>');
+    l_start_element := dbms_lob.instr(p_xslt, '<'||p_element, pio_end_element);
+    exit when nvl(l_start_element, 0) = 0;
+    po_end_tag := dbms_lob.instr(p_xslt, '>', l_start_element + length('<'||p_element));
+    pio_end_element := dbms_lob.instr(p_xslt, '/>', l_start_element + length('<'||p_element));
+    l_closing_length := length('/>');
+    l_next_start_element := dbms_lob.instr(p_xslt, '<', l_start_element + length('<'||p_element));
+    if l_next_start_element < pio_end_element then
+      pio_end_element := dbms_lob.instr(p_xslt, '</'||p_element||'>', l_start_element + length('<'||p_element));
+      l_closing_length := length('</'||p_element||'>');
     end if;
-    exit when nvl(I101Ill, 0) = 0;
-    I101Ill := I101Ill + O101l00;
-    l101IIl := dbms_lob.instr(p_xslt, ' '||l101II1, O101III);
-    if l101IIl between O101III and I101Ill then
-      O101IIl := dbms_lob.instr(p_xslt, '"', l101IIl, 2);
-      if O101IIl between O101III and O101IlI then
-        I101Il0 := dbms_lob.substr(p_xslt, O101IIl - l101IIl + 1, l101IIl);
-        I101Il0 := replace(I101Il0, ' ');
-        I101Il0 := replace(I101Il0, chr(13)||chr(10));
-        I101Il0 := replace(I101Il0, chr(10));
-        if I101Il0 like l101II1||'="%"' then 
-          l101Il0 := substr(I101Il0, length(l101II1||'="')+1, length(I101Il0) - length(l101II1||'="')-1);
-          if upper(l101Il0) = upper(p_value) then
-            return O101III;
-          elsif lower(l101II1) = 'match' then 
-            if substr(l101Il0, 1, 1) != '/' then
-              l101Il0 := '/'||l101Il0;
+    exit when nvl(pio_end_element, 0) = 0;
+    pio_end_element := pio_end_element + l_closing_length;
+    l_start_attribute := dbms_lob.instr(p_xslt, ' '||p_attribute, l_start_element);
+    if l_start_attribute between l_start_element and pio_end_element then
+      l_end_attribute := dbms_lob.instr(p_xslt, '"', l_start_attribute, 2);
+      if l_end_attribute between l_start_element and po_end_tag then
+        l_attribute := dbms_lob.substr(p_xslt, l_end_attribute - l_start_attribute + 1, l_start_attribute);
+        l_attribute := replace(l_attribute, ' ');
+        l_attribute := replace(l_attribute, chr(13)||chr(10));
+        l_attribute := replace(l_attribute, chr(10));
+        if l_attribute like p_attribute||'="%"' then --get what is inside quotes
+          l_attribute_val := substr(l_attribute, length(p_attribute||'="')+1, length(l_attribute) - length(p_attribute||'="')-1);
+          if upper(l_attribute_val) = upper(p_value) then
+            return l_start_element;
+          elsif lower(p_attribute) = 'match' then --don't need exact match
+            if substr(l_attribute_val, 1, 1) != '/' then
+              l_attribute_val := '/'||l_attribute_val;
             end if;
-            if substr(l101Il0, length(l101Il0), 1) != '/' then
-              l101Il0 := l101Il0||'/';
+            if substr(l_attribute_val, length(l_attribute_val), 1) != '/' then
+              l_attribute_val := l_attribute_val||'/';
             end if;
-            if instr('/'||p_value||'/', l101Il0) > 0 then
-              return O101III;
+            if instr('/'||p_value||'/', l_attribute_val) > 0 then
+              return l_start_element;
             end if;
-          end if;
+          end if;--lower(p_attribute) = 'match'
         end if;
       end if;
     end if;
@@ -4899,532 +5942,575 @@ begin
 exception
   when others then
   pak_xslt_log.WriteLog(
-    'Error OlllI0: '||OlllI0||' l101II1: '||l101II1,
+    'Error p_element: '||p_element||' p_attribute: '||p_attribute,
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Query2Report.l101IlI',
+    p_procedure => 'Query2Report.GetAttrValueOffset',
     p_sqlerrm => sqlerrm
   );
   raise;
-end l101IlI;
- 
- 
+end GetAttrValueOffset;
+
+
 function GetTemplateMatches(p_xslt CLOB)
 return tab_string
 as
 begin
-  return I101II1(p_xslt, 'xsl:apply-templates', 'select');
+  return GetAttributeValues(p_xslt, 'xsl:apply-templates', 'select');
 end;
- 
+
 function GetTemplateNames(p_xslt CLOB)
 return tab_string
 as
 begin
-  return I101II1(p_xslt, 'xsl:call-template', 'name');
+  return GetAttributeValues(p_xslt, 'xsl:call-template', 'name');
 end;
- 
-procedure I101l00(p_xslt IN CLOB, l101l01 OUT NUMBER, O101l01 OUT NUMBER)
+
+procedure MainTemplateLimits(p_xslt IN CLOB, po_start_tmpl OUT NUMBER, po_end_tmpl OUT NUMBER)
 as
-I101l0I constant varchar2(40):= '<xsl:template match="/">';
-l101l0I constant varchar2(40):= '</xsl:template>';
-O101l0l number;
+c_start_tmpl constant varchar2(40):= '<xsl:template match="/">';
+c_end_tmpl constant varchar2(40):= '</xsl:template>';
+l_start_tmpl_crlf number;
 begin
-  l101l01:= dbms_lob.instr(p_xslt, I101l0I)+length(I101l0I);
-  O101l0l:= dbms_lob.instr(p_xslt, I101l0I||g_crlf)+length(I101l0I||g_crlf);
-  if nvl(O101l0l, 0) > l101l01 then
-    l101l01 := O101l0l;
+  po_start_tmpl:= dbms_lob.instr(p_xslt, c_start_tmpl)+length(c_start_tmpl);
+  l_start_tmpl_crlf:= dbms_lob.instr(p_xslt, c_start_tmpl||g_crlf)+length(c_start_tmpl||g_crlf);
+  if nvl(l_start_tmpl_crlf, 0) > po_start_tmpl then
+    po_start_tmpl := l_start_tmpl_crlf;
   end if;
-  O101l01:= dbms_lob.instr(p_xslt, l101l0I, l101l01);
-  
+  po_end_tmpl:= dbms_lob.instr(p_xslt, c_end_tmpl, po_start_tmpl);
+  /*
+  if nvl(po_start_tmpl, 0) = 0 or nvl(l_end_tmpl, 0) = 0 then
+    return;
+  end if;
+  */
 end;
- 
+
 procedure AppendModifiedElelmentTag(
-  I101l0l IN OUT NOCOPY CLOB,
-  l101l10 CLOB,
-  O101l10 number,
-  IIlI1l number,
-  ll00l1 varchar2,
-  Ol00lI varchar2
+  p_dest IN OUT NOCOPY CLOB,
+  p_source CLOB,
+  p_amount number,
+  p_offset number,
+  p_replace_otag varchar2,
+  p_replace_ctag varchar2
 )
 as
-I101l11 varchar2(4000);
+l_element_string varchar2(4000);
 begin
-  I101l11 := dbms_lob.substr(l101l10, O101l10, IIlI1l);
-  I101l11 := replace(I101l11,'<', ll00l1);
-  I101l11 := substr(I101l11, 1, length(I101l11)-1)|| Ol00lI;
-  dbms_lob.writeappend(I101l0l, length(I101l11), I101l11); 
+  l_element_string := dbms_lob.substr(p_source, p_amount, p_offset);
+  l_element_string := replace(l_element_string,'<', p_replace_otag);
+  l_element_string := substr(l_element_string, 1, length(l_element_string)-1)|| p_replace_ctag;
+  dbms_lob.writeappend(p_dest, length(l_element_string), l_element_string); --write start element tag with <> replaced
 exception
   when others then
   pak_xslt_log.WriteLog(
-    'Error O101l10: '||O101l10||' IIlI1l: '||IIlI1l,
+    'Error p_amount: '||p_amount||' p_offset: '||p_offset,
     p_log_type => pak_xslt_log.g_error,
     p_procedure => 'Query2Report.AppendModifiedElelmentTag',
     p_sqlerrm => sqlerrm
   );
   raise;
 end AppendModifiedElelmentTag;
- 
-function l101l11(
-  l101l10 CLOB,
-  O101l10 number,
-  IIlI1l number,
-  ll00l1 varchar2 default null,
-  Ol00lI varchar2 default null
+
+function ModifiedElelmentTag(
+  p_source CLOB,
+  p_amount number,
+  p_offset number,
+  p_replace_otag varchar2 default null,
+  p_replace_ctag varchar2 default null
 )
 return varchar2
 as
-Il01I1 varchar2(400);
+l_ret varchar2(400);
 begin
-  Il01I1 := dbms_lob.substr(l101l10, O101l10, IIlI1l);
-  if ll00l1 is null or Ol00lI is null or
-    Il01I1 like '<xsl:processing-instruction name="%'
-  then 
-    Il01I1 := replace(Il01I1, '<xsl:processing-instruction name="','<?');
-    Il01I1 := replace(Il01I1, '</xsl:processing-instruction>','?>');
-    Il01I1 := replace(Il01I1, '">',' ');
+  l_ret := dbms_lob.substr(p_source, p_amount, p_offset);
+  if p_replace_otag is null or p_replace_ctag is null or
+    l_ret like '<xsl:processing-instruction name="%'
+  then --
+    l_ret := replace(l_ret, '<xsl:processing-instruction name="','<?');
+    l_ret := replace(l_ret, '</xsl:processing-instruction>','?>');
+    l_ret := replace(l_ret, '">',' ');
   else
-    Il01I1 := replace(Il01I1,'<', ll00l1);
-    Il01I1 := substr(Il01I1, 1, length(Il01I1)-1)|| Ol00lI;
+    l_ret := replace(l_ret,'<', p_replace_otag);
+    l_ret := substr(l_ret, 1, length(l_ret)-1)|| p_replace_ctag;
   end if;
-  return Il01I1;
+  return l_ret;
 exception
   when others then
   pak_xslt_log.WriteLog(
-    'Error O101l10: '||O101l10||' IIlI1l: '||IIlI1l,
+    'Error p_amount: '||p_amount||' p_offset: '||p_offset,
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Query2Report.l101l11',
+    p_procedure => 'Query2Report.ModifiedElelmentTag',
     p_sqlerrm => sqlerrm
   );
   raise;
 end;
- 
 
-procedure O101l1I(
-  Ol00Il IN OUT NOCOPY CLOB,
-  OlllI0       IN varchar2,
-  l101II1     IN varchar2,
+/** Procedure is called just inside XSLTInsertTemplates. It includes code from selected xsl:template into main template.
+    Template call <xsl:apply-templates> or <xsl:call-template> is "commented out"
+  * @param pio_xslt On input CLOB representing XSLT on output document.
+  * @param p_element <xsl:apply-templates> element or <xsl:call-template> element which will be replaced with actual template code in main XSLT template
+  * @param p_attribute Attribute "select" of <xsl:call-template> element or "match" of <xsl:apply-templates> element
+  * @param p_value Value of attribute
+  * @param p_replace_otag Opening <xsl:apply-templates> and <xsl:call-template> tag <xsl: will be replaced with p_replace_otag.
+  * @param p_replace_ctag Closing <xsl:apply-templates> and <xsl:call-template> tag > will be replaced with p_replace_ctag.
+  */
+procedure XSLTInsertTemplate(
+  pio_xslt IN OUT NOCOPY CLOB,
+  p_element       IN varchar2,
+  p_attribute     IN varchar2,
   p_value         IN varchar2,
-  ll00l1 varchar2 default '&lt;',
-  Ol00lI varchar2 default '&gt;'
+  p_replace_otag varchar2 default '&lt;',
+  p_replace_ctag varchar2 default '&gt;'
 )
 as
-I101l1I    number;
-l101l1l      number;
-I101III   number := 1;
-l10100I       number;
-O101III number;
-O101l1l number;
-I101lI0  number;
-I101Il0 varchar2(400);
-
-Ol0l11 CLOB;
+l_start_tmpl    number;
+l_end_tmpl      number;
+l_end_element   number := 1;
+l_end_tag       number;
+l_start_element number;
+l_start_template number;
+l_end_template  number;
+l_attribute varchar2(400);
+--l_element_string varchar2(4000);
+l_temp CLOB;
 begin
   pak_xslt_log.WriteLog(
-    'Start O101l1I OlllI0 '||OlllI0||' l101II1 '||l101II1||
+    'Start XSLTInsertTemplate p_element '||p_element||' p_attribute '||p_attribute||
     ' p_value '||p_value||
-    ' ll00l1 '||ll00l1||' Ol00lI '||Ol00lI,
+    ' p_replace_otag '||p_replace_otag||' p_replace_ctag '||p_replace_ctag,
     p_log_type => pak_xslt_log.g_warning,
     p_procedure => 'Query2Report.XSLT2Document'
   );
- 
-  if l101II1 = 'select' and OlllI0 = 'xsl:apply-templates' then
-    I101Il0 := 'match';
+
+  if p_attribute = 'select' and p_element = 'xsl:apply-templates' then
+    l_attribute := 'match';
   else
-    I101Il0 := l101II1;
+    l_attribute := p_attribute;
   end if;
- 
-  dbms_lob.createTemporary(Ol0l11, false);
+
+  dbms_lob.createTemporary(l_temp, false);
   loop
-    I101l00(Ol00Il, I101l1I, l101l1l); 
- 
-    if nvl(I101l1I, 0) = 0 or nvl(l101l1l, 0) = 0 then
+    MainTemplateLimits(pio_xslt, l_start_tmpl, l_end_tmpl); --find main xsl template limits (match="/")
+
+    if nvl(l_start_tmpl, 0) = 0 or nvl(l_end_tmpl, 0) = 0 then
       return;
     end if;
-    I101lI0 := l101l1l;
-    
-    O101III := l101IlI(Ol00Il, OlllI0, l101II1, p_value, l10100I, I101III);
-    exit when nvl(O101III, 0) = 0;
- 
-    dbms_lob.copy(Ol0l11, Ol00Il, O101III - 1, 1, 1); 
- 
-     
+    l_end_template := l_end_tmpl;
+    --find first <xsl:apply-templates select="matchattr"> element
+    l_start_element := GetAttrValueOffset(pio_xslt, p_element, p_attribute, p_value, l_end_tag, l_end_element);
+    exit when nvl(l_start_element, 0) = 0;
+
+    dbms_lob.copy(l_temp, pio_xslt, l_start_element - 1, 1, 1); --write till l_start_element
+
+     --replace start and end element and write start element tag with <> replaced
     AppendModifiedElelmentTag(
-      Ol0l11,
-      Ol00Il,
-      l10100I - O101III + 1,
-      O101III,
-      ll00l1,
-      Ol00lI
+      l_temp,
+      pio_xslt,
+      l_end_tag - l_start_element + 1,
+      l_start_element,
+      p_replace_otag,
+      p_replace_ctag
     );
- 
-    
-    
-    O101l1l := l101IlI(Ol00Il, 'xsl:template', I101Il0, p_value, l10100I, I101lI0);
-    if O101l1l > 0 then 
- 
-      
+
+    --loop
+    --find <xsl:template match="matchattr"> in pio_xslt and copy templates after
+    l_start_template := GetAttrValueOffset(pio_xslt, 'xsl:template', l_attribute, p_value, l_end_tag, l_end_template);
+    if l_start_template > 0 then --found template
+
+      --replace start and end element and write start element tag with <> replaced
       AppendModifiedElelmentTag(
-        Ol0l11,
-        Ol00Il,
-        l10100I - O101l1l + 1,
-        O101l1l,
-        ll00l1,
-        Ol00lI
+        l_temp,
+        pio_xslt,
+        l_end_tag - l_start_template + 1,
+        l_start_template,
+        p_replace_otag,
+        p_replace_ctag
       );
- 
-      dbms_lob.copy(Ol0l11, Ol00Il, I101lI0 - length('</xsl:template>') - l10100I - 1, dbms_lob.getlength(Ol0l11) + 1, l10100I + 1); 
-      dbms_lob.writeappend(Ol0l11, length(ll00l1||'/xsl:template'||Ol00lI), ll00l1||'/xsl:template'||Ol00lI); 
- 
-      
-      
-      dbms_lob.copy(Ol0l11, Ol00Il, dbms_lob.getlength(Ol00Il) - I101III +1, dbms_lob.getlength(Ol0l11) + 1, I101III);
-      Ol00Il := Ol0l11;
-      dbms_lob.trim(Ol0l11, 0);
-      
+
+      dbms_lob.copy(l_temp, pio_xslt, l_end_template - length('</xsl:template>') - l_end_tag - 1, dbms_lob.getlength(l_temp) + 1, l_end_tag + 1); --write template to l_temp
+      dbms_lob.writeappend(l_temp, length(p_replace_otag||'/xsl:template'||p_replace_ctag), p_replace_otag||'/xsl:template'||p_replace_ctag); --write end element tag with <> replaced
+
+      --dbms_lob.copy(l_temp, pio_xslt, l_start_template - l_end_element, dbms_lob.getlength(l_temp) + 1, l_end_element); --write chunk from l_end_element to l_start_template
+      --dbms_lob.copy(l_temp, pio_xslt, dbms_lob.getlength(pio_xslt) - l_end_template, dbms_lob.getlength(l_temp) + 1, l_end_template);--write chunk from l_end_template till end
+      dbms_lob.copy(l_temp, pio_xslt, dbms_lob.getlength(pio_xslt) - l_end_element +1, dbms_lob.getlength(l_temp) + 1, l_end_element);--write chunk from l_end_template till end
+      pio_xslt := l_temp;
+      dbms_lob.trim(l_temp, 0);
+      ----dbms_xslprocessor.clob2file(pio_xslt, 'XMLDIR', 'debug_loop.doc.xml');
     else
-      
-      dbms_lob.copy(Ol0l11, Ol00Il, dbms_lob.getlength(Ol00Il) - I101III, dbms_lob.getlength(Ol0l11) + 1, I101III);
-      Ol00Il := Ol0l11;
-      dbms_lob.trim(Ol0l11, 0);
-      
+      --not found template, just copy entire blob from l_end_element to l_temp
+      dbms_lob.copy(l_temp, pio_xslt, dbms_lob.getlength(pio_xslt) - l_end_element, dbms_lob.getlength(l_temp) + 1, l_end_element);
+      pio_xslt := l_temp;
+      dbms_lob.trim(l_temp, 0);
+      ----dbms_xslprocessor.clob2file(pio_xslt, 'XMLDIR', 'debug_loop.doc.xml');
       exit;
     end if;
-    
- 
+    --end loop;
+
   end loop;
-  dbms_lob.freeTemporary(Ol0l11);
- 
+  dbms_lob.freeTemporary(l_temp);
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Query2Report.O101l1I',
+    p_procedure => 'Query2Report.XSLTInsertTemplate',
     p_sqlerrm => sqlerrm
   );
   raise;
-end O101l1I;
- 
-procedure l101lI0(
+end XSLTInsertTemplate;
+
+procedure XslRemoveComments(
   pio_clob IN OUT NOCOPY CLOB
 )
 as
-  I1011lI number default 1;
-  l1011ll number default 1;
-  Ol0l11 CLOB;
+  l_start_comment number default 1;
+  l_end_comment number default 1;
+  l_temp CLOB;
 begin
-  dbms_lob.createtemporary(Ol0l11, false);
+  dbms_lob.createtemporary(l_temp, false);
   loop
-    I1011lI := dbms_lob.instr(pio_clob, '<!--', I1011lI);
-    exit when nvl(I1011lI, 0) = 0;
-    l1011ll := dbms_lob.instr(pio_clob, '-->', I1011lI);
-    exit when nvl(l1011ll, 0) = 0;
-    l1011ll := l1011ll + length('-->');
-    dbms_lob.copy(Ol0l11, pio_clob, I1011lI - 1, 1, 1);
-    dbms_lob.copy(Ol0l11, pio_clob, dbms_lob.GetLength(pio_clob) - l1011ll + 1, dbms_lob.GetLength(Ol0l11) + 1 , l1011ll);
-    pio_clob := Ol0l11;
-    dbms_lob.trim(Ol0l11, 0);
+    l_start_comment := dbms_lob.instr(pio_clob, '<!--', l_start_comment);
+    exit when nvl(l_start_comment, 0) = 0;
+    l_end_comment := dbms_lob.instr(pio_clob, '-->', l_start_comment);
+    exit when nvl(l_end_comment, 0) = 0;
+    l_end_comment := l_end_comment + length('-->');
+    dbms_lob.copy(l_temp, pio_clob, l_start_comment - 1, 1, 1);
+    dbms_lob.copy(l_temp, pio_clob, dbms_lob.GetLength(pio_clob) - l_end_comment + 1, dbms_lob.GetLength(l_temp) + 1 , l_end_comment);
+    pio_clob := l_temp;
+    dbms_lob.trim(l_temp, 0);
   end loop;
-  dbms_lob.freetemporary(Ol0l11);
+  dbms_lob.freetemporary(l_temp);
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'l101lI0',
+    p_procedure => 'XslRemoveComments',
     p_sqlerrm => sqlerrm
   );
   raise;
-end l101lI0;
- 
+end XslRemoveComments;
 
-procedure O101lI1(
-  Ol00Il IN OUT NOCOPY CLOB,
-  ll00l0 tab_string,
-  Ol00l0 tab_string,
-  ll00l1 varchar2 default '&lt;',
-  Ol00lI varchar2 default '&gt;'
+/** Procedure is called just in the begining of next procedure XSLT2Document. It includes code from selected xsl:templates into main template.
+    Template calls <xsl:apply-templates> and <xsl:call-template> are "commented out"
+  * @param pio_xslt On input CLOB representing XSLT on output document.
+  * @param p_match_templates Select attributes of <xsl:apply-templates> elements which will be replaced with actual template code in main XSLT template
+  * @param p_name_templates Name attributes of <xsl:call-template> elements which will be replaced with actual template code in main XSLT template
+  * @param p_replace_otag Opening <xsl:apply-templates> and <xsl:call-template> tag <xsl: will be replaced with p_replace_otag.
+  * @param p_replace_ctag Closing <xsl:apply-templates> and <xsl:call-template> tag > will be replaced with p_replace_ctag.
+  */
+procedure XSLTInsertTemplates(
+  pio_xslt IN OUT NOCOPY CLOB,
+  p_match_templates tab_string,
+  p_name_templates tab_string,
+  p_replace_otag varchar2 default '&lt;',
+  p_replace_ctag varchar2 default '&gt;'
 )
 as
- 
+
 begin
   pak_xslt_log.WriteLog(
-    'Start O101lI1 match templates '||ll00l0.count||' name templates '||Ol00l0.count||
-    ' ll00l1 '||ll00l1||' Ol00lI '||Ol00lI,
+    'Start XSLTInsertTemplates match templates '||p_match_templates.count||' name templates '||p_name_templates.count||
+    ' p_replace_otag '||p_replace_otag||' p_replace_ctag '||p_replace_ctag,
     p_log_type => pak_xslt_log.g_warning,
     p_procedure => 'Query2Report.XSLT2Document'
   );
- 
-  l101lI0(Ol00Il);
- 
-  for ll01I1 in 1..ll00l0.count loop
-    
-    O101l1I(Ol00Il, 'xsl:apply-templates', 'select', ll00l0(ll01I1), ll00l1, Ol00lI);
-    
+
+  XslRemoveComments(pio_xslt);
+
+  for i in 1..p_match_templates.count loop
+    --find <xsl:apply-templates select="attr"> in pio_xslt and copy templates after
+    XSLTInsertTemplate(pio_xslt, 'xsl:apply-templates', 'select', p_match_templates(i), p_replace_otag, p_replace_ctag);
+    ----dbms_xslprocessor.clob2file(pio_xslt, 'XMLDIR', 'debug_select.doc'||i||'_'||p_match_templates(i)||'.xml');
   end loop;
- 
-  
-  for ll01I1 in 1..Ol00l0.count loop
-    
-    O101l1I(Ol00Il, 'xsl:call-template', 'name', Ol00l0(ll01I1), ll00l1, Ol00lI);
-    
+
+  --for i in 1..p_name_templates.count loop
+  for i in 1..p_name_templates.count loop
+    --find <xsl:call-template name="nameattr"> in pio_xslt and copy templates after. nameattr must match
+    XSLTInsertTemplate(pio_xslt, 'xsl:call-template', 'name', p_name_templates(i), p_replace_otag, p_replace_ctag);
+    ----dbms_xslprocessor.clob2file(pio_xslt, 'XMLDIR', 'debug_match.doc'||i||'_'||p_name_templates(i)||'.xml');
   end loop;
-  
- 
+  --end loop;
+
 exception
   when others then
   pak_xslt_log.WriteLog(
     'Error',
     p_log_type => pak_xslt_log.g_error,
-    p_procedure => 'Query2Report.O101lI1',
+    p_procedure => 'Query2Report.XSLTInsertTemplates',
     p_sqlerrm => sqlerrm
   );
   raise;
-end O101lI1;
- 
+end XSLTInsertTemplates;
 
+/** Create (Office) document from XSLT.
+  * @param pio_xslt On input CLOB representing XSLT on output document.
+  * @param p_match_templates Select attributes of <xsl:apply-templates> elements which will be replaced with actual template code in main XSLT template
+  * @param p_name_templates Name attributes of <xsl:call-template> elements which will be replaced with actual template code in main XSLT template
+  * @param p_replace_otag Opening XSLT tag <xsl: will be replaced with p_replace_otag.
+  * @param p_replace_ctag Closing XSLT tag > will be replaced with p_replace_ctag.
+  */
 procedure XSLT2Document(
-  Ol00Il IN OUT NOCOPY CLOB,
-  Il00Il varchar2,
-  ll00l0 tab_string,
-  Ol00l0 tab_string,
-  Il00l1 varchar2 default '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'||g_crlf,
-  ll00l1 varchar2 default '&lt;',
-  Ol00lI varchar2 default '&gt;'
+  pio_xslt IN OUT NOCOPY CLOB,
+  p_basic_format_name varchar2,
+  p_match_templates tab_string,
+  p_name_templates tab_string,
+  p_xml_procinstr varchar2 default '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'||g_crlf,
+  p_replace_otag varchar2 default '&lt;',
+  p_replace_ctag varchar2 default '&gt;'
 )
 as
-I101l1I number;
-l101l1l number;
- 
-I101lI1 constant varchar2(400):='<xsl:text disable-output-escaping="yes">'||g_crlf||
+l_start_tmpl number;
+l_end_tmpl number;
+
+c_workbook_start_crlf constant varchar2(400):='<xsl:text disable-output-escaping="yes">'||g_crlf||
 '<![CDATA[';
- 
-l101lII constant varchar2(400):=']]>'||g_crlf||
+
+c_workbook_end_crlf constant varchar2(400):=']]>'||g_crlf||
 '</xsl:text>';
- 
-O101lII constant varchar2(400):='<xsl:text disable-output-escaping="yes">'||chr(10)||
+
+c_workbook_start_lf constant varchar2(400):='<xsl:text disable-output-escaping="yes">'||chr(10)||
 '<![CDATA[';
- 
-I101lIl constant varchar2(400):=']]>'||chr(10)||
+
+c_workbook_end_lf constant varchar2(400):=']]>'||chr(10)||
 '</xsl:text>';
- 
-l101lIl varchar2(20);
-O101ll0 boolean;
-I101ll0 number;
-l101ll1 number;
-O101ll1 number;
-I101llI number;
-l101llI number;
-O101lll number;
-Ol0l11 CLOB;
-I101lll varchar2(32000);
-l10I000 number;
-O10I000 number;
+
+l_start_xsl_text varchar2(20);
+l_xsl_text_element boolean;
+l_start_xsl number;
+l_start_cxsl number;
+l_start_copy number;
+l_end_xsl number;
+l_start_pi number;
+l_end_pi number;
+l_temp CLOB;
+l_str_replace_with varchar2(32000);
+l_start_remove number;
+l_end_remove number;
 begin
   pak_xslt_log.WriteLog(
-    'Start XSLT2Document Il00Il '||Il00Il||' Il00l1 '||Il00l1||
-    ' match templates '||ll00l0.count||' name templates '||Ol00l0.count||
-    ' ll00l1 '||ll00l1||' Ol00lI '||Ol00lI,
+    'Start XSLT2Document p_basic_format_name '||p_basic_format_name||' p_xml_procinstr '||p_xml_procinstr||
+    ' match templates '||p_match_templates.count||' name templates '||p_name_templates.count||
+    ' p_replace_otag '||p_replace_otag||' p_replace_ctag '||p_replace_ctag,
     p_log_type => pak_xslt_log.g_warning,
     p_procedure => 'Query2Report.XSLT2Document'
   );
- 
-  O101lI1(
-    Ol00Il,
-    ll00l0,
-    Ol00l0,
-    ll00l1,
-    Ol00lI
+
+  XSLTInsertTemplates(
+    pio_xslt,
+    p_match_templates,
+    p_name_templates,
+    p_replace_otag,
+    p_replace_ctag
   );
- 
-  
- 
-  I1010I1(Ol00Il, 'xsl:stylesheet', 'w:wordDocument');
-  I1010I1(Ol00Il, 'xsl:stylesheet', 'Workbook');
- 
- 
-  if dbms_lob.instr(Ol00Il, I101lI1||'<Workbook')> 0 or
-    dbms_lob.instr(Ol00Il, O101lII||'<Workbook')> 0
+
+  ----dbms_xslprocessor.clob2file(pio_xslt, 'XMLDIR', 'debug.doc.xml');
+
+  MoveXMLNS(pio_xslt, 'xsl:stylesheet', 'w:wordDocument');
+  MoveXMLNS(pio_xslt, 'xsl:stylesheet', 'Workbook');
+
+
+  if dbms_lob.instr(pio_xslt, c_workbook_start_crlf||'<Workbook')> 0 or
+    dbms_lob.instr(pio_xslt, c_workbook_start_lf||'<Workbook')> 0
   then
-    pak_blob_util.clobReplaceAll(Ol00Il, I101lI1||'<Workbook', '<Workbook');
-    pak_blob_util.clobReplaceAll(Ol00Il, O101lII||'<Workbook', '<Workbook');
- 
-    
-    l10I000 := dbms_lob.instr(Ol00Il,']]>');
-    O10I000 := dbms_lob.instr(Ol00Il,'</xsl:text>');
-    if l10I000 > 0 and O10I000 > 0 and O10I000 > l10I000 then
-      pak_blob_util.clobReplace(Ol00Il, ']]>', '', l10I000, O10I000);
-      pak_blob_util.clobReplace(Ol00Il, '</xsl:text>', '', l10I000, O10I000);
+    pak_blob_util.clobReplaceAll(pio_xslt, c_workbook_start_crlf||'<Workbook', '<Workbook');
+    pak_blob_util.clobReplaceAll(pio_xslt, c_workbook_start_lf||'<Workbook', '<Workbook');
+
+    --odstrani od prvi ]]> do </xsl:text>
+    l_start_remove := dbms_lob.instr(pio_xslt,']]>');
+    l_end_remove := dbms_lob.instr(pio_xslt,'</xsl:text>');
+    if l_start_remove > 0 and l_end_remove > 0 and l_end_remove > l_start_remove then
+      pak_blob_util.clobReplace(pio_xslt, ']]>', '', l_start_remove, l_end_remove);
+      pak_blob_util.clobReplace(pio_xslt, '</xsl:text>', '', l_start_remove, l_end_remove);
     end if;
   end if;
- 
-  pak_blob_util.clobReplaceAll(Ol00Il, I101lI1||'</Workbook>'||l101lII, '</Workbook>');
-  pak_blob_util.clobReplaceAll(Ol00Il, O101lII||'</Workbook>'||I101lIl, '</Workbook>');
- 
-  if Il00Il = 'mht' then
-    pak_blob_util.clobReplaceAll(Ol00Il, chr(13)||g_crlf, g_crlf);
-    
- 
-    pak_blob_util.clobReplaceAll(Ol00Il, '</xsl:text>'||g_crlf, '</xsl:text>');
-    pak_blob_util.clobReplaceAll(Ol00Il, g_crlf||'<xsl:text', '<xsl:text');
-    pak_blob_util.clobReplaceAll(Ol00Il, g_crlf||'<![CDATA[', '');
-    pak_blob_util.clobReplaceAll(Ol00Il, ']]>'||g_crlf, '');
- 
-  elsif Il00Il != 'xml' then
-    pak_blob_util.clobReplaceAll(Ol00Il, '</xsl:text>'||g_crlf, '</xsl:text>');
-    pak_blob_util.clobReplaceAll(Ol00Il, g_crlf||'<xsl:text', '<xsl:text');
+
+  pak_blob_util.clobReplaceAll(pio_xslt, c_workbook_start_crlf||'</Workbook>'||c_workbook_end_crlf, '</Workbook>');
+  pak_blob_util.clobReplaceAll(pio_xslt, c_workbook_start_lf||'</Workbook>'||c_workbook_end_lf, '</Workbook>');
+
+  if p_basic_format_name = 'mht' then
+    pak_blob_util.clobReplaceAll(pio_xslt, chr(13)||g_crlf, g_crlf);
+    /*
+    pak_blob_util.clobReplaceAll(pio_xslt, '</xsl:text>'||g_crlf||g_crlf||g_crlf, '</xsl:text>');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||g_crlf||g_crlf||'<xsl:text', '<xsl:text');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||g_crlf||g_crlf||'<![CDATA[', '');
+    pak_blob_util.clobReplaceAll(pio_xslt, ']]>'||g_crlf||g_crlf||g_crlf, '');
+
+
+    pak_blob_util.clobReplaceAll(pio_xslt, '</xsl:text>'||g_crlf||g_crlf, '</xsl:text>');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||g_crlf||'<xsl:text', '<xsl:text');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||g_crlf||'<![CDATA[', '');
+    pak_blob_util.clobReplaceAll(pio_xslt, ']]>'||g_crlf||g_crlf, '');
+    */
+
+    pak_blob_util.clobReplaceAll(pio_xslt, '</xsl:text>'||g_crlf, '</xsl:text>');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||'<xsl:text', '<xsl:text');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||'<![CDATA[', '');
+    pak_blob_util.clobReplaceAll(pio_xslt, ']]>'||g_crlf, '');
+
+  elsif p_basic_format_name != 'xml' then
+    pak_blob_util.clobReplaceAll(pio_xslt, '</xsl:text>'||g_crlf, '</xsl:text>');
+    pak_blob_util.clobReplaceAll(pio_xslt, g_crlf||'<xsl:text', '<xsl:text');
   end if;
- 
-  pak_blob_util.clobReplaceAll(Ol00Il, '<![CDATA[', '');
-  pak_blob_util.clobReplaceAll(Ol00Il, ']]>', '');
- 
-  
-  I101l00(Ol00Il, I101l1I, l101l1l);
- 
-  if nvl(I101l1I, 0) = 0 or nvl(l101l1l, 0) = 0 then
+
+  pak_blob_util.clobReplaceAll(pio_xslt, '<![CDATA[', '');
+  pak_blob_util.clobReplaceAll(pio_xslt, ']]>', '');
+
+  /*
+  l_start_tmpl:= dbms_lob.instr(pio_xslt, c_start_tmpl)+length(c_start_tmpl);
+  l_start_tmpl_crlf:= dbms_lob.instr(pio_xslt, c_start_tmpl||g_crlf)+length(c_start_tmpl||g_crlf);
+  if nvl(l_start_tmpl_crlf, 0) > l_start_tmpl then
+    l_start_tmpl := l_start_tmpl_crlf;
+  end if;
+  l_end_tmpl:= dbms_lob.instr(pio_xslt, c_end_tmpl, l_start_tmpl);
+  */
+  MainTemplateLimits(pio_xslt, l_start_tmpl, l_end_tmpl);
+
+  if nvl(l_start_tmpl, 0) = 0 or nvl(l_end_tmpl, 0) = 0 then
     return;
   end if;
- 
- 
- 
-  dbms_lob.createtemporary(Ol0l11, false);
- 
+
+
+
+  dbms_lob.createtemporary(l_temp, false);
+
   pak_xslt_log.WriteLog(
-        'Start Il00Il: '||Il00Il||' Il00l1: '||Il00l1,
+        'Start p_basic_format_name: '||p_basic_format_name||' p_xml_procinstr: '||p_xml_procinstr,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
-  if Il00l1 is not null and Il00Il = 'xml' then
-    DBMS_LOB.WRITEAPPEND(Ol0l11, length(Il00l1),Il00l1);
+
+  if p_xml_procinstr is not null and p_basic_format_name = 'xml' then
+    DBMS_LOB.WRITEAPPEND(l_temp, length(p_xml_procinstr),p_xml_procinstr);
   end if;
-  I101ll0 := I101l1I;
-  I101llI := I101l1I;
-  l101llI := I101l1I;
+  l_start_xsl := l_start_tmpl;
+  l_end_xsl := l_start_tmpl;
+  l_start_pi := l_start_tmpl;
   loop
     pak_xslt_log.WriteLog(
-        'start loop I101llI: '||I101llI,
+        'start loop l_end_xsl: '||l_end_xsl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
-    I101ll0 := dbms_lob.instr(Ol00Il, '<xsl:', I101llI);
-    l101ll1 := dbms_lob.instr(Ol00Il, '</xsl:', I101llI);
- 
+
+    l_start_xsl := dbms_lob.instr(pio_xslt, '<xsl:', l_end_xsl);
+    l_start_cxsl := dbms_lob.instr(pio_xslt, '</xsl:', l_end_xsl);
+
     pak_xslt_log.WriteLog(
-        'start loop I101ll0: '||I101ll0||' l101ll1: '||l101ll1,
+        'start loop l_start_xsl: '||l_start_xsl||' l_start_cxsl: '||l_start_cxsl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
-    if l101ll1 > 0 and I101ll0 > 0 then
-      I101ll0 := least(I101ll0, l101ll1);
-    elsif l101ll1 > 0 and nvl(I101ll0, 0) = 0 then
-      I101ll0 := l101ll1;
+
+    if l_start_cxsl > 0 and l_start_xsl > 0 then
+      l_start_xsl := least(l_start_xsl, l_start_cxsl);
+    elsif l_start_cxsl > 0 and nvl(l_start_xsl, 0) = 0 then
+      l_start_xsl := l_start_cxsl;
     end if;
-    exit when nvl(I101ll0, 0) = 0 or I101ll0 >= l101l1l;
-    if I101ll0 = l101ll1 then
-      l101lIl := '</xsl:text>';
+    exit when nvl(l_start_xsl, 0) = 0 or l_start_xsl >= l_end_tmpl;
+    if l_start_xsl = l_start_cxsl then
+      l_start_xsl_text := '</xsl:text>';
     else
-      l101lIl := '<xsl:text';
+      l_start_xsl_text := '<xsl:text';
     end if;
- 
-    O101ll0 := dbms_lob.substr(Ol00Il, length(l101lIl), I101ll0) = l101lIl;
- 
-    if I101ll0 > I101llI then
+
+    l_xsl_text_element := dbms_lob.substr(pio_xslt, length(l_start_xsl_text), l_start_xsl) = l_start_xsl_text;
+
+    if l_start_xsl > l_end_xsl then
       pak_xslt_log.WriteLog(
-        'start copy to end of Ol0l11 from '||I101llI||' and new '||I101ll0,
+        'start copy to end of l_temp from '||l_end_xsl||' and new '||l_start_xsl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
-      DBMS_LOB.COPY (Ol0l11, Ol00Il, I101ll0 - I101llI, nvl(DBMS_LOB.GETLENGTH(Ol0l11),0)+1, I101llI); 
- 
+
+      DBMS_LOB.COPY (l_temp, pio_xslt, l_start_xsl - l_end_xsl, nvl(DBMS_LOB.GETLENGTH(l_temp),0)+1, l_end_xsl); --copy LOB
+
      pak_xslt_log.WriteLog(
-        'finsih copy to end of Ol0l11 from '||I101llI||' and new '||I101ll0,
+        'finsih copy to end of l_temp from '||l_end_xsl||' and new '||l_start_xsl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
+
     end if;
- 
-    l101llI :=dbms_lob.instr(Ol00Il, '<xsl:processing-instruction', I101ll0);
-    if l101llI = I101ll0 then 
- 
- 
-      I101llI := dbms_lob.instr(Ol00Il, '</xsl:processing-instruction>', l101llI);
- 
+
+    l_start_pi :=dbms_lob.instr(pio_xslt, '<xsl:processing-instruction', l_start_xsl);
+    if l_start_pi = l_start_xsl then --this is processing-instruction
+
+
+      l_end_xsl := dbms_lob.instr(pio_xslt, '</xsl:processing-instruction>', l_start_pi);
+
       pak_xslt_log.WriteLog(
-        'xsl:processing-instruction: '||l101llI||'-'||I101llI,
+        'xsl:processing-instruction: '||l_start_pi||'-'||l_end_xsl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
-      exit when nvl(I101llI, 0) = 0;
-      I101llI := I101llI + length('</xsl:processing-instruction>');
-      
-      I101lll := l101l11(Ol00Il, I101llI - I101ll0, I101ll0);
- 
-      
-      
-      
- 
+
+      exit when nvl(l_end_xsl, 0) = 0;
+      l_end_xsl := l_end_xsl + length('</xsl:processing-instruction>');
+      --l_str_replace_with := dbms_lob.substr(pio_xslt, l_end_xsl - l_start_xsl, l_start_xsl);
+      l_str_replace_with := ModifiedElelmentTag(pio_xslt, l_end_xsl - l_start_xsl, l_start_xsl);
+
+      --l_str_replace_with := replace(l_str_replace_with, '<xsl:processing-instruction name="','<?');
+      --l_str_replace_with := replace(l_str_replace_with, '</xsl:processing-instruction>','?>');
+      --l_str_replace_with := replace(l_str_replace_with, '">',' ');
+
       pak_xslt_log.WriteLog(
-        'xsl:processing-instruction I101lll: '||I101lll,
+        'xsl:processing-instruction l_str_replace_with: '||l_str_replace_with,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
-    else 
-      I101llI := dbms_lob.instr(Ol00Il, '>', I101ll0);
-      exit when nvl(I101llI, 0) = 0;
-      I101llI := I101llI + length('>');
- 
+
+    else --xsl element not a processing-instruction
+      l_end_xsl := dbms_lob.instr(pio_xslt, '>', l_start_xsl);
+      exit when nvl(l_end_xsl, 0) = 0;
+      l_end_xsl := l_end_xsl + length('>');
+
       pak_xslt_log.WriteLog(
-        'xsl: '||I101ll0||'-'||I101llI,
+        'xsl: '||l_start_xsl||'-'||l_end_xsl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
- 
- 
-      if not O101ll0 or Il00Il = 'xml' then
-        
-        
-        
-        I101lll := l101l11(Ol00Il, I101llI - I101ll0, I101ll0, ll00l1, Ol00lI);
- 
+
+
+
+      if not l_xsl_text_element or p_basic_format_name = 'xml' then
+        --l_str_replace_with := dbms_lob.substr(pio_xslt, l_end_xsl - l_start_xsl, l_start_xsl);
+        --l_str_replace_with := replace(l_str_replace_with, '<', p_replace_otag);
+        --l_str_replace_with := replace(l_str_replace_with, '>', p_replace_ctag);
+        l_str_replace_with := ModifiedElelmentTag(pio_xslt, l_end_xsl - l_start_xsl, l_start_xsl, p_replace_otag, p_replace_ctag);
+
         pak_xslt_log.WriteLog(
-          'xsl: I101lll: '||I101lll,
+          'xsl: l_str_replace_with: '||l_str_replace_with,
           p_log_type => pak_xslt_log.g_warning,
           p_procedure => 'XSLT2Document' );
       end if;
     end if;
-    if I101lll is not null and I101ll0 < l101l1l and
-      (not O101ll0 or Il00Il = 'xml')
+    if l_str_replace_with is not null and l_start_xsl < l_end_tmpl and
+      (not l_xsl_text_element or p_basic_format_name = 'xml')
     then
-      DBMS_LOB.WRITEAPPEND(Ol0l11, length(I101lll),I101lll);
- 
+      DBMS_LOB.WRITEAPPEND(l_temp, length(l_str_replace_with),l_str_replace_with);
+
       pak_xslt_log.WriteLog(
-        'WRITEAPPEND '||I101lll||' to Ol0l11 ',
+        'WRITEAPPEND '||l_str_replace_with||' to l_temp ',
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
+
     end if;
   end loop;
-  if I101llI > 0 then 
-    DBMS_LOB.COPY (Ol0l11, Ol00Il, l101l1l - I101llI, nvl(DBMS_LOB.GETLENGTH(Ol0l11),0)+1, I101llI);
- 
+  if l_end_xsl > 0 then --from last end_xsl to the end
+    DBMS_LOB.COPY (l_temp, pio_xslt, l_end_tmpl - l_end_xsl, nvl(DBMS_LOB.GETLENGTH(l_temp),0)+1, l_end_xsl);
+
     pak_xslt_log.WriteLog(
-        'copy the rest to end of Ol0l11 from '||I101llI||' and end of template '||l101l1l,
+        'copy the rest to end of l_temp from '||l_end_xsl||' and end of template '||l_end_tmpl,
         p_log_type => pak_xslt_log.g_warning,
         p_procedure => 'XSLT2Document' );
- 
+
   end if;
- 
-  if Il00Il = 'mht' then 
-    dbms_lob.trim(Ol00Il, 0);
+
+  if p_basic_format_name = 'mht' then --must start with: MIME-Version
+    dbms_lob.trim(pio_xslt, 0);
     dbms_lob.copy(
-      Ol00Il, Ol0l11,
-      dbms_lob.getlength(Ol0l11) - dbms_lob.instr(Ol0l11, 'MIME-Version'),
-      1, dbms_lob.instr(Ol0l11, 'MIME-Version')
+      pio_xslt, l_temp,
+      dbms_lob.getlength(l_temp) - dbms_lob.instr(l_temp, 'MIME-Version'),
+      1, dbms_lob.instr(l_temp, 'MIME-Version')
     );
   else
-    Ol00Il := Ol0l11;
+    pio_xslt := l_temp;
   end if;
- 
-  dbms_lob.freetemporary(Ol0l11);
+
+  dbms_lob.freetemporary(l_temp);
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -5435,35 +6521,49 @@ exception
   );
   raise;
 end XSLT2Document;
- 
+
+
+
 $if CCOMPILING.g_utl_file_privilege $then
 
+
+
+/** Create (Office) document from XSLT.
+  * @param p_xsltDir Location (ORA directory) of XSLT
+  * @param p_xsltFname XSLT filename
+  * @param p_docDir Output document location (ORA directory)
+  * @param p_docFname Output document filename
+  * @param p_match_templates Select attributes of <xsl:apply-templates> elements which will be replaced with actual template code in main XSLT template
+  * @param p_name_templates Name attributes of <xsl:call-template> elements which will be replaced with actual template code in main XSLT template
+  * @param p_replace_otag Opening XSLT tag <xsl: will be replaced with p_replace_otag.
+  * @param p_replace_ctag Closing XSLT tag > will be replaced with p_replace_ctag.
+  */
 procedure XSLT2Document(
   p_xsltDir          IN  VARCHAR2,
-  Il00lI        IN  VARCHAR2,
-  ll00ll         IN  varchar2,
-  Ol00ll        IN  varchar2,
-  Il00Il varchar2,
-  ll00l0 tab_string,
-  Ol00l0 tab_string,
-  Il00l1 varchar2 default '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'||g_crlf,
-  ll00l1 varchar2 default '&lt;',
-  Ol00lI varchar2 default '&gt;'
+  p_xsltFname        IN  VARCHAR2,
+  p_docDir         IN  varchar2,
+  p_docFname        IN  varchar2,
+  p_basic_format_name varchar2,
+  p_match_templates tab_string,
+  p_name_templates tab_string,
+  p_xml_procinstr varchar2 default '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'||g_crlf,
+  p_replace_otag varchar2 default '&lt;',
+  p_replace_ctag varchar2 default '&gt;'
 )
 as
-l100I10 CLOB;
+l_xslt CLOB;
 begin
-  l100I10 := pak_blob_util.READ2CLOB(p_xsltDir, Il00lI);
+  l_xslt := pak_blob_util.READ2CLOB(p_xsltDir, p_xsltFname);
   XSLT2Document(
-    l100I10,
-    Il00Il,
-    ll00l0,
-    Ol00l0,
-    Il00l1,
-    ll00l1,
-    Ol00lI
+    l_xslt,
+    p_basic_format_name,
+    p_match_templates,
+    p_name_templates,
+    p_xml_procinstr,
+    p_replace_otag,
+    p_replace_ctag
   );
-  
+  --dbms_xslprocessor.clob2file(l_xslt, p_docDir, p_docFname);
 exception
   when others then
   pak_xslt_log.WriteLog(
@@ -5474,8 +6574,14 @@ exception
   );
   raise;
 end XSLT2Document;
- 
 
+
+/** Refresh static file content (blob column) with content of file on disk - without annoying Application Builder delete and upload
+* @param p_ws Workspace of static file
+* @param p_static_Filename Name of static file loaded in workspace/app
+* @param p_filedir Location (ORA directory) of file with new content
+* @param p_filename Filename of file with new content
+*/
 procedure RefreshStaticFile(
   p_ws varchar2,
   p_static_Filename varchar2,
@@ -5483,27 +6589,27 @@ procedure RefreshStaticFile(
   p_filename varchar2
 )
 as
-O100II1 number;
-I100IlI BLOB;
-l100Il1 varchar2(10);
+l_workspace_id number;
+l_blob BLOB;
+l_apex_ver varchar2(10);
 begin
     select workspace_id
-    into O100II1
+    into l_workspace_id
     from apex_workspaces
     where workspace = upper(p_ws);
- 
-    wwv_flow_api.set_security_group_id(O100II1);
- 
-    I100IlI := pak_blob_util.GetBlob(p_filedir, p_filename);
- 
+
+    wwv_flow_api.set_security_group_id(l_workspace_id);
+
+    l_blob := pak_blob_util.GetBlob(p_filedir, p_filename);
+
     SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1)
-    into l100Il1
+    into l_apex_ver
     FROM apex_release;
- 
+
     update wwv_flow_files set
-    blob_content = I100IlI,
-    doc_size = dbms_lob.getlength(I100IlI)
-    where (file_type = 'STATIC_FILE' or l100Il1 = '4.1')
+    blob_content = l_blob,
+    doc_size = dbms_lob.getlength(l_blob)
+    where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1')
     and filename = p_static_filename;
     commit;
 exception
@@ -5514,8 +6620,13 @@ exception
   raise;
 end;
 $end
- 
 
+/** Refresh static file content (blob column) with content of file on disk - without annoying Application Builder delete and upload
+* @param p_ws Workspace of static file
+* @param p_static_Filename Name of static file loaded in workspace/app
+* @param p_clob CLOB with content of file
+* @param p_clob_csid Oracle NLS CHARSET ID of CLOB
+*/
 procedure RefreshStaticFile(
   p_ws varchar2,
   p_static_Filename varchar2,
@@ -5523,52 +6634,52 @@ procedure RefreshStaticFile(
   p_clob_csid    number
 )
 as
-O100II1 number;
-I100IlI BLOB;
-l100III NUMBER;
-O100IIl number default 0;
+l_workspace_id number;
+l_blob BLOB;
+l_warning NUMBER;
+l_lang_context number default 0;
+--l_blob_csid number default 0;
+l_src_offset number default 1;
+l_dest_offset number default 1;
+l_apex_ver varchar2(10);
 
-l100Il0 number default 1;
-O100Il0 number default 1;
-l100Il1 varchar2(10);
- 
 begin
-  DBMS_LOB.CREATETEMPORARY(I100IlI, true);
- 
-  DBMS_LOB.OPEN (I100IlI, DBMS_LOB.LOB_READWRITE);
- 
-    
- 
-    
+  DBMS_LOB.CREATETEMPORARY(l_blob, true);
+
+  DBMS_LOB.OPEN (l_blob, DBMS_LOB.LOB_READWRITE);
+
+    --pretvori CLOB v BLOB
+
+    --l_blob_csid := NLS_CHARSET_ID('EE8MSWIN1250'); --debug briL?i
   DBMS_LOB.CONVERTTOBLOB(
-    I100IlI,
+    l_blob,
     p_clob,
     DBMS_LOB.LOBMAXSIZE,
-    l100Il0,
-    O100Il0,
+    l_src_offset,
+    l_dest_offset,
     p_clob_csid,
-    O100IIl,
-    l100III
+    l_lang_context,
+    l_warning
   );
- 
+
   select workspace_id
-  into O100II1
+  into l_workspace_id
   from apex_workspaces
   where workspace = upper(p_ws);
- 
-  wwv_flow_api.set_security_group_id(O100II1);
- 
+
+  wwv_flow_api.set_security_group_id(l_workspace_id);
+
   SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1)
-  into l100Il1
+  into l_apex_ver
   FROM apex_release;
- 
+
   update wwv_flow_files set
-  blob_content = I100IlI,
-  doc_size = dbms_lob.getlength(I100IlI)
-  where (file_type = 'STATIC_FILE' or l100Il1 = '4.1')
+  blob_content = l_blob,
+  doc_size = dbms_lob.getlength(l_blob)
+  where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1')
   and filename = p_static_filename;
- 
-  DBMS_LOB.FREETEMPORARY(I100IlI);
+
+  DBMS_LOB.FREETEMPORARY(l_blob);
   commit;
 exception
   when others then
@@ -5577,7 +6688,6 @@ exception
   rollback;
   raise;
 end;
- 
-end QUERY2REPORT;
 
+end QUERY2REPORT;
 /

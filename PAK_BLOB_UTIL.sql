@@ -1,9 +1,30 @@
---------------------------------------------------------
---  DDL for Package PAK_BLOB_UTIL
---------------------------------------------------------
 
-  CREATE OR REPLACE PACKAGE "PAK_BLOB_UTIL" AS
+CREATE OR REPLACE PACKAGE "PAK_BLOB_UTIL" AS
 
+-- Interactive Prints  using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
+  
 /** Converts whole BLOB to CLOB
   *
   * @param p_blob BLOB to convert
@@ -13,9 +34,8 @@
 function BLOB2CLOB
 (
 p_blob  BLOB,
-p_clob_csid number default NLS_CHARSET_ID('UTF8')
+p_clob_csid number default NLS_CHARSET_ID('AL32UTF8')
 ) return CLOB;
-
 /** Converts XMLType to CLOB
   *
   * @param p_xml xml to convert
@@ -25,9 +45,8 @@ p_clob_csid number default NLS_CHARSET_ID('UTF8')
 function XML2CLOB
 (
 p_xml  SYS.XMLType,
-p_clob_csid number default NLS_CHARSET_ID('UTF8')
+p_clob_csid number default NLS_CHARSET_ID('AL32UTF8')
 ) return CLOB;
-
 /** Converts whole CLOB to BLOB
   *
   * @param p_clob CLOB to convert
@@ -37,10 +56,8 @@ p_clob_csid number default NLS_CHARSET_ID('UTF8')
 function CLOB2BLOB
 (
   p_clob  CLOB,
-  p_clob_csid number default NLS_CHARSET_ID('UTF8')
+  p_clob_csid number default NLS_CHARSET_ID('AL32UTF8')
 ) return BLOB;
-
-$if CCOMPILING.g_utl_file_privilege $then
 /** Reads BLOB from file
   *
   * @param P_DIRECTORY ORA directory
@@ -51,20 +68,20 @@ function GetBlob(
     P_DIRECTORY VARCHAR2,
     P_FILENAME VARCHAR2
 ) return BLOB;
-
 /** Writes BLOB to file
   *
   * @param P_DIRECTORY ORA directory
   * @param P_FILENAME filename
   * @param p_blob BLOB to write
   */
+$IF CCOMPILING.g_utl_file_privilege $THEN    
 PROCEDURE Blob2File
 (
   P_DIRECTORY      IN VARCHAR2,
   P_FILENAME       IN VARCHAR2,
   p_blob           IN BLOB
 );
-
+$END
 /**Read to NCLOB content of the file
   *
   * @param P_DIRECTORY location of file (Oracle directory)
@@ -77,10 +94,6 @@ function Read2Clob(
     P_FILENAME VARCHAR2,
     P_NLS_CHARSET VARCHAR2 default null--'EE8MSWIN1250' --'AL32UTF8', 'WE8MSWIN1252'   WE8ISO8859P2
 ) return NCLOB;
-
-$end
-
-
 /** Replaces part of CLOB pio_xml between p_start_offset and p_end_offset with string p_replace_with
   *
   * @param pio_xml input output CLOB
@@ -94,7 +107,6 @@ procedure clobReplace(
   p_end_offset number,
   p_replace_with varchar2
 );
-
 /** Replaces part of CLOB pio_xml between p_start_offset and p_end_offset with CLOB p_replace_with
   *
   * @param pio_xml input output CLOB
@@ -108,7 +120,6 @@ procedure clobReplace(
   p_end_offset number,
   p_replace_with CLOB
 );
-
 /** CLOB version of PL/SQL string function replace
 *
 * @param pio_clob CLOB where replacement will be made
@@ -120,7 +131,6 @@ procedure clobReplaceAll(
   p_what            IN VARCHAR2,
   p_with            IN VARCHAR2
 );
-
 /** CLOB version of PL/SQL string function replace but works only from p_startOffset to pio_endOffset.
 * Also changes pio_endOffset for the changed length of whole CLOB.
 *
@@ -137,8 +147,6 @@ PROCEDURE clobReplace(
   p_startOffset   IN NUMBER default 1,
   pio_endOffset     IN OUT NUMBER
 );
-
-
 /** Return APEX static file as CLOB
 *
 * @param p_xsltStaticFile Filename of APEX static file with XSLT
@@ -150,7 +158,6 @@ function StaticFile2BLOB
   p_xsltStaticFile  IN    varchar2,
   po_file_csid      OUT   number
 ) return BLOB;
-
 /** Return APEX static file as CLOB
 *
 * @param p_xsltStaticFile Filename of APEX static file with XSLT
@@ -162,7 +169,6 @@ function StaticFile2CLOB
   p_xsltStaticFile  IN    varchar2,
   po_file_csid      OUT   number
 ) return CLOB;
-
 /**Base64 encode BLOB, return as CLOB
 *
 * @param p_binary Input BLOB
@@ -170,7 +176,6 @@ function StaticFile2CLOB
 */
 function base64_encode(p_binary BLOB)
 return CLOB;
-
 /**decode base64 encoded CLOB, return as BLOB
 *
 * @param p_binary Input BLOB
@@ -180,7 +185,5 @@ function base64_decode(
   p_file in clob
 )
 return blob;
-
 END PAK_BLOB_UTIL;
-
 /

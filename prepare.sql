@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW ORATYPE_CODES ("ORA_TYPE", "ORA_CODE") AS 
   select   substr(trim(text), instr(trim(text),'TYPECODE_')+length('TYPECODE_'),instr(trim(text),' ')-instr(trim(text),'TYPECODE_')-length('TYPECODE_')) ora_type,
   to_number(substr(trim(text), instr(trim(text),'PLS_INTEGER := ')+length('PLS_INTEGER := '),instr(trim(text),';')-instr(trim(text),'PLS_INTEGER := ')-length('PLS_INTEGER := '))) ora_code 
-  from   all_source where   owner = 'SYS' and name = 'DBMS_TYPES' and type = 'PACKAGE'and text like '%TYPECODE_%';
+  from   all_source where   owner = 'SYS' and name = 'DBMS_TYPES' and type = 'PACKAGE' and text like '%TYPECODE_%';
 
 --------------------------------------------------------
 --  DDL for Table XSLT_LOG
@@ -93,14 +93,41 @@ CREATE SEQUENCE TEMPORARY_XML_SEQ;
 	end;
 	/
 
-create or replace type t_coltype_row as object (colname varchar2(64), coltype varchar2(30), formatmask varchar2(100), columnwidth number, fullname varchar2(200));
+CREATE OR REPLACE type "WORD_COLOR" is OBJECT(color VARCHAR(6), name VARCHAR2(20));
 /
-create or replace type t_coltype_table as table of t_coltype_row;
+
+CREATE OR REPLACE TYPE "T_COLTYPE_ROW" as object (
+  colname varchar2(64),
+  coltype varchar2(30),
+  formatmask varchar2(400),
+  columnwidth number,
+  fullname varchar2(200),
+  position number,
+  excelcol varchar2(2),
+  break_on_col number,
+  breakrow     number,
+  value varchar2(4000),
+  excelval varchar2(4000),
+  aggregate varchar2(400),
+  formula varchar2(400),
+  highlight_name varchar2(400),
+  highlight_bkg_color varchar2(6),
+  highlight_font_color varchar2(6),
+  format number,
+  ps_format number
+);
 /
-create or replace type t_string_row as object (col varchar2(400)); 
+
+
+CREATE OR REPLACE type t_coltype_table as table of t_coltype_row;
 /
-create or replace type t_string_table as table of t_string_row;
+
+CREATE OR REPLACE type t_string_row as object (col varchar2(400));
 /
+
+CREATE OR REPLACE type t_string_table as table of t_string_row;
+/
+
 
 --------------------------------------------------------
 --  DDL for Table XPM_XML
@@ -166,11 +193,14 @@ l_exists1 NUMBER;
 l_exists2 NUMBER;
 l_exists3 NUMBER;
 l_existsIG NUMBER;
+l_exists_logger NUMBER;
 l_exists_utl_file NUMBER;
 l_createjob NUMBER;
 l_existsIGstr VARCHAR2(5);
 l_views_granted VARCHAR2(5);
 l_utl_file_privilege VARCHAR2(5);
+l_utl_http_privilege VARCHAR2(5);
+l_logger_exists VARCHAR2(5);
 begin
   SELECT lpad(substr(version_no, 1, instr(version_no, '.', 1, 1)-1), 2, '0') ||
   lpad(substr(version_no, instr(version_no, '.', 1, 1)+1, instr(version_no, '.', 1, 2)-instr(version_no, '.', 1, 1)-1), 2, '0')||'00' 
@@ -248,11 +278,19 @@ begin
   else
       l_utl_file_privilege := 'false';
   end if;
+  
+  select count(*) into l_exists_logger from all_objects where object_name = 'LOGGER' and object_type = 'PACKAGE' and status = 'VALID';
+  if l_exists_logger = 1 then
+      l_logger_exists := 'true';
+  else
+      l_logger_exists := 'false';
+  end if;
     
   EXECUTE IMMEDIATE 'create or replace PACKAGE "CCOMPILING" AS 
     g_views_granted constant boolean := '||l_views_granted||'; 
     g_IG_exists constant boolean := '||l_existsIGstr||'; 
     g_utl_file_privilege constant boolean := '||l_utl_file_privilege||';
+	g_logger_exists constant boolean := '||l_logger_exists||';
   END CCOMPILING;';
   
   --install job - current user must have CREATE ANY JOB privilege
@@ -262,7 +300,7 @@ begin
     dbms_scheduler.create_program(program_name      => 'prog_XslTransformAndDownload',
                                   program_type        => 'STORED_PROCEDURE',                                                          
                                   program_action      => 'Query2Report.XslTransformAndDownloadXMLID', 
-                                  number_of_arguments => 16,
+                                  number_of_arguments => 18,
                                   enabled             => false,
                                   comments            => 'Running XslTransformAndDownload in background');
   
@@ -290,74 +328,86 @@ begin
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_filename',
                                          argument_position => 5,
-                                         argument_type     => 'VARCHAR2');                                       
+                                         argument_type     => 'VARCHAR2');         
+                                         
+    dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
+                                         argument_name     => 'p_reportTypes',
+                                         argument_position => 6,
+                                         argument_type     => 'VARCHAR2',
+                                         default_value     => null);                                                                                                                                                                                                    
+                                         
+    dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
+                                         argument_name     => 'p_regionAttrs',
+                                         argument_position => 7,
+                                         argument_type     => 'VARCHAR2',
+                                         default_value     => null);                                                                                                                                                     
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_mime',
-                                         argument_position => 6,
+                                         argument_position => 8,
                                          argument_type     => 'VARCHAR2',
                                          default_value     => 'application/octet');
                                          
     dbms_scheduler.define_program_argument(program_name    => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_format',
-                                         argument_position => 7,
+                                         argument_position => 9,
                                          argument_type     => 'NUMBER',
                                          default_value     => 0);
                                          
     dbms_scheduler.define_program_argument(program_name    => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_templateStaticFile',
-                                         argument_position =>  8,
+                                         argument_position =>  10,
                                          argument_type     => 'VARCHAR2');                                        
     
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_external_params',
-                                         argument_position => 9,
+                                         argument_position => 11,
                                          argument_type     => 'VARCHAR2',
                                          default_value     => null);
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_second_XsltStaticFile',
-                                         argument_position => 10,
+                                         argument_position => 12,
                                          argument_type     => 'VARCHAR2',
                                          default_value     => null);
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_second_external_params',
-                                         argument_position => 11,
+                                         argument_position => 13,
                                          argument_type     => 'VARCHAR2',
                                          default_value     => null);                                       
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_convertblob_param',
-                                         argument_position => 12,
+                                         argument_position => 14,
                                          argument_type     => 'VARCHAR2',
                                          default_value     => null);                                       
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_log_level',
-                                         argument_position => 13,
+                                         argument_position => 15,
                                          argument_type     => 'NUMBER',
                                          default_value     => null);
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_security_group_id',
-                                         argument_position => 14,
+                                         argument_position => 16,
                                          argument_type     => 'NUMBER',
                                          default_value     => null);                                       
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_app_user',
-                                         argument_position => 15,
+                                         argument_position => 17,
                                          argument_type     => 'VARCHAR2',
                                          default_value     => null);                                       
                                          
     dbms_scheduler.define_program_argument(program_name      => 'prog_XslTransformAndDownload',
                                          argument_name     => 'p_run_in_background',
-                                         argument_position => 16,
+                                         argument_position => 18,
                                          argument_type     => 'NUMBER',
-                                         default_value     => 1);                                                                              
-                                         
+                                         default_value     => 1);                                          
+                                                                              
     dbms_scheduler.enable (name => 'prog_XslTransformAndDownload');
   
   

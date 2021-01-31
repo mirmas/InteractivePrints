@@ -1,8 +1,29 @@
---------------------------------------------------------
---  DDL for Package Body PAK_BLOB_UTIL
---------------------------------------------------------
 
-  CREATE OR REPLACE PACKAGE BODY "PAK_BLOB_UTIL" AS
+CREATE OR REPLACE PACKAGE BODY "PAK_BLOB_UTIL" AS
+
+-- Interactive Prints using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
 
 /** Converts whole BLOB to CLOB
   *
@@ -13,7 +34,7 @@
 function BLOB2CLOB
 (
   p_blob  BLOB
-  ,p_clob_csid number default NLS_CHARSET_ID('UTF8')
+  ,p_clob_csid number default NLS_CHARSET_ID('AL32UTF8')--NLS_CHARSET_ID('AL32UTF8')
 ) return CLOB
 as
 
@@ -34,7 +55,7 @@ begin
    DBMS_LOB.LOBMAXSIZE,
    l_dest_offset,
    l_src_offset,
-   nvl(p_clob_csid, NLS_CHARSET_ID('UTF8')),
+   nvl(p_clob_csid, NLS_CHARSET_ID('AL32UTF8')),
    l_lang_context,
    l_warning
   );
@@ -61,7 +82,7 @@ end BLOB2CLOB;
 function XML2CLOB
 (
 p_xml  SYS.XMLType,
-p_clob_csid number default NLS_CHARSET_ID('UTF8')
+p_clob_csid number default NLS_CHARSET_ID('AL32UTF8')
 ) return CLOB
 as
 begin
@@ -77,7 +98,7 @@ end;
 function CLOB2BLOB
 (
   p_clob  CLOB,
-  p_clob_csid number default NLS_CHARSET_ID('UTF8')
+  p_clob_csid number default NLS_CHARSET_ID('AL32UTF8')
 ) return BLOB
 as
 
@@ -99,7 +120,7 @@ begin
     DBMS_LOB.LOBMAXSIZE,
     l_src_offset,
     l_dest_offset,
-    nvl(p_clob_csid, NLS_CHARSET_ID('UTF8')),
+    nvl(p_clob_csid, NLS_CHARSET_ID('AL32UTF8') ),
     l_lang_context,
     l_warning
   );
@@ -117,175 +138,173 @@ exception
 end CLOB2BLOB;
 
 
-/** Return APEX static file as BLOB 
-  * 
-  * @param p_xsltStaticFile Filename of APEX static file with XSLT 
-  * @param po_file_csid Oracle character set ID 
-  * @return APEX static file as BLOB 
-  */ 
-function StaticFile2BLOB 
-( 
-  p_xsltStaticFile  IN    varchar2, 
-  po_file_csid      OUT   number 
-) return BLOB 
-as 
- 
---l_StaticFile_clob   CLOB; 
-l_StaticFile_blob   BLOB; 
-l_length NUMBER; 
-/* 
-l_binBlob BLOB; 
-l_warning NUMBER; 
-l_lang_context number default 0; 
---l_blob_csid number default 0; 
-l_src_offset number default 1; 
-l_dest_offset number default 1; 
-*/ 
-l_file_charset varchar2(50); 
-l_apex_ver varchar2(10); 
- 
-begin 
-  pak_xslt_log.WriteLog( 
-    'Starting XSLTStaticFile: ->'||p_xsltStaticFile||'<-', 
-    p_procedure => 'StaticFile2BLOB' 
-  ); 
- 
-  if p_xsltStaticFile is null then 
-    return null; 
-  end if; 
- 
-  SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1) 
-  into l_apex_ver 
-  FROM apex_release; 
- 
-  pak_xslt_log.WriteLog( 
-    'apex version: '||l_apex_ver||' wwv_flow.get_sgid '||wwv_flow.get_sgid, 
-    p_procedure => 'StaticFile2BLOB' 
-  ); 
- 
-  select blob_content, file_charset
-  into l_StaticFile_blob, l_file_charset 
-  from wwv_flow_files where ID = 
-  (	
-    select max(ID) from wwv_flow_files 
-  	where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1') and
-    FLOW_ID in (APEX_APPLICATION.G_FLOW_ID, 0) and  
-  	filename = p_xsltStaticFile 
-  );
- 
-  pak_xslt_log.WriteLog( 
-    'XSLTStaticFile get BLOB: '||p_xsltStaticFile||' l_file_charset: '||l_file_charset, 
-    p_procedure => 'StaticFile2BLOB' 
-  ); 
- 
-  po_file_csid := nls_charset_id(nvl(utl_i18n.map_charset(l_file_charset, 0, 1 ),'UTF8')); 
- 
-  return l_StaticFile_blob; 
- 
-exception 
-  when no_data_found then
-      pak_xslt_log.WriteLog( 
-       'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!', 
-        p_log_type => pak_xslt_log.g_error, 
-        p_procedure => 'StaticFile2BLOB'
-      ); 
-      raise_application_error(-20001, 'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!');
-  when others then 
-  pak_xslt_log.WriteLog( 
-    'Error '||p_xsltStaticFile, 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'StaticFile2BLOB', 
-    P_SQLERRM => sqlerrm 
-  ); 
-  raise; 
-end StaticFile2BLOB; 
- 
- 
-/** Return APEX static file as CLOB 
-  * 
-  * @param p_xsltStaticFile Filename of APEX static file with XSLT 
-  * @param po_file_csid Oracle character set ID 
-  * @return APEX static file as CLOB 
-  */ 
-function StaticFile2CLOB 
-( 
-  p_xsltStaticFile  IN    varchar2, 
-  po_file_csid      OUT   number 
-) return CLOB 
-as 
- 
---l_StaticFile_clob   CLOB; 
-l_StaticFile_blob   BLOB; 
-l_length NUMBER; 
-/* 
-l_binBlob BLOB; 
-l_warning NUMBER; 
-l_lang_context number default 0; 
---l_blob_csid number default 0; 
-l_src_offset number default 1; 
-l_dest_offset number default 1; 
-*/ 
-l_file_charset varchar2(50); 
-l_apex_ver varchar2(10); 
- 
-begin 
-  pak_xslt_log.WriteLog( 
-    'Starting XSLTStaticFile: ->'||p_xsltStaticFile||'<-', 
-    p_procedure => 'StaticFile2CLOB' 
-  ); 
- 
-  if p_xsltStaticFile is null then 
-    return null; 
-  end if; 
- 
-  SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1) 
-  into l_apex_ver 
-  FROM apex_release; 
- 
-  pak_xslt_log.WriteLog( 
-    'apex version: '||l_apex_ver||' wwv_flow.get_sgid '||wwv_flow.get_sgid, 
-    p_procedure => 'StaticFile2CLOB' 
-  ); 
- 
-  select blob_content, file_charset
-  into l_StaticFile_blob, l_file_charset 
-  from wwv_flow_files where ID = 
-  (	
-    select max(ID) from wwv_flow_files 
-  	where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1') and
-    FLOW_ID in (APEX_APPLICATION.G_FLOW_ID, 0) and  
-  	filename = p_xsltStaticFile 
-  );
- 
-  pak_xslt_log.WriteLog( 
-    'XSLTStaticFile get BLOB: '||p_xsltStaticFile||' l_file_charset: '||l_file_charset, 
-    p_procedure => 'StaticFile2CLOB' 
-  ); 
- 
-  po_file_csid := nls_charset_id(nvl(utl_i18n.map_charset(l_file_charset, 0, 1 ),'UTF8')); 
- 
-  return Blob2Clob(l_StaticFile_blob, po_file_csid); 
- 
-exception 
-  when no_data_found then
-      pak_xslt_log.WriteLog( 
-       'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!', 
-        p_log_type => pak_xslt_log.g_error, 
-        p_procedure => 'StaticFile2CLOB'
-      ); 
-      raise_application_error(-20001, 'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!');
-      
-  when others then 
-  pak_xslt_log.WriteLog( 
-    'Error '||p_xsltStaticFile, 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'StaticFile2CLOB', 
-    P_SQLERRM => sqlerrm 
-  ); 
-  raise; 
-end StaticFile2CLOB; 
+/** Return APEX static file as BLOB
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param po_file_csid Oracle character set ID
+  * @return APEX static file as BLOB
+  */
+function StaticFile2BLOB
+(
+  p_xsltStaticFile  IN    varchar2,
+  po_file_csid      OUT   number
+) return BLOB
+as
 
-$if CCOMPILING.g_utl_file_privilege $then
+--l_StaticFile_clob   CLOB;
+l_StaticFile_blob   BLOB;
+l_length NUMBER;
+/*
+l_binBlob BLOB;
+l_warning NUMBER;
+l_lang_context number default 0;
+--l_blob_csid number default 0;
+l_src_offset number default 1;
+l_dest_offset number default 1;
+*/
+l_file_charset varchar2(50);
+l_apex_ver varchar2(10);
+
+begin
+  pak_xslt_log.WriteLog(
+    'Starting XSLTStaticFile: ->'||p_xsltStaticFile||'<-',
+    p_procedure => 'StaticFile2BLOB'
+  );
+
+  if p_xsltStaticFile is null then
+    return null;
+  end if;
+
+  SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1)
+  into l_apex_ver
+  FROM apex_release;
+
+  pak_xslt_log.WriteLog(
+    'apex version: '||l_apex_ver||' wwv_flow.get_sgid '||wwv_flow.get_sgid,
+    p_procedure => 'StaticFile2BLOB'
+  );
+
+  select blob_content, file_charset
+  into l_StaticFile_blob, l_file_charset
+  from wwv_flow_files where ID =
+  (
+    select max(ID) from wwv_flow_files
+  	where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1') and
+    FLOW_ID in (APEX_APPLICATION.G_FLOW_ID, 0) and
+  	trim(filename) = trim(p_xsltStaticFile)
+  );
+
+  pak_xslt_log.WriteLog(
+    'XSLTStaticFile get BLOB: '||p_xsltStaticFile||' l_file_charset: '||l_file_charset,
+    p_procedure => 'StaticFile2BLOB'
+  );
+
+  po_file_csid := nls_charset_id(nvl(utl_i18n.map_charset(l_file_charset, 0, 1 ),'UTF8'));
+
+  return l_StaticFile_blob;
+
+exception
+  when no_data_found then
+      pak_xslt_log.WriteLog(
+       'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!',
+        p_log_type => pak_xslt_log.g_error,
+        p_procedure => 'StaticFile2BLOB'
+      );
+      raise_application_error(-20001, 'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!');
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error '||p_xsltStaticFile,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'StaticFile2BLOB',
+    P_SQLERRM => sqlerrm
+  );
+  raise;
+end StaticFile2BLOB;
+
+
+/** Return APEX static file as CLOB
+  *
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param po_file_csid Oracle character set ID
+  * @return APEX static file as CLOB
+  */
+function StaticFile2CLOB
+(
+  p_xsltStaticFile  IN    varchar2,
+  po_file_csid      OUT   number
+) return CLOB
+as
+
+--l_StaticFile_clob   CLOB;
+l_StaticFile_blob   BLOB;
+l_length NUMBER;
+/*
+l_binBlob BLOB;
+l_warning NUMBER;
+l_lang_context number default 0;
+--l_blob_csid number default 0;
+l_src_offset number default 1;
+l_dest_offset number default 1;
+*/
+l_file_charset varchar2(50);
+l_apex_ver varchar2(10);
+
+begin
+  pak_xslt_log.WriteLog(
+    'Starting XSLTStaticFile: ->'||p_xsltStaticFile||'<-',
+    p_procedure => 'StaticFile2CLOB'
+  );
+
+  if p_xsltStaticFile is null then
+    return null;
+  end if;
+
+  SELECT substr(version_no, 1, instr(version_no, '.', 1, 2)-1)
+  into l_apex_ver
+  FROM apex_release;
+
+  pak_xslt_log.WriteLog(
+    'apex version: '||l_apex_ver||' wwv_flow.get_sgid '||wwv_flow.get_sgid,
+    p_procedure => 'StaticFile2CLOB'
+  );
+
+  select blob_content, file_charset
+  into l_StaticFile_blob, l_file_charset
+  from wwv_flow_files where ID =
+  (
+    select max(ID) from wwv_flow_files
+  	where (file_type = 'STATIC_FILE' or l_apex_ver = '4.1') and
+    FLOW_ID in (APEX_APPLICATION.G_FLOW_ID, 0) and
+  	trim(filename) = trim(p_xsltStaticFile)
+  );
+
+  pak_xslt_log.WriteLog(
+    'XSLTStaticFile get BLOB: '||p_xsltStaticFile||' l_file_charset: '||l_file_charset,
+    p_procedure => 'StaticFile2CLOB'
+  );
+
+  po_file_csid := nls_charset_id(nvl(utl_i18n.map_charset(l_file_charset, 0, 1 ),'UTF8'));
+
+  return Blob2Clob(l_StaticFile_blob, po_file_csid);
+
+exception
+  when no_data_found then
+      pak_xslt_log.WriteLog(
+       'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!',
+        p_log_type => pak_xslt_log.g_error,
+        p_procedure => 'StaticFile2CLOB'
+      );
+      raise_application_error(-20001, 'File '||p_xsltStaticFile||' missing. Install it to workspace or application static files!');
+
+  when others then
+  pak_xslt_log.WriteLog(
+    'Error '||p_xsltStaticFile,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'StaticFile2CLOB',
+    P_SQLERRM => sqlerrm
+  );
+  raise;
+end StaticFile2CLOB;
 
 function FileSize(
     P_DIRECTORY VARCHAR2,
@@ -349,6 +368,7 @@ function GetBlob(
   * @param P_FILENAME filename
   * @param p_blob BLOB to write
   */
+$IF CCOMPILING.g_utl_file_privilege $THEN    
 PROCEDURE Blob2File
 (
   P_DIRECTORY      IN VARCHAR2,
@@ -391,6 +411,7 @@ WHEN OTHERS THEN
   );
   raise;
 END;
+$END
 
 
 /**Read to NCLOB content of the file
@@ -447,8 +468,6 @@ function Read2Clob(
     );
     raise;
   END Read2Clob;
-  
-$end
 
 procedure clobReplace(
   pio_xml IN OUT NOCOPY CLOB,
@@ -660,7 +679,7 @@ begin
       p_procedure => 'clobReplaceAll');
     */
     exit when nvl(l_start, 0) = 0;
-    l_end := l_start + length(p_what);--èe najde p_what na koncu je l_end èez
+    l_end := l_start + length(p_what);--dz?najde p_what na koncu je l_end dz?
     l_more_than_one := false;
     loop
       l_end1 := dbms_lob.instr(pio_clob, p_what, l_end);
@@ -815,5 +834,4 @@ function base64_decode(
   end base64_encode;
 
 END PAK_BLOB_UTIL;
-
 /

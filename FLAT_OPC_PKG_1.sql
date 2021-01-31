@@ -1,466 +1,536 @@
 
+CREATE OR REPLACE PACKAGE BODY FLAT_OPC_PKG AS
 
+-- Interactive Prints using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
 
+  TYPE TContentTypes IS TABLE OF VARCHAR2(400) INDEX BY VARCHAR2(256);
+  TYPE TFoldersAndFiles IS TABLE OF varchar2(400);
 
-  CREATE OR REPLACE PACKAGE BODY "i1lIlII11" AS
+  c_xml_proc_instr constant varchar(200) := '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'||chr(13)||chr(10);
 
-  TYPE OlIl0l IS TABLE OF VARCHAR2(400) INDEX BY VARCHAR2(256);
-  TYPE IlIl0l IS TABLE OF varchar2(400);
-
-  llIl10 constant varchar(200) := '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'||chr(13)||chr(10);
-
-  function OlIl10(IlIl11 IlIl0l)
+  function LogFoldersAndFiles(p_foldersAndFiles TFoldersAndFiles)
   return varchar2
   as
-  Il01I1 varchar2(32000);
+  l_ret varchar2(32000);
   begin
-    for ll01I1 in 1..IlIl11.count loop
-      Il01I1 := Il01I1||IlIl11(ll01I1)||',';
+    for i in 1..p_foldersAndFiles.count loop
+      l_ret := l_ret||p_foldersAndFiles(i)||',';
     end loop;
-    if Il01I1 is not null then
-      Il01I1 := rtrim(Il01I1,',');
+    if l_ret is not null then
+      l_ret := rtrim(l_ret,',');
     end if;
-    return Il01I1;
+    return l_ret;
   end;
 
-  function llIl11(OlIl1I OlIl0l)
+  function LogContentTypes(p_contentTypes TContentTypes)
   return varchar2
   as
-  Il01I1 varchar2(32000);
-  IlIl1I varchar2(256);
+  l_ret varchar2(32000);
+  l_index varchar2(256);
   begin
-    IlIl1I := OlIl1I.FIRST;
-    if IlIl1I is not null then
-      Il01I1 := IlIl1I||':'||OlIl1I(IlIl1I)||',';
+    l_index := p_contentTypes.FIRST;
+    if l_index is not null then
+      l_ret := l_index||':'||p_contentTypes(l_index)||',';
     end if;
-    while IlIl1I is not null loop
-      IlIl1I := OlIl1I.NEXT(IlIl1I);
-      if IlIl1I is not null then
-        Il01I1 := Il01I1||IlIl1I||':'||OlIl1I(IlIl1I)||',';
+    while l_index is not null loop
+      l_index := p_contentTypes.NEXT(l_index);
+      if l_index is not null then
+        l_ret := l_ret||l_index||':'||p_contentTypes(l_index)||',';
       end if;
     end loop;
-    if Il01I1 is not null then
-      Il01I1 := rtrim(Il01I1,',');
+    if l_ret is not null then
+      l_ret := rtrim(l_ret,',');
     end if;
-    return Il01I1;
+    return l_ret;
   end;
 
-  
+  -------------------------------------------------------------OOXML2FlatOPC procedures and functions---------------------------------------------------------
 
-
-  function llIl1l(
-    OlIl1l         CLOB,
-    IlIlI0             varchar2,
-    llIlI0            varchar2
+/** Fills ContentType info from predefined elelment of OOXML file [Content_Types].xml into TContentTypes associative array. Predefined element could be "Default" or "Override"
+  * @param p_contentTypesXml CLOB version of [Content_Types].xml file.
+  * @param p_elementName Can be "Default" or "Override".
+  * @param p_attributName Can be "Extension" or "PartName".
+  * @return TContentTypes associative array.
+  */
+  function GetContentTypesCollection(
+    p_contentTypesXml         CLOB,
+    p_elementName             varchar2,
+    p_attributName            varchar2
   )
-  return OlIl0l
+  return TContentTypes
   as
-  OlIlI1 number := 1;
-  IlIlI1 number;
-  llIlII number;
-  OlIlII number;
-  IlIlIl number;
-  llIlIl number;
-  OlIll0 number;
-  IlIll0 varchar2(256);
-  llIll1 varchar2(400);
+  l_offset number := 1;
+  l_element_start number;
+  l_element_end number;
+  l_key_attr_start number;
+  l_key_attr_end number;
+  l_value_attr_start number;
+  l_value_attr_end number;
+  l_key varchar2(256);
+  l_value varchar2(400);
 
-  Il01I1 OlIl0l;
+  l_ret TContentTypes;
   begin
     loop
-      IlIlI1 := dbms_lob.instr(OlIl1l, '<'||IlIlI0||' ', OlIlI1);
-      exit when nvl(IlIlI1, 0) = 0;
-      llIlII := dbms_lob.instr(OlIl1l, '>', IlIlI1);
-      exit when nvl(llIlII, 0) = 0;
-      OlIlII := dbms_lob.instr(OlIl1l, llIlI0||'="', IlIlI1);
-      exit when nvl(OlIlII, 0) = 0;
-      OlIlII := OlIlII + length(llIlI0||'="');
-      IlIlIl := dbms_lob.instr(OlIl1l, '"', OlIlII);
-      exit when nvl(IlIlIl, 0) = 0;
-      llIlIl := dbms_lob.instr(OlIl1l, 'ContentType="', IlIlI1);
-      exit when nvl(llIlIl, 0) = 0;
-      llIlIl := llIlIl + length('ContentType="');
-      OlIll0 := dbms_lob.instr(OlIl1l, '"', llIlIl);
-      exit when nvl(IlIlIl, 0) = 0;
-      IlIll0 := dbms_lob.substr(OlIl1l, IlIlIl - OlIlII, OlIlII);
-      llIll1 := dbms_lob.substr(OlIl1l, OlIll0 - llIlIl, llIlIl);
-      Il01I1(IlIll0) := llIll1;
-      OlIlI1 := llIlII;
+      l_element_start := dbms_lob.instr(p_contentTypesXml, '<'||p_elementName||' ', l_offset);
+      exit when nvl(l_element_start, 0) = 0;
+      l_element_end := dbms_lob.instr(p_contentTypesXml, '>', l_element_start);
+      exit when nvl(l_element_end, 0) = 0;
+      l_key_attr_start := dbms_lob.instr(p_contentTypesXml, p_attributName||'="', l_element_start);
+      exit when nvl(l_key_attr_start, 0) = 0;
+      l_key_attr_start := l_key_attr_start + length(p_attributName||'="');
+      l_key_attr_end := dbms_lob.instr(p_contentTypesXml, '"', l_key_attr_start);
+      exit when nvl(l_key_attr_end, 0) = 0;
+      l_value_attr_start := dbms_lob.instr(p_contentTypesXml, 'ContentType="', l_element_start);
+      exit when nvl(l_value_attr_start, 0) = 0;
+      l_value_attr_start := l_value_attr_start + length('ContentType="');
+      l_value_attr_end := dbms_lob.instr(p_contentTypesXml, '"', l_value_attr_start);
+      exit when nvl(l_key_attr_end, 0) = 0;
+      l_key := dbms_lob.substr(p_contentTypesXml, l_key_attr_end - l_key_attr_start, l_key_attr_start);
+      l_value := dbms_lob.substr(p_contentTypesXml, l_value_attr_end - l_value_attr_start, l_value_attr_start);
+      l_ret(l_key) := l_value;
+      l_offset := l_element_end;
     end loop;
-    return Il01I1;
+    return l_ret;
   exception
     when others then
       pak_xslt_log.WriteLog
          ( p_description => 'Error'
          , p_log_type    => pak_xslt_log.g_error
-         , p_procedure   => 'i1lIlII11.llIl1l'
+         , p_procedure   => 'flat_OPC_pkg.GetContentTypesCollection'
          , P_SQLERRM     =>  sqlerrm
          );
       raise;
-  end llIl1l;
+  end GetContentTypesCollection;
 
-
-  procedure OlIll1(
-    OlIl1l         CLOB,
-    IlIllI  OUT OlIl0l,
-    llIllI       OUT OlIl0l
+/** Fills ContentType info from predefined element of OOXML file [Content_Types].xml into two TContentTypes associative arrays one for "Default" element and one for "Override" element.
+  * @param p_contentTypesXml CLOB version of [Content_Types].xml file.
+  * @param po_extensionContentTypes Associative array of ContentTypes of "Default" elements.
+  * @param po_fileContentTypes Associative array of ContentTypes of "Extension" elements.
+  */
+  procedure GetContentTypesCollections(
+    p_contentTypesXml         CLOB,
+    po_extensionContentTypes  OUT TContentTypes,
+    po_fileContentTypes       OUT TContentTypes
   )
   as
   begin
-    IlIllI := llIl1l(OlIl1l, 'Default', 'Extension');
-    llIllI := llIl1l(OlIl1l, 'Override', 'PartName');
+    po_extensionContentTypes := GetContentTypesCollection(p_contentTypesXml, 'Default', 'Extension');
+    po_fileContentTypes := GetContentTypesCollection(p_contentTypesXml, 'Override', 'PartName');
   exception
     when others then
       pak_xslt_log.WriteLog
          ( p_description => 'Error'
          , p_log_type    => pak_xslt_log.g_error
-         , p_procedure   => 'i1lIlII11.OlIll1'
+         , p_procedure   => 'flat_OPC_pkg.GetContentTypesCollections'
          , P_SQLERRM     =>  sqlerrm
          );
       raise;
-  end OlIll1;
+  end GetContentTypesCollections;
 
-  function GetProcessingInstruction(IIlI10 varchar2)
+  function GetProcessingInstruction(p_filetype varchar2)
   return varchar2
   as
-  Il01I1 varchar2(400);
+  l_ret varchar2(400);
   begin
-    if upper(IIlI10) = 'DOCX' then
-      Il01I1:='<?mso-application progid="Word.Document"?>'||chr(13)||chr(10);
-    elsif upper(IIlI10) = 'PPTX' then
-      Il01I1:='<?mso-application progid="PowerPoint.Show"?>'||chr(13)||chr(10);
-    elsif upper(IIlI10) = 'XLSX' then
-      Il01I1:='<?mso-application progid="Excel.Sheet"?>'||chr(13)||chr(10);
+    if upper(p_filetype) = 'DOCX' then
+      l_ret:='<?mso-application progid="Word.Document"?>'||chr(13)||chr(10);
+    elsif upper(p_filetype) = 'PPTX' then
+      l_ret:='<?mso-application progid="PowerPoint.Show"?>'||chr(13)||chr(10);
+    elsif upper(p_filetype) = 'XLSX' then
+      l_ret:='<?mso-application progid="Excel.Sheet"?>'||chr(13)||chr(10);
     end if;
-    return Il01I1;
+    return l_ret;
   end;
 
 
-
-  function OlIlll(
+/** returns proper ContentType for given filename from one of two associative array.
+  * @param p_filename File name.
+  * @param p_extensionContentTypes Associative array of ContentTypes of "Default" elements.
+  * @param p_fileContentTypes Associative array of ContentTypes of "Extension" elements.
+  * @return Proper ContentType for given filename.
+  */
+  function GetContentType(
     p_filename varchar2,
-    IlIlll OlIl0l,
-    lll000 OlIl0l
+    p_extensionContentTypes TContentTypes,
+    p_fileContentTypes TContentTypes
   )
   return varchar2
   as
-  Oll000 varchar2(5);
+  l_ext varchar2(5);
   begin
-    if lll000.EXISTS(p_filename) then
-      return lll000(p_filename);
+    if p_fileContentTypes.EXISTS(p_filename) then
+      return p_fileContentTypes(p_filename);
     else
-      Oll000 := substr(p_filename, nullif( instr(p_filename,'.', -1) +1, 1) );
-      if Oll000 is not null then
-        return IlIlll(Oll000);
+      l_ext := substr(p_filename, nullif( instr(p_filename,'.', -1) +1, 1) );
+      if l_ext is not null then
+        return p_extensionContentTypes(l_ext);
       end if;
     end if;
-    
+    --return null;
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error p_filename: '||p_filename
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.OlIlll'
+       , p_procedure  => 'flat_OPC_pkg.GetContentType'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end OlIlll;
+  end GetContentType;
 
-
-  function Ill001(p_xml BLOB, p_encoding number)
+/** Prepares unziped XMLe from OOXML file for include in Flat OPC. Decode blob to CLOB and cut off xml processing instruction.
+  * @param p_XML XML file from OOXML file as BLOB.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  * @return XML without xml processing instruction as CLOB .
+  */
+  function PrepareXML(p_xml BLOB, p_encoding number)
   return CLOB
   as
-  Il01I1 CLOB;
-  Ol0l11 CLOB;
-  
-  OlIlI1 number := 1;
+  l_ret CLOB;
+  l_temp CLOB;
+  --l_nls_cs number;
+  l_offset number := 1;
 
   begin
-    Ol0l11 := pak_blob_util.BLOB2CLOB(p_xml, NLS_CHARSET_ID(p_encoding));
-    
+    l_temp := pak_blob_util.BLOB2CLOB(p_xml, NLS_CHARSET_ID(p_encoding));
+    --find first element which is not proc instr
 
-    OlIlI1 := dbms_lob.instr(Ol0l11, '<', OlIlI1);
-    if nvl(OlIlI1, 0) = 0 then
+    l_offset := dbms_lob.instr(l_temp, '<', l_offset);
+    if nvl(l_offset, 0) = 0 then
       return null;
     end if;
-    if dbms_lob.substr(Ol0l11, 5, OlIlI1+1) = '?xml ' then
-      OlIlI1 := dbms_lob.instr(Ol0l11, '<', OlIlI1 + 1);
-      if nvl(OlIlI1, 0) = 0 then
+    if dbms_lob.substr(l_temp, 5, l_offset+1) = '?xml ' then
+      l_offset := dbms_lob.instr(l_temp, '<', l_offset + 1);
+      if nvl(l_offset, 0) = 0 then
         return null;
       end if;
     end if;
-    dbms_lob.CreateTemporary(Il01I1, false);
-    
-    dbms_lob.Copy(Il01I1, Ol0l11, dbms_lob.getlength(Ol0l11) - OlIlI1 + 1, 1, OlIlI1);
-    return Il01I1;
+    dbms_lob.CreateTemporary(l_ret, false);
+    --dbms_lob.WriteAppend(l_ret, length(l_element_tag), l_element_tag);
+    dbms_lob.Copy(l_ret, l_temp, dbms_lob.getlength(l_temp) - l_offset + 1, 1, l_offset);
+    return l_ret;
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.Ill001'
+       , p_procedure  => 'flat_OPC_pkg.PrepareXML'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end Ill001;
+  end PrepareXML;
 
 
-
+/** Convert OOXML format (DOCX, XLSX, PPTX) to Flat OPC XML.
+  * If specified, converts base64 encoded embeeded DOCX or XLSX content to FlatOPC.
+  * @param p_OOXML Open XML blob
+  * @param p_filetype DOCX, XLSX or PPTX
+  * @param po_parts Output file names of all OOXML parts separated with comma.
+  * @param p_unzip_embeedeings If set to true, converts base64 encoded embeeded DOCX and XLSX content to Flat OPC.
+  * In that case FLAT OPC is more suitable for XSLT processing but cannot be opened with Word or PowerPoint. Excel doesn't support Flat OPC format.
+  * If set to false, it lefts base64 encoded embeeded content unchanged. That way you can open the file with Word or PowerPoint.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  * @return Flat OPC XML
+  */
   function OOXML2FlatOPC(
-    OIlI10 BLOB,
-    IIlI10 varchar2,
-    OIlI11 OUT varchar2,
+    p_OOXML BLOB,
+    p_filetype varchar2,
+    po_parts OUT varchar2,
     p_unzip_embeedeings boolean := false,
     p_encoding in varchar2 := null
   )
   return CLOB AS
-  Il01I1 CLOB;
-  lll001 varchar2(400);
-  Oll00I zip_util_pkg.t_file_list;
-  Ill00I blob;
-  IlII1l clob;
-  
+  l_ret CLOB;
+  l_procinstr varchar2(400);
+  fl zip_util_pkg.t_file_list;
+  l_file blob;
+  l_xml clob;
+  --l_nls_charsetid number;
 
-  lll00l OlIl0l;
-  Oll00l OlIl0l;
-  Ill010 varchar2(400);
-  lll010 varchar2(4000);
-  Oll011 varchar2(4000);
+  l_fileContentTypes TContentTypes;
+  l_extensionContentTypes TContentTypes;
+  l_contentType varchar2(400);
+  l_line varchar2(4000);
+  l_parts varchar2(4000);
   BEGIN
-    dbms_lob.CreateTemporary(Il01I1, false);
-    if IIlI10 is not null then
-      lll001 := GetProcessingInstruction(IIlI10);
-      dbms_lob.WriteAppend(Il01I1, length(lll001), lll001);
+    dbms_lob.CreateTemporary(l_ret, false);
+    if p_filetype is not null then
+      l_procinstr := GetProcessingInstruction(p_filetype);
+      dbms_lob.WriteAppend(l_ret, length(l_procinstr), l_procinstr);
     end if;
 
-    Oll00I := zip_util_pkg.get_file_list(OIlI10);
-    IlII1l := pak_blob_util.BLOB2CLOB(
-      zip_util_pkg.GET_FILE( OIlI10, '[Content_Types].xml' ), NLS_CHARSET_ID(p_encoding));
+    fl := zip_util_pkg.get_file_list(p_OOXML);
+    l_xml := pak_blob_util.BLOB2CLOB(
+      zip_util_pkg.GET_FILE( p_OOXML, '[Content_Types].xml' ), NLS_CHARSET_ID(p_encoding));
 
-    OlIll1(IlII1l, Oll00l, lll00l);
+    GetContentTypesCollections(l_xml, l_extensionContentTypes, l_fileContentTypes);
 
-    if Oll00I.count() > 0
+    if fl.count() > 0
     then
-      dbms_lob.WriteAppend(Il01I1, length('<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">'||chr(13)||chr(10)),
+      dbms_lob.WriteAppend(l_ret, length('<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">'||chr(13)||chr(10)),
       '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">'||chr(13)||chr(10));
-      for ll01I1 in Oll00I.first .. Oll00I.last
+      for i in fl.first .. fl.last
       loop
-        
-        if substr(Oll00I(ll01I1), length(Oll00I(ll01I1)), 1 ) != '/' then 
-          Ill00I := zip_util_pkg.GET_FILE( OIlI10, Oll00I( ll01I1 ) );
-          if Oll00I( ll01I1 ) != '[Content_Types].xml' then
-            Ill010 := OlIlll('/'||Oll00I( ll01I1 ), Oll00l, lll00l);
-            OIlI11:=OIlI11||Oll00I( ll01I1 )||':';
-            if substr(Ill010, length(Ill010)-3)='+xml' then
-              lll010 := '<pkg:part pkg:name="/'||Oll00I( ll01I1 )||'" pkg:contentType="'||Ill010||'">'||chr(13)||chr(10);
-              dbms_lob.WriteAppend(Il01I1, length(lll010), lll010);
-              
-              dbms_lob.WriteAppend(Il01I1, length('<pkg:xmlData>'||chr(13)||chr(10)), '<pkg:xmlData>'||chr(13)||chr(10));
-                
-                IlII1l := Ill001(Ill00I, p_encoding);
-                dbms_lob.Copy(Il01I1, IlII1l, dbms_lob.getlength(IlII1l), dbms_lob.getlength(Il01I1)+1, 1);
-              dbms_lob.WriteAppend(Il01I1, length('</pkg:xmlData>'||chr(13)||chr(10)), '</pkg:xmlData>'||chr(13)||chr(10));
+        --dbms_output.put_line ( fl( i ) );
+        if substr(fl(i), length(fl(i)), 1 ) != '/' then --just files not folders
+          l_file := zip_util_pkg.GET_FILE( p_OOXML, fl( i ) );
+          if fl( i ) != '[Content_Types].xml' then
+            l_contentType := GetContentType('/'||fl( i ), l_extensionContentTypes, l_fileContentTypes);
+            po_parts:=po_parts||fl( i )||':';
+            if substr(l_contentType, length(l_contentType)-3)='+xml' then
+              l_line := '<pkg:part pkg:name="/'||fl( i )||'" pkg:contentType="'||l_contentType||'">'||chr(13)||chr(10);
+              dbms_lob.WriteAppend(l_ret, length(l_line), l_line);
+              --add XML Data
+              dbms_lob.WriteAppend(l_ret, length('<pkg:xmlData>'||chr(13)||chr(10)), '<pkg:xmlData>'||chr(13)||chr(10));
+                --insert XML without proc instruction and namespaces
+                l_xml := PrepareXML(l_file, p_encoding);
+                dbms_lob.Copy(l_ret, l_xml, dbms_lob.getlength(l_xml), dbms_lob.getlength(l_ret)+1, 1);
+              dbms_lob.WriteAppend(l_ret, length('</pkg:xmlData>'||chr(13)||chr(10)), '</pkg:xmlData>'||chr(13)||chr(10));
             elsif p_unzip_embeedeings and
                   (
-                    (Oll00I( ll01I1 ) like 'word/embeddings/%.xlsx' and Ill010='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
-                    (Oll00I( ll01I1 ) like 'xl/embeddings/%.docx' and Ill010='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+                    (fl( i ) like 'word/embeddings/%.xlsx' and l_contentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
+                    (fl( i ) like 'xl/embeddings/%.docx' and l_contentType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
                   )
             then
-              lll010 := '<pkg:part pkg:name="/'||Oll00I( ll01I1 )||'" pkg:contentType="'||Ill010||'">'||chr(13)||chr(10);
-              dbms_lob.WriteAppend(Il01I1, length(lll010), lll010);
-              
-              dbms_lob.WriteAppend(Il01I1, length('<pkg:xmlData>'||chr(13)||chr(10)), '<pkg:xmlData>'||chr(13)||chr(10));
-                
-                IlII1l := OOXML2FlatOPC(Ill00I, null, Oll011, false,  p_encoding);
-                dbms_lob.Copy(Il01I1, IlII1l, dbms_lob.getlength(IlII1l), dbms_lob.getlength(Il01I1)+1, 1);
-              dbms_lob.WriteAppend(Il01I1, length('</pkg:xmlData>'||chr(13)||chr(10)), '</pkg:xmlData>'||chr(13)||chr(10));
+              l_line := '<pkg:part pkg:name="/'||fl( i )||'" pkg:contentType="'||l_contentType||'">'||chr(13)||chr(10);
+              dbms_lob.WriteAppend(l_ret, length(l_line), l_line);
+              --add XML Data
+              dbms_lob.WriteAppend(l_ret, length('<pkg:xmlData>'||chr(13)||chr(10)), '<pkg:xmlData>'||chr(13)||chr(10));
+                --insert XML without proc instruction and namespaces
+                l_xml := OOXML2FlatOPC(l_file, null, l_parts, false,  p_encoding);
+                dbms_lob.Copy(l_ret, l_xml, dbms_lob.getlength(l_xml), dbms_lob.getlength(l_ret)+1, 1);
+              dbms_lob.WriteAppend(l_ret, length('</pkg:xmlData>'||chr(13)||chr(10)), '</pkg:xmlData>'||chr(13)||chr(10));
             else
-              lll010 := '<pkg:part pkg:name="/'||Oll00I( ll01I1 )||'" pkg:contentType="'||Ill010||'" pkg:compression="store">'||chr(13)||chr(10);
-              dbms_lob.WriteAppend(Il01I1, length(lll010), lll010);
-              
-              dbms_lob.WriteAppend(Il01I1, length('<pkg:binaryData>'||chr(13)||chr(10)), '<pkg:binaryData>'||chr(13)||chr(10));
-                
-                IlII1l := pak_blob_util.base64_encode(Ill00I);
-                dbms_lob.Copy(Il01I1, IlII1l, dbms_lob.getlength(IlII1l), dbms_lob.getlength(Il01I1)+1, 1);
-              dbms_lob.WriteAppend(Il01I1, length('</pkg:binaryData>'||chr(13)||chr(10)), '</pkg:binaryData>'||chr(13)||chr(10));
+              l_line := '<pkg:part pkg:name="/'||fl( i )||'" pkg:contentType="'||l_contentType||'" pkg:compression="store">'||chr(13)||chr(10);
+              dbms_lob.WriteAppend(l_ret, length(l_line), l_line);
+              --add Binary Data
+              dbms_lob.WriteAppend(l_ret, length('<pkg:binaryData>'||chr(13)||chr(10)), '<pkg:binaryData>'||chr(13)||chr(10));
+                --insert B64 encoded Binary data
+                l_xml := pak_blob_util.base64_encode(l_file);
+                dbms_lob.Copy(l_ret, l_xml, dbms_lob.getlength(l_xml), dbms_lob.getlength(l_ret)+1, 1);
+              dbms_lob.WriteAppend(l_ret, length('</pkg:binaryData>'||chr(13)||chr(10)), '</pkg:binaryData>'||chr(13)||chr(10));
             end if;
-            dbms_lob.WriteAppend(Il01I1, length('</pkg:part>'||chr(13)||chr(10)), '</pkg:part>'||chr(13)||chr(10));
+            dbms_lob.WriteAppend(l_ret, length('</pkg:part>'||chr(13)||chr(10)), '</pkg:part>'||chr(13)||chr(10));
           end if;
         end if;
-        
-        
+        --dbms_output.put_line( ' ' || nvl( dbms_lob.getlength( l_file ), -1 ) );
+        --zip_util_pkg.save_blob_to_file ('XMLDIR', 'unzipped_file_' || fl(i), l_file);
       end loop;
-      OIlI11 := rtrim(OIlI11, ':');
-      dbms_lob.WriteAppend(Il01I1, length('</pkg:package>'), '</pkg:package>');
+      po_parts := rtrim(po_parts, ':');
+      dbms_lob.WriteAppend(l_ret, length('</pkg:package>'), '</pkg:package>');
     end if;
 
-    RETURN Il01I1;
+    RETURN l_ret;
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.OOXML2FlatOPC (BLOB ver)'
+       , p_procedure  => 'flat_OPC_pkg.OOXML2FlatOPC (BLOB ver)'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
   END OOXML2FlatOPC;
 
-$if CCOMPILING.g_utl_file_privilege $then  
-  
+$if CCOMPILING.g_utl_file_privilege $then
+  /** Convert OOXML file (DOCX, XLSX, PPTX) to Flat OPC XML file.
+  * If specified, converts base64 encoded embeeded content to FlatOPC.
+  * @param p_OOXMLDir Oracle server directory with Open XML file.
+  * @param p_OOXMLFile Open XML file name.
+  * @param p_FlatOPCDir Oracle server directory with Flat OPC file.
+  * @param p_FlatOPCFile Flat OPC file name.
+  * @param p_unzip_embeedeings If set to true, converts base64 encoded embeeded DOCX and XLSX content to Flat OPC.
+  * In that case FLAT OPC is more suitable for XSLT processing but cannot be opened with Word or PowerPoint. Excel doesn't support Flat OPC format.
+  * If set to false, it lefts base64 encoded embeeded content unchanged. That way you can open the file with Word or PowerPoint.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  */
   procedure OOXML2FlatOPC(
     p_OOXMLDir  varchar2,
     p_OOXMLFile varchar2,
     p_FlatOPCDir  varchar2,
     p_FlatOPCFile varchar2,
+    po_parts OUT varchar2,
     p_unzip_embeedeings boolean := false,
     p_encoding    varchar2 := null
   ) AS
-  lll11I CLOB;
+  l_FlatOPC CLOB;
   l_FlatOPCDir  varchar2(400);
   l_FlatOPCFile varchar2(400);
-  Oll011 varchar2(4000);
-  Oll0ll varchar2(5);
+  l_filetype varchar2(5);
   BEGIN
-    Oll0ll := upper(substr(p_OOXMLFile, nullif( instr(p_OOXMLFile,'.', -1) +1, 1) ));
+    l_filetype := upper(substr(p_OOXMLFile, nullif( instr(p_OOXMLFile,'.', -1) +1, 1) ));
     l_FlatOPCDir := nvl(p_FlatOPCDir, p_OOXMLDir);
     l_FlatOPCFile := nvl(p_FlatOPCFile, p_OOXMLFile||'.xml');
-    lll11I := OOXML2FlatOPC(pak_blob_util.GetBlob(p_OOXMLDir, p_OOXMLFile),Oll0ll, Oll011, p_unzip_embeedeings, p_encoding);
-    ZIP_UTIL_PKG.save_blob_to_file(l_FlatOPCDir, l_FlatOPCFile, pak_blob_util.Clob2Blob(lll11I, p_encoding));
-    dbms_lob.freetemporary(lll11I);
+    l_FlatOPC := OOXML2FlatOPC(pak_blob_util.GetBlob(p_OOXMLDir, p_OOXMLFile),l_filetype, po_parts, p_unzip_embeedeings, p_encoding);
+    ZIP_UTIL_PKG.save_blob_to_file(l_FlatOPCDir, l_FlatOPCFile, pak_blob_util.Clob2Blob(l_FlatOPC, p_encoding));
+    dbms_lob.freetemporary(l_FlatOPC);
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.OOXML2FlatOPC (file ver)'
+       , p_procedure  => 'flat_OPC_pkg.OOXML2FlatOPC (file ver)'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
   END OOXML2FlatOPC;
 $end
 
-  
+  --------------------------------FlatOPC2XML procedures and functions-------------------------------------------------------------------------------------------
 
-
-  function Ill011(
-    IlIlll  OlIl0l,
-    lll000       OlIl0l
+/** Builds [Content_Types].xml OOXML file from two TContentTypes associative arrays one for "Default" element and one for "Override" element.
+  * Inverse of GetContentTypesCollections procedure
+  * @param p_extensionContentTypes Associative array of ContentTypes of "Default" elements.
+  * @param p_fileContentTypes Associative array of ContentTypes of "Extension" elements.
+  * @return CLOB version of [Content_Types].xml file.
+  */
+  function GetContentTypesXml(
+    p_extensionContentTypes  TContentTypes,
+    p_fileContentTypes       TContentTypes
   )
   return CLOB
   as
-  Il01I1 CLOB;
-  lll01I varchar2(4000);
-  IlIll0 varchar2(256);
-  lll010 varchar2(4000);
-  ll01I1 number;
+  l_ret CLOB;
+  l_openning varchar2(4000);
+  l_key varchar2(256);
+  l_line varchar2(4000);
+  i number;
   begin
-    dbms_lob.CreateTemporary(Il01I1, false);
-    dbms_lob.WriteAppend(Il01I1, length(llIl10), llIl10);
-    lll010 := '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
-    dbms_lob.WriteAppend(Il01I1, length(lll010), lll010);
+    dbms_lob.CreateTemporary(l_ret, false);
+    dbms_lob.WriteAppend(l_ret, length(c_xml_proc_instr), c_xml_proc_instr);
+    l_line := '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
+    dbms_lob.WriteAppend(l_ret, length(l_line), l_line);
 
-    IlIll0 := IlIlll.FIRST;
-    while IlIll0 is not null loop
-      lll010 := '<Default Extension="'||IlIll0||'" ContentType="'||IlIlll(IlIll0)||'"/>';
-      dbms_lob.WriteAppend(Il01I1, length(lll010), lll010);
-      IlIll0 := IlIlll.NEXT(IlIll0);
+    l_key := p_extensionContentTypes.FIRST;
+    while l_key is not null loop
+      l_line := '<Default Extension="'||l_key||'" ContentType="'||p_extensionContentTypes(l_key)||'"/>';
+      dbms_lob.WriteAppend(l_ret, length(l_line), l_line);
+      l_key := p_extensionContentTypes.NEXT(l_key);
     end loop;
 
-    IlIll0 := lll000.FIRST;
-    while IlIll0 is not null loop
-      lll010 := '<Override PartName="'||IlIll0||'" ContentType="'||lll000(IlIll0)||'"/>';
-      dbms_lob.WriteAppend(Il01I1, length(lll010), lll010);
-      IlIll0 := lll000.NEXT(IlIll0);
+    l_key := p_fileContentTypes.FIRST;
+    while l_key is not null loop
+      l_line := '<Override PartName="'||l_key||'" ContentType="'||p_fileContentTypes(l_key)||'"/>';--prej ||'/'||l_key
+      dbms_lob.WriteAppend(l_ret, length(l_line), l_line);
+      l_key := p_fileContentTypes.NEXT(l_key);
     end loop;
 
-    dbms_lob.WriteAppend(Il01I1, length('</Types>'), '</Types>');
-    return Il01I1;
+    dbms_lob.WriteAppend(l_ret, length('</Types>'), '</Types>');
+    return l_ret;
   exception
     when others then
       pak_xslt_log.WriteLog
          ( p_description => 'Error'
          , p_log_type    => pak_xslt_log.g_error
-         , p_procedure   => 'i1lIlII11.Ill011'
+         , p_procedure   => 'flat_OPC_pkg.GetContentTypesXml'
          , P_SQLERRM     =>  sqlerrm
          );
       raise;
-  end Ill011;
+  end GetContentTypesXml;
 
 
 
 
-  function Oll01I(
-    Ill01l IlIl0l,
-    lll01l varchar2
+  function FolderOrFileExists(
+    p_existingFoldersFiles TFoldersAndFiles,
+    p_folderorfile varchar2
   )
   return boolean
   as
   begin
-    for ll01I1 in 1..Ill01l.count loop
-      if Ill01l(ll01I1) = lll01l then
+    for i in 1..p_existingFoldersFiles.count loop
+      if p_existingFoldersFiles(i) = p_folderorfile then
         return true;
       end if;
     end loop;
     return false;
   end;
 
-
-  procedure Oll0I0(
+/** Adds ALL folder structure of file to zip. E.g. if we have file word/theme/theme1.xml procedure will add folders word/ and word/theme/ to zip.
+  * @param p_zipped_blob Blob with ZIP.
+  * @param p_filename Filename.
+  * @param pio_existingFolders Table of folders already added to zip to avoid double zip entries.
+  */
+  procedure AddFolders(
     p_zipped_blob in out blob
     ,p_filename        IN varchar2
-    ,Ill0I0 IN OUT IlIl0l
+    ,pio_existingFolders IN OUT TFoldersAndFiles
   )
   as
-  IlIII1 varchar2(400);
-  lll0I1 varchar2(400);
-  ll01I1 integer := 1;
-  Oll0I1 integer;
+  l_filename varchar2(400);
+  l_folder varchar2(400);
+  i integer := 1;
+  l_end integer;
 
   begin
-    IlIII1 := ltrim(p_filename,'/');
+    l_filename := ltrim(p_filename,'/');
     loop
-      Oll0I1 := instr(IlIII1,'/', 1, ll01I1);
-      exit when nvl(Oll0I1, 0) = 0;
-      lll0I1 := substr(IlIII1, 1, Oll0I1);
-      if not Oll01I(Ill0I0, lll0I1) then
-        Ill0I0.extend;
-        Ill0I0(Ill0I0.count) := lll0I1;
-        zip_util_pkg.add_folder(p_zipped_blob, lll0I1);
+      l_end := instr(l_filename,'/', 1, i);
+      exit when nvl(l_end, 0) = 0;
+      l_folder := substr(l_filename, 1, l_end);
+      if not FolderOrFileExists(pio_existingFolders, l_folder) then
+        pio_existingFolders.extend;
+        pio_existingFolders(pio_existingFolders.count) := l_folder;
+        zip_util_pkg.add_folder(p_zipped_blob, l_folder);
       end if;
-      ll01I1:=ll01I1+1;
+      i:=i+1;
     end loop;
   exception
     when others then
       pak_xslt_log.WriteLog
          ( p_description => 'Error'
          , p_log_type    => pak_xslt_log.g_error
-         , p_procedure   => 'i1lIlII11.Oll0I0'
+         , p_procedure   => 'flat_OPC_pkg.AddFolders'
          , P_SQLERRM     =>  sqlerrm
          );
       raise;
   end;
 
-
-  procedure Ill0II(
+/** Adds pkg namespace xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage" into root pkg:package if missing
+  * @param p_FlatOPC Flat OPC XML.
+  */
+  procedure AddPkgNamespace(
     p_FlatOPC IN OUT NOCOPY CLOB
   )
   as
-  lll0II number;
-  Oll0I1 number;
-  Oll0Il varchar2(400);
+  l_start number;
+  l_end number;
+  l_element varchar2(400);
   begin
     if nvl(dbms_lob.instr(p_FlatOPC, '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">'), 0) = 0 then
-      lll0II := dbms_lob.instr(p_FlatOPC, '<pkg:package>');
-      if nvl(lll0II, 0) = 0 then
+      l_start := dbms_lob.instr(p_FlatOPC, '<pkg:package>');
+      if nvl(l_start, 0) = 0 then
         pak_xslt_log.WriteLog
            ( p_description => 'Cannot find pkg:package element'
            , p_log_type    => pak_xslt_log.g_error
-           , p_procedure   => 'i1lIlII11.AddPackageNamespace'
+           , p_procedure   => 'flat_OPC_pkg.AddPackageNamespace'
            );
         return;
       end if;
-      pak_blob_util.ClobReplace(p_FlatOPC, lll0II, lll0II+length('<pkg:package>')-1,
+      pak_blob_util.ClobReplace(p_FlatOPC, l_start, l_start+length('<pkg:package>')-1,
       '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">');
     end if;
   exception
@@ -468,103 +538,107 @@ $end
       pak_xslt_log.WriteLog
          ( p_description => 'Error'
          , p_log_type    => pak_xslt_log.g_error
-         , p_procedure   => 'i1lIlII11.AddPackageNamespace'
+         , p_procedure   => 'flat_OPC_pkg.AddPackageNamespace'
          , P_SQLERRM     =>  sqlerrm
          );
       raise;
   end;
 
-
-  Procedure Ill0Il(
+/** Replace DOCX and XLSX embeeding in Flat OPC format with &lt;pkg:binaryData&gt; element with base64 encoded OOXML as text node.
+  * @param p_FlatOPC Input: Flat OPC Clob with embeeded DOCX and XLSX content also extended.
+  * Output: Flat OPC Clob with embeeded DOCX and XLSX content as base64 encoded OOXML.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  */
+  Procedure ZipEmbeedingsOld(
     p_FlatOPC IN OUT NOCOPY CLOB,
     p_encoding varchar2 := null
   )
   as
-  lll0l0 SYS.XMLType;
-  Oll0l0 DBMS_XMLDOM.DOMNAMEDNODEMAP;
-  Ill0l1 DBMS_XMLDOM.DOMNODELIST;
-  lll0l1 DBMS_XMLDOM.DOMNODE;
-  Oll0lI DBMS_XMLDOM.DOMNODE;
-  Ill0lI DBMS_XMLDOM.DOMNODE;
-  lll0ll DBMS_XMLDOM.DOMNODE;
-  IlIII1 varchar2(400);
-  Oll0ll varchar2(5);
-  Ill100 varchar2(400);
-  lll100 number default 1;
-  Oll101 number;
-  Ill101 number default 1;
-  lll10I number;
-  Ill010 varchar2(400);
-  Oll00l  OlIl0l;
-  lll00l       OlIl0l;
-  Oll000 varchar2(5);
-  Oll10I varchar2(400);
-  IlII1l CLOB;
-  Ol0l11 CLOB;
-  
+  l_flatOPCXML SYS.XMLType;
+  l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part DBMS_XMLDOM.DOMNODE;
+  l_xml_data DBMS_XMLDOM.DOMNODE;
+  l_xml_data_old_child DBMS_XMLDOM.DOMNODE;
+  l_new_child DBMS_XMLDOM.DOMNODE;
+  l_filename varchar2(400);
+  l_filetype varchar2(5);
+  l_proc_instr varchar2(400);
+  l_startXMLData number default 1;
+  l_endXMLData number;
+  l_startPackage number default 1;
+  l_endPackage number;
+  l_contentType varchar2(400);
+  l_extensionContentTypes  TContentTypes;
+  l_fileContentTypes       TContentTypes;
+  l_ext varchar2(5);
+  l_xml_data_name varchar2(400);
+  l_xml CLOB;
+  l_temp CLOB;
+  --l_existingFolders TFoldersAndFiles := TFoldersAndFiles();
 
   BEGIN
-    lll0l0 := XMLType(p_FlatOPC);
+    l_flatOPCXML := XMLType(p_FlatOPC);
 
-    if lll0l0.getRootElement() = 'package'
-      and lll0l0.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
+    if l_flatOPCXML.getRootElement() = 'package'
+      and l_flatOPCXML.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
     then
-      Ill0l1 := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(DBMS_XMLDOM.NEWDOMDOCUMENT(lll0l0), 'part');
+      l_pkg_parts := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML), 'part');
 
-      for ll01I1 in 0..DBMS_XMLDOM.GETLENGTH(Ill0l1)-1 loop
-        lll0l1 := DBMS_XMLDOM.ITEM(Ill0l1, ll01I1);
+      for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
+        l_pkg_part := DBMS_XMLDOM.ITEM(l_pkg_parts, i);
 
-        Oll0l0 := DBMS_XMLDOM.GETATTRIBUTES(lll0l1);
-        IlIII1 := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'name')),'/');
-        Ill010 := DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'contentType'));
+        l_pkg_part_attrs := DBMS_XMLDOM.GETATTRIBUTES(l_pkg_part);
+        l_filename := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'name')),'/');
+        l_contentType := DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'contentType'));
 
-        if (IlIII1 like 'word/embeddings/%.xlsx' and Ill010='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
-           (IlIII1 like 'xl/embeddings/%.docx' and Ill010='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        if (l_filename like 'word/embeddings/%.xlsx' and l_contentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
+           (l_filename like 'xl/embeddings/%.docx' and l_contentType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         then
-          Oll0lI := DBMS_XMLDOM.GETFIRSTCHILD(lll0l1);
-          Oll10I := DBMS_XMLDOM.GETNODENAME(Oll0lI);
-          if Oll10I = 'pkg:xmlData' then
-            dbms_lob.CreateTemporary(IlII1l, false);
-            dbms_lob.CreateTemporary(Ol0l11, false);
-            Ill100 := GetProcessingInstruction(upper(substr(IlIII1, instr(IlIII1,'.',-1, 1) + 1)));
+          l_xml_data := DBMS_XMLDOM.GETFIRSTCHILD(l_pkg_part);
+          l_xml_data_name := DBMS_XMLDOM.GETNODENAME(l_xml_data);
+          if l_xml_data_name = 'pkg:xmlData' then
+            dbms_lob.CreateTemporary(l_xml, false);
+            dbms_lob.CreateTemporary(l_temp, false);
+            l_proc_instr := GetProcessingInstruction(upper(substr(l_filename, instr(l_filename,'.',-1, 1) + 1)));
 
-            
-            lll100 := dbms_lob.instr(p_FlatOPC, '<pkg:part pkg:name="/'||IlIII1||'"');
-            exit when nvl(lll100, 0) = 0;
+            --get offsets of pkg:xmlData and child pkg:package elements
+            l_startXMLData := dbms_lob.instr(p_FlatOPC, '<pkg:part pkg:name="/'||l_filename||'"');
+            exit when nvl(l_startXMLData, 0) = 0;
 
-            lll100 := dbms_lob.instr(p_FlatOPC, '<pkg:xmlData>', lll100);
-            exit when nvl(lll100, 0) = 0;
-            Ill101 := lll100 + length('<pkg:xmlData>');
+            l_startXMLData := dbms_lob.instr(p_FlatOPC, '<pkg:xmlData>', l_startXMLData);
+            exit when nvl(l_startXMLData, 0) = 0;
+            l_startPackage := l_startXMLData + length('<pkg:xmlData>');
 
-            lll10I := dbms_lob.instr(p_FlatOPC, '</pkg:package>', Ill101);
-            exit when nvl(lll10I, 0) = 0;
-            lll10I := lll10I + length('</pkg:package>');
+            l_endPackage := dbms_lob.instr(p_FlatOPC, '</pkg:package>', l_startPackage);
+            exit when nvl(l_endPackage, 0) = 0;
+            l_endPackage := l_endPackage + length('</pkg:package>');
 
-            Oll101 := dbms_lob.instr(p_FlatOPC, '</pkg:xmlData>', lll10I);
-            exit when nvl(Oll101, 0) = 0;
-            Oll101 := Oll101 + length('</pkg:xmlData>');
+            l_endXMLData := dbms_lob.instr(p_FlatOPC, '</pkg:xmlData>', l_endPackage);
+            exit when nvl(l_endXMLData, 0) = 0;
+            l_endXMLData := l_endXMLData + length('</pkg:xmlData>');
 
-            
-            dbms_lob.writeappend(IlII1l, length(Ill100), Ill100);
-            dbms_lob.copy(IlII1l, p_FlatOPC, lll10I - Ill101, dbms_lob.getlength(IlII1l) +1, Ill101);
+            --get XML CLOB to convert to OPEN XML
+            dbms_lob.writeappend(l_xml, length(l_proc_instr), l_proc_instr);
+            dbms_lob.copy(l_xml, p_FlatOPC, l_endPackage - l_startPackage, dbms_lob.getlength(l_xml) +1, l_startPackage);
 
 
-            
-            dbms_lob.trim(Ol0l11, 0);
-            dbms_lob.writeappend(Ol0l11, length('<pkg:binaryData>'),'<pkg:binaryData>');
-            Ill0II(IlII1l);
-            dbms_lob.append(Ol0l11, pak_blob_util.base64_encode(FlatOPC2OOXML(IlII1l)));
-            dbms_lob.writeappend(Ol0l11, length('</pkg:binaryData>'), '</pkg:binaryData>');
+            --get clob (l_temp) converted to OPEN XML and Base64 encoded to replace pkg:xmlData element--
+            dbms_lob.trim(l_temp, 0);
+            dbms_lob.writeappend(l_temp, length('<pkg:binaryData>'),'<pkg:binaryData>');
+            AddPkgNamespace(l_xml);
+            dbms_lob.append(l_temp, pak_blob_util.base64_encode(FlatOPC2OOXML(l_xml)));
+            dbms_lob.writeappend(l_temp, length('</pkg:binaryData>'), '</pkg:binaryData>');
 
-            
-            
-            pak_blob_util.ClobReplace(p_FlatOPC, lll100, Oll101 - 1, Ol0l11);
+            --replace from l_startXMLData to l_endXMLData with l temp
+            --DBMS_XSLPROCESSOR.CLOB2FILE(l_temp, 'XMLDIR', replace(l_filename, '/', '_')||'_temp.xml');
+            pak_blob_util.ClobReplace(p_FlatOPC, l_startXMLData, l_endXMLData - 1, l_temp);
 
-            
-            
-            
-            dbms_lob.FreeTemporary(Ol0l11);
-            dbms_lob.FreeTemporary(IlII1l);
+            --dbms_lob.trim(l_temp, 0);
+            --DBMS_XMLDOM.WRITETOCLOB(l_pkg_part, l_temp);
+            --DBMS_XSLPROCESSOR.CLOB2FILE(p_FlatOPC, 'XMLDIR', replace(l_filename, '/', '_')||'.xml');
+            dbms_lob.FreeTemporary(l_temp);
+            dbms_lob.FreeTemporary(l_xml);
           end if;
         end if;
       end loop;
@@ -573,7 +647,7 @@ $end
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.OIlIII'
+       , p_procedure   => 'flat_OPC_pkg.ZipEmbeedings'
        );
     end if;
   exception
@@ -581,113 +655,124 @@ $end
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.OIlIII'
+       , p_procedure  => 'flat_OPC_pkg.ZipEmbeedings'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end Ill0Il;
+  end ZipEmbeedingsOld;
 
-  
-  Procedure OIlIII(
+  /** Replace DOCX and XLSX embeeding in Flat OPC format with &lt;pkg:binaryData&gt; element with base64 encoded OOXML as text node.
+  * @param p_FlatOPC Input: Flat OPC Clob with embeeded DOCX and XLSX content also extended.
+  * Output: Flat OPC Clob with embeeded DOCX and XLSX content as base64 encoded OOXML.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  */
+  Procedure ZipEmbeedings(
     p_FlatOPC IN OUT NOCOPY CLOB,
     p_encoding varchar2 := null
   )
   as
-  lll0l0 SYS.XMLType;
-  
-  IlIII1 varchar2(400);
-  Oll0ll varchar2(5);
-  Ill100 varchar2(400);
-  lll100 number default 1;
-  Oll101 number;
-  Ill101 number default 1;
-  lll10I number;
-  Ill010 varchar2(400);
-  Oll00l  OlIl0l;
-  lll00l       OlIl0l;
-  Oll000 varchar2(5);
-  Oll10I varchar2(400);
-  IlII1l CLOB;
-  Ol0l11 CLOB;
-  Ill10l number default 1;
-  
+  l_flatOPCXML SYS.XMLType;
+  /*
+  l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part DBMS_XMLDOM.DOMNODE;
+  l_xml_data DBMS_XMLDOM.DOMNODE;
+  l_xml_data_old_child DBMS_XMLDOM.DOMNODE;
+  l_new_child DBMS_XMLDOM.DOMNODE;
+  */
+  l_filename varchar2(400);
+  l_filetype varchar2(5);
+  l_proc_instr varchar2(400);
+  l_startXMLData number default 1;
+  l_endXMLData number;
+  l_startPackage number default 1;
+  l_endPackage number;
+  l_contentType varchar2(400);
+  l_extensionContentTypes  TContentTypes;
+  l_fileContentTypes       TContentTypes;
+  l_ext varchar2(5);
+  l_xml_data_name varchar2(400);
+  l_xml CLOB;
+  l_temp CLOB;
+  l_cur_pack_offset number default 1;
+  --l_existingFolders TFoldersAndFiles := TFoldersAndFiles();
 
   BEGIN
     if dbms_lob.instr(p_FlatOPC, '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">') < 200
     then
       loop
-        Ill10l := dbms_lob.instr(p_FlatOPC, '<pkg:part ', Ill10l);
-        exit when nvl(Ill10l, 0) = 0;
+        l_cur_pack_offset := dbms_lob.instr(p_FlatOPC, '<pkg:part ', l_cur_pack_offset);
+        exit when nvl(l_cur_pack_offset, 0) = 0;
 
-         
-        IlIII1 := OIlI1l(p_FlatOPC, Ill10l, 'pkg:name');
-        exit when IlIII1 is null;
+         --preberemo atribute (pkg:contentType, pkg:name = ime datoteke
+        l_filename := ReadAttribute(p_FlatOPC, l_cur_pack_offset, 'pkg:name');
+        exit when l_filename is null;
 
-        Ill010 := OIlI1l(p_FlatOPC, Ill10l, 'pkg:contentType');
-        exit when Ill010 is null;
+        l_contentType := ReadAttribute(p_FlatOPC, l_cur_pack_offset, 'pkg:contentType');
+        exit when l_contentType is null;
 
         pak_xslt_log.WriteLog
-         ( p_description => 'Start processing file '||IlIII1
+         ( p_description => 'Start processing file '||l_filename
          , p_log_type    => pak_xslt_log.g_information
-         , p_procedure   => 'i1lIlII11.OIlIII'
+         , p_procedure   => 'flat_OPC_pkg.ZipEmbeedings'
          );
 
-        if (IlIII1 like 'word/embeddings/%.xlsx' and Ill010='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
-           (IlIII1 like 'xl/embeddings/%.docx' and Ill010='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        if (l_filename like 'word/embeddings/%.xlsx' and l_contentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
+           (l_filename like 'xl/embeddings/%.docx' and l_contentType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         then
-            
-            lll100 := dbms_lob.instr(p_FlatOPC, '<pkg:part pkg:name="/'||IlIII1||'"');
-            exit when nvl(lll100, 0) = 0;
-            Ill10l := lll100 + length('<pkg:part pkg:name="/'||IlIII1||'"');
+            --get offsets of pkg:xmlData and child pkg:package elements
+            l_startXMLData := dbms_lob.instr(p_FlatOPC, '<pkg:part pkg:name="/'||l_filename||'"');
+            exit when nvl(l_startXMLData, 0) = 0;
+            l_cur_pack_offset := l_startXMLData + length('<pkg:part pkg:name="/'||l_filename||'"');
 
-            lll100 := dbms_lob.instr(p_FlatOPC, '<pkg:xmlData>', lll100);
-            exit when nvl(lll100, 0) = 0 or lll100 - Ill10l > 100;
-            Ill101 := lll100 + length('<pkg:xmlData>');
+            l_startXMLData := dbms_lob.instr(p_FlatOPC, '<pkg:xmlData>', l_startXMLData);
+            exit when nvl(l_startXMLData, 0) = 0 or l_startXMLData - l_cur_pack_offset > 100;
+            l_startPackage := l_startXMLData + length('<pkg:xmlData>');
 
-            lll10I := dbms_lob.instr(p_FlatOPC, '</pkg:package>', Ill101);
-            exit when nvl(lll10I, 0) = 0;
-            lll10I := lll10I + length('</pkg:package>');
+            l_endPackage := dbms_lob.instr(p_FlatOPC, '</pkg:package>', l_startPackage);
+            exit when nvl(l_endPackage, 0) = 0;
+            l_endPackage := l_endPackage + length('</pkg:package>');
 
-            Oll101 := dbms_lob.instr(p_FlatOPC, '</pkg:xmlData>', lll10I);
-            exit when nvl(Oll101, 0) = 0;
-            Oll101 := Oll101 + length('</pkg:xmlData>');
+            l_endXMLData := dbms_lob.instr(p_FlatOPC, '</pkg:xmlData>', l_endPackage);
+            exit when nvl(l_endXMLData, 0) = 0;
+            l_endXMLData := l_endXMLData + length('</pkg:xmlData>');
 
-            dbms_lob.CreateTemporary(IlII1l, false);
-            dbms_lob.CreateTemporary(Ol0l11, false);
-            Ill100 := GetProcessingInstruction(upper(substr(IlIII1, instr(IlIII1,'.',-1, 1) + 1)));
+            dbms_lob.CreateTemporary(l_xml, false);
+            dbms_lob.CreateTemporary(l_temp, false);
+            l_proc_instr := GetProcessingInstruction(upper(substr(l_filename, instr(l_filename,'.',-1, 1) + 1)));
 
-            
-            dbms_lob.writeappend(IlII1l, length(Ill100), Ill100);
-            dbms_lob.copy(IlII1l, p_FlatOPC, lll10I - Ill101, dbms_lob.getlength(IlII1l) +1, Ill101);
+            --get XML CLOB to convert to OPEN XML
+            dbms_lob.writeappend(l_xml, length(l_proc_instr), l_proc_instr);
+            dbms_lob.copy(l_xml, p_FlatOPC, l_endPackage - l_startPackage, dbms_lob.getlength(l_xml) +1, l_startPackage);
 
-            
-            dbms_lob.trim(Ol0l11, 0);
-            dbms_lob.writeappend(Ol0l11, length('<pkg:binaryData>'),'<pkg:binaryData>');
-            Ill0II(IlII1l);
-            dbms_lob.append(Ol0l11, pak_blob_util.base64_encode(FlatOPC2OOXML(IlII1l)));
-            dbms_lob.writeappend(Ol0l11, length('</pkg:binaryData>'), '</pkg:binaryData>');
+            --get clob (l_temp) converted to OPEN XML and Base64 encoded to replace pkg:xmlData element--
+            dbms_lob.trim(l_temp, 0);
+            dbms_lob.writeappend(l_temp, length('<pkg:binaryData>'),'<pkg:binaryData>');
+            AddPkgNamespace(l_xml);
+            dbms_lob.append(l_temp, pak_blob_util.base64_encode(FlatOPC2OOXML(l_xml)));
+            dbms_lob.writeappend(l_temp, length('</pkg:binaryData>'), '</pkg:binaryData>');
 
-            
-            
-            pak_blob_util.ClobReplace(p_FlatOPC, lll100, Oll101 - 1, Ol0l11);
+            --replace from l_startXMLData to l_endXMLData with l temp
+            --DBMS_XSLPROCESSOR.CLOB2FILE(l_temp, 'XMLDIR', replace(l_filename, '/', '_')||'_temp.xml');
+            pak_blob_util.ClobReplace(p_FlatOPC, l_startXMLData, l_endXMLData - 1, l_temp);
 
-            
-            
-            
-            dbms_lob.FreeTemporary(Ol0l11);
-            dbms_lob.FreeTemporary(IlII1l);
+            --dbms_lob.trim(l_temp, 0);
+            --DBMS_XMLDOM.WRITETOCLOB(l_pkg_part, l_temp);
+            --DBMS_XSLPROCESSOR.CLOB2FILE(p_FlatOPC, 'XMLDIR', replace(l_filename, '/', '_')||'.xml');
+            dbms_lob.FreeTemporary(l_temp);
+            dbms_lob.FreeTemporary(l_xml);
 
         end if;
-        Ill10l := dbms_lob.instr(p_FlatOPC, '</pkg:part>', Ill10l);
-        exit when nvl(Ill10l, 0) = 0;
-        Ill10l := Ill10l + length('</pkg:part>');
+        l_cur_pack_offset := dbms_lob.instr(p_FlatOPC, '</pkg:part>', l_cur_pack_offset);
+        exit when nvl(l_cur_pack_offset, 0) = 0;
+        l_cur_pack_offset := l_cur_pack_offset + length('</pkg:part>');
       end loop;
 
     else
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.OIlIII'
+       , p_procedure   => 'flat_OPC_pkg.ZipEmbeedings'
        );
     end if;
   exception
@@ -695,101 +780,105 @@ $end
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.OIlIII'
+       , p_procedure  => 'flat_OPC_pkg.ZipEmbeedings'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end OIlIII;
+  end ZipEmbeedings;
 
 
-
-  Procedure IIlIII(
+/** Replace base64 encoded DOCX and XLSX embeeding in Flat OPC format with embeeded FlatOPC with &lt;pkg:package&gt; as root element.
+  * @param p_FlatOPC Input: Flat OPC Clob with embeeded DOCX and XLSX content also extended.
+  * Output: Flat OPC Clob with embeeded DOCX and XLSX content as base64 encoded OOXML.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  */
+  Procedure UnzipEmbeedings(
     p_FlatOPC IN OUT NOCOPY CLOB,
     p_encoding varchar2 := null
   )
   as
-  lll0l0 SYS.XMLType;
-  Oll0l0 DBMS_XMLDOM.DOMNAMEDNODEMAP;
-  Ill0l1 DBMS_XMLDOM.DOMNODELIST;
-  lll0l1 DBMS_XMLDOM.DOMNODE;
-  lll10l DBMS_XMLDOM.DOMNODE;
-  
-  IlIII1 varchar2(400);
-  Oll0ll varchar2(5);
-  
-  lll100 number default 1;
-  Oll101 number;
-  Oll110 number default 1;
-  Ill110 number;
-  Ill010 varchar2(400);
-  
-  
-  
-  lll111 varchar2(400);
-  Oll111 CLOB;
-  Ol0l11 CLOB;
-  Oll011 varchar2(4000);
-  
+  l_flatOPCXML SYS.XMLType;
+  l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part DBMS_XMLDOM.DOMNODE;
+  l_bindata DBMS_XMLDOM.DOMNODE;
+  --l_new_child DBMS_XMLDOM.DOMNODE;
+  l_filename varchar2(400);
+  l_filetype varchar2(5);
+  --l_proc_instr varchar2(400);
+  l_startXMLData number default 1;
+  l_endXMLData number;
+  l_startB64 number default 1;
+  l_endB64 number;
+  l_contentType varchar2(400);
+  --l_extensionContentTypes  TContentTypes;
+  --l_fileContentTypes       TContentTypes;
+  --l_ext varchar2(5);
+  l_bindata_name varchar2(400);
+  l_bin CLOB;
+  l_temp CLOB;
+  l_parts varchar2(4000);
+  --l_existingFolders TFoldersAndFiles := TFoldersAndFiles();
 
   BEGIN
-    lll0l0 := XMLType(p_FlatOPC);
+    l_flatOPCXML := XMLType(p_FlatOPC);
 
-    if lll0l0.getRootElement() = 'package'
-      and lll0l0.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
+    if l_flatOPCXML.getRootElement() = 'package'
+      and l_flatOPCXML.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
     then
-      Ill0l1 := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(DBMS_XMLDOM.NEWDOMDOCUMENT(lll0l0), 'part');
+      l_pkg_parts := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML), 'part');
 
-      for ll01I1 in 0..DBMS_XMLDOM.GETLENGTH(Ill0l1)-1 loop
-        lll0l1 := DBMS_XMLDOM.ITEM(Ill0l1, ll01I1);
+      for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
+        l_pkg_part := DBMS_XMLDOM.ITEM(l_pkg_parts, i);
 
-        Oll0l0 := DBMS_XMLDOM.GETATTRIBUTES(lll0l1);
-        IlIII1 := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'name')),'/');
-        Ill010 := DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'contentType'));
+        l_pkg_part_attrs := DBMS_XMLDOM.GETATTRIBUTES(l_pkg_part);
+        l_filename := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'name')),'/');
+        l_contentType := DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'contentType'));
 
-        if (IlIII1 like 'word/embeddings/%.xlsx' and Ill010='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
-           (IlIII1 like 'xl/embeddings/%.docx' and Ill010='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        if (l_filename like 'word/embeddings/%.xlsx' and l_contentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or
+           (l_filename like 'xl/embeddings/%.docx' and l_contentType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         then
-          lll10l := DBMS_XMLDOM.GETFIRSTCHILD(lll0l1);
-          lll111 := DBMS_XMLDOM.GETNODENAME(lll10l);
-          if lll111 = 'pkg:binaryData' then
-            
-            dbms_lob.CreateTemporary(Oll111, false);
-            dbms_lob.CreateTemporary(Ol0l11, false);
+          l_bindata := DBMS_XMLDOM.GETFIRSTCHILD(l_pkg_part);
+          l_bindata_name := DBMS_XMLDOM.GETNODENAME(l_bindata);
+          if l_bindata_name = 'pkg:binaryData' then
+            --base64_decode(l_b64)
+            dbms_lob.CreateTemporary(l_bin, false);
+            dbms_lob.CreateTemporary(l_temp, false);
 
-            
-            lll100 := dbms_lob.instr(p_FlatOPC, '<pkg:part pkg:name="/'||IlIII1||'"');
-            exit when nvl(lll100, 0) = 0;
+            --get offsets of pkg:xmlData and child pkg:package elements
+            l_startXMLData := dbms_lob.instr(p_FlatOPC, '<pkg:part pkg:name="/'||l_filename||'"');
+            exit when nvl(l_startXMLData, 0) = 0;
 
-            lll100 := dbms_lob.instr(p_FlatOPC, '<pkg:binaryData>', lll100);
-            exit when nvl(lll100, 0) = 0;
-            Oll110 := lll100 + length('<pkg:binaryData>');
+            l_startXMLData := dbms_lob.instr(p_FlatOPC, '<pkg:binaryData>', l_startXMLData);
+            exit when nvl(l_startXMLData, 0) = 0;
+            l_startB64 := l_startXMLData + length('<pkg:binaryData>');
 
-            Ill110 := dbms_lob.instr(p_FlatOPC, '</pkg:binaryData>', Oll110);
-            exit when nvl(Ill110, 0) = 0;
-            
+            l_endB64 := dbms_lob.instr(p_FlatOPC, '</pkg:binaryData>', l_startB64);
+            exit when nvl(l_endB64, 0) = 0;
+            --l_endPackage := l_endPackage + length('</pkg:package>');
 
-            Oll101 := Ill110 + length('</pkg:binaryData>');
+            l_endXMLData := l_endB64 + length('</pkg:binaryData>');
 
-            
+            --get XML CLOB to convert to OPEN XML
 
-            dbms_lob.copy(Oll111, p_FlatOPC, Ill110 - Oll110, 1, Oll110);
-            
-            Oll111 := OOXML2FlatOPC(
-              pak_blob_util.base64_decode(Oll111),
-              IIlI10 => null,
-              OIlI11 => Oll011,
+            dbms_lob.copy(l_bin, p_FlatOPC, l_endB64 - l_startB64, 1, l_startB64);
+            --ZIP_UTIL_PKG.save_blob_to_file ('XMLDIR', 'test4'||i||'.xml', base64_decode(l_bin)); OK
+            l_bin := OOXML2FlatOPC(
+              pak_blob_util.base64_decode(l_bin),
+              p_filetype => null,
+              po_parts => l_parts,
               p_unzip_embeedeings => false,
               p_encoding => p_encoding
             );
 
-            dbms_lob.writeappend(Ol0l11, length('<pkg:xmlData>'), '<pkg:xmlData>');
-            dbms_lob.append(Ol0l11, Oll111);
-            dbms_lob.writeappend(Ol0l11, length('</pkg:xmlData>'), '</pkg:xmlData>');
+            dbms_lob.writeappend(l_temp, length('<pkg:xmlData>'), '<pkg:xmlData>');
+            dbms_lob.append(l_temp, l_bin);
+            dbms_lob.writeappend(l_temp, length('</pkg:xmlData>'), '</pkg:xmlData>');
 
-            
-            pak_blob_util.ClobReplace(p_FlatOPC, lll100, Oll101 - 1, Ol0l11);
-            dbms_lob.FreeTemporary(Oll111);
-            dbms_lob.FreeTemporary(Ol0l11);
+            --replace from l_startXMLData to l_endXMLData with l_bin
+            pak_blob_util.ClobReplace(p_FlatOPC, l_startXMLData, l_endXMLData - 1, l_temp);
+            dbms_lob.FreeTemporary(l_bin);
+            dbms_lob.FreeTemporary(l_temp);
           end if;
         end if;
       end loop;
@@ -798,7 +887,7 @@ $end
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.IIlIII'
+       , p_procedure   => 'flat_OPC_pkg.UnzipEmbeedings'
        );
     end if;
   exception
@@ -806,134 +895,142 @@ $end
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.IIlIII'
+       , p_procedure  => 'flat_OPC_pkg.UnzipEmbeedings'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end IIlIII;
+  end UnzipEmbeedings;
 
 
-
-  function Ill11I(
+/** Returns parts of p_FlatOPC separated with colons (:).
+  * @param p_FlatOPC Clob with Flat OPC.
+  * @return Parts separated with colons.
+  */
+  function GetFlatOPCParts(
     p_FlatOPC             IN CLOB
   ) return varchar2
   as
-  lll11I SYS.XMLType;
-  Ill0l1 DBMS_XMLDOM.DOMNODELIST;
-  lll0l1 DBMS_XMLDOM.DOMNODE;
-  Oll0l0 DBMS_XMLDOM.DOMNAMEDNODEMAP;
-  IlIII1 varchar2(400);
-  Il01I1 varchar2(32000);
+  l_flatOPC SYS.XMLType;
+  l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part DBMS_XMLDOM.DOMNODE;
+  l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_filename varchar2(400);
+  l_ret varchar2(32000);
 
   BEGIN
-    lll11I := XMLType(p_FlatOPC);
-    if lll11I.getRootElement() = 'package'
-      and lll11I.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
+    l_flatOPC := XMLType(p_FlatOPC);
+    if l_flatOPC.getRootElement() = 'package'
+      and l_flatOPC.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
     then
-      Ill0l1 := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(lll11I))));
+      l_pkg_parts := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPC))));
 
-      for ll01I1 in 0..DBMS_XMLDOM.GETLENGTH(Ill0l1)-1 loop
-        lll0l1 := DBMS_XMLDOM.ITEM(Ill0l1, ll01I1);
-        Oll0l0 := DBMS_XMLDOM.GETATTRIBUTES(lll0l1);
-        IlIII1 := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'name')),'/');
+      for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
+        l_pkg_part := DBMS_XMLDOM.ITEM(l_pkg_parts, i);
+        l_pkg_part_attrs := DBMS_XMLDOM.GETATTRIBUTES(l_pkg_part);
+        l_filename := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'name')),'/');
 
-        if Il01I1 is null then
-          Il01I1 := IlIII1;
+        if l_ret is null then
+          l_ret := l_filename;
         else
-          Il01I1 := Il01I1||':'||IlIII1;
+          l_ret := l_ret||':'||l_filename;
         end if;
       end loop;
     else
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.Ill11I'
+       , p_procedure   => 'flat_OPC_pkg.GetFlatOPCParts'
        );
     end if;
-    return Il01I1;
+    return l_ret;
   exception
     when others then
       pak_xslt_log.WriteLog
          ( p_description       => 'Error'
          , p_log_type      => pak_xslt_log.g_error
-         , p_procedure  => 'i1lIlII11.Ill11I'
+         , p_procedure  => 'flat_OPC_pkg.GetFlatOPCParts'
          , P_SQLERRM   =>  sqlerrm
          );
       raise;
-  END Ill11I;
+  END GetFlatOPCParts;
 
 
-
+/** Add p_second_FlatOPC to p_FlatOPC part by part and returns merged Flat OPC.
+  * @param p_FlatOPC Clob with first Flat OPC. First Flat OPC will be copied into returned CLOB as a whole.
+  * @param p_second_FlatOPC Clob with second Flat OPC. Parts that don't already exist in p_FlatOPC will be copied to returned CLOB.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  * @return merged Flat OPC.
+  */
   function MergeFlatOPC(
     p_FlatOPC             IN CLOB,
     p_second_FlatOPC      IN CLOB,
     p_encoding            varchar2 default null
   ) return CLOB
   as
-  Il01I1 CLOB;
-  Oll11l SYS.XMLType;
-  Ill0l1 DBMS_XMLDOM.DOMNODELIST;
-  lll0l1 DBMS_XMLDOM.DOMNODE;
-  Oll0l0 DBMS_XMLDOM.DOMNAMEDNODEMAP;
-  IlIII1 varchar2(400);
-  Ill11l varchar2(400);
-  lll1I0 DBMS_XMLDOM.DOMNODE;
-  Oll1I0  DBMS_XMLDOM.DOMDOCUMENT;
+  l_ret CLOB;
+  l_second_flatOPC SYS.XMLType;
+  l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part DBMS_XMLDOM.DOMNODE;
+  l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_filename varchar2(400);
+  l_partsToTransform varchar2(400);
+  l_flatOPCNode DBMS_XMLDOM.DOMNODE;
+  l_flatOPCDoc  DBMS_XMLDOM.DOMDOCUMENT;
 
   BEGIN
-    Oll1I0 := DBMS_XMLDOM.NEWDOMDOCUMENT(p_flatOPC);
-    lll1I0 := DBMS_XMLDOM.GETLASTCHILD(DBMS_XMLDOM.MAKENODE(Oll1I0));
-    Ill11l := Ill11I(p_flatOPC);
-    Oll11l := XMLType(p_second_FlatOPC);
-    dbms_lob.CreateTemporary(Il01I1, false);
-    if Oll11l.getRootElement() = 'package'
-      and Oll11l.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
+    l_flatOPCDoc := DBMS_XMLDOM.NEWDOMDOCUMENT(p_flatOPC);
+    l_flatOPCNode := DBMS_XMLDOM.GETLASTCHILD(DBMS_XMLDOM.MAKENODE(l_flatOPCDoc));
+    l_partsToTransform := GetFlatOPCParts(p_flatOPC);
+    l_second_flatOPC := XMLType(p_second_FlatOPC);
+    dbms_lob.CreateTemporary(l_ret, false);
+    if l_second_flatOPC.getRootElement() = 'package'
+      and l_second_flatOPC.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
     then
-      Ill0l1 := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(Oll11l))));
-      for ll01I1 in 0..DBMS_XMLDOM.GETLENGTH(Ill0l1)-1 loop
-        lll0l1 := DBMS_XMLDOM.ITEM(Ill0l1, ll01I1);
-        Oll0l0 := DBMS_XMLDOM.GETATTRIBUTES(lll0l1);
-        IlIII1 := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'name')),'/');
+      l_pkg_parts := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(l_second_flatOPC))));
+      for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
+        l_pkg_part := DBMS_XMLDOM.ITEM(l_pkg_parts, i);
+        l_pkg_part_attrs := DBMS_XMLDOM.GETATTRIBUTES(l_pkg_part);
+        l_filename := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'name')),'/');
 
         pak_xslt_log.WriteLog
-         ( p_description => 'Start processing file '||IlIII1
+         ( p_description => 'Start processing file '||l_filename
          , p_log_type    => pak_xslt_log.g_information
-         , p_procedure   => 'i1lIlII11.MergeFlatOPC'
+         , p_procedure   => 'flat_OPC_pkg.MergeFlatOPC'
          );
 
-        if Ill11l is null or nvl(instr(Ill11l, ':'||IlIII1||':'),0) = 0 then
+        if l_partsToTransform is null or nvl(instr(l_partsToTransform, ':'||l_filename||':'),0) = 0 then
 
           pak_xslt_log.WriteLog
-           ( p_description => 'Start append child '||IlIII1
+           ( p_description => 'Start append child '||l_filename
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.MergeFlatOPC'
+           , p_procedure   => 'flat_OPC_pkg.MergeFlatOPC'
            );
 
-          lll0l1 := DBMS_XMLDOM.IMPORTNODE(Oll1I0, lll0l1, deep => true);
-          lll0l1 := DBMS_XMLDOM.APPENDCHILD(lll1I0, lll0l1);
+          l_pkg_part := DBMS_XMLDOM.IMPORTNODE(l_flatOPCDoc, l_pkg_part, deep => true);
+          l_pkg_part := DBMS_XMLDOM.APPENDCHILD(l_flatOPCNode, l_pkg_part);
 
           pak_xslt_log.WriteLog
-           ( p_description => 'Finish append child '||IlIII1
+           ( p_description => 'Finish append child '||l_filename
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.MergeFlatOPC'
+           , p_procedure   => 'flat_OPC_pkg.MergeFlatOPC'
            );
         end if;
 
         pak_xslt_log.WriteLog
-        ( p_description => 'File '||IlIII1||' processed '
+        ( p_description => 'File '||l_filename||' processed '
          , p_log_type    => pak_xslt_log.g_information
-         , p_procedure   => 'i1lIlII11.MergeFlatOPC'
+         , p_procedure   => 'flat_OPC_pkg.MergeFlatOPC'
         );
       end loop;
-      DBMS_XMLDOM.WRITETOCLOB(Oll1I0, Il01I1);
-      return Il01I1;
+      DBMS_XMLDOM.WRITETOCLOB(l_flatOPCDoc, l_ret);
+      return l_ret;
     else
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.MergeFlatOPC'
+       , p_procedure   => 'flat_OPC_pkg.MergeFlatOPC'
        );
-       dbms_lob.FreeTemporary(Il01I1);
+       dbms_lob.FreeTemporary(l_ret);
       return p_FlatOPC;
     end if;
   exception
@@ -941,14 +1038,23 @@ $end
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.MergeFlatOPC'
+       , p_procedure  => 'flat_OPC_pkg.MergeFlatOPC'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
   END MergeFlatOPC;
 
-$if CCOMPILING.g_utl_file_privilege $then  
-
+$if CCOMPILING.g_utl_file_privilege $then
+/** Add file p_second_FlatOPCDir/File to file p_FlatOPCDir/File part by part and returns merged Flat OPC in file p_merged_FlatOPCDir/File.
+  * Parts listed in p_partsToTransform are not added to file p_merged_FlatOPCDir/File.
+  * @param p_FlatOPCDir Location of first Flat OPC. First Flat OPC will be copied into returned file p_merged_FlatOPCDir/File as a whole.
+  * @param p_FlatOPCFile Filename of first Flat OPC. First Flat OPC will be copied into returned file p_merged_FlatOPCDir/File as a whole.
+  * @param p_second_FlatOPCDir Location of second Flat OPC. Parts not listed in p_partsToTransform will be copied to returned file p_merged_FlatOPCDir/File.
+  * @param p_second_FlatOPCFile Filename of second Flat OPC. Parts not listed in p_partsToTransform will be copied to returned file p_merged_FlatOPCDir/File.
+  * @param p_merged_FlatOPCDir Location of returned (merged) Flat OPC.
+  * @param p_merged_FlatOPCFile Filename of returned (merged) Flat OPC.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  */
   procedure MergeFlatOPC(
     p_FlatOPCDir              varchar2,
     p_FlatOPCFile             varchar2,
@@ -959,603 +1065,637 @@ $if CCOMPILING.g_utl_file_privilege $then
     p_encoding                varchar2 default null
   )
   as
-  Ill1I1  CLOB;
-  lll11I         CLOB;
-  Oll11l  CLOB;
+  l_merged_FlatOPC  CLOB;
+  l_FlatOPC         CLOB;
+  l_second_FlatOPC  CLOB;
   begin
-    lll11I := pak_blob_util.Read2CLOB(p_FlatOPCDir, p_FlatOPCFile, p_encoding);
-    Oll11l := pak_blob_util.Read2CLOB(p_second_FlatOPCDir, p_second_FlatOPCFile, p_encoding);
-    Ill1I1 := MergeFlatOPC(lll11I, Oll11l, p_encoding);
-    dbms_xslprocessor.clob2file(Ill1I1, p_merged_FlatOPCDir, p_merged_FlatOPCFile, nvl(NLS_CHARSET_ID(p_encoding), 0));
+    l_flatOPC := pak_blob_util.Read2CLOB(p_FlatOPCDir, p_FlatOPCFile, p_encoding);
+    l_second_flatOPC := pak_blob_util.Read2CLOB(p_second_FlatOPCDir, p_second_FlatOPCFile, p_encoding);
+    l_merged_FlatOPC := MergeFlatOPC(l_FlatOPC, l_second_FlatOPC, p_encoding);
+    dbms_xslprocessor.clob2file(l_merged_FlatOPC, p_merged_FlatOPCDir, p_merged_FlatOPCFile, nvl(NLS_CHARSET_ID(p_encoding), 0));
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.MergeFlatOPC (file ver.)'
+       , p_procedure  => 'flat_OPC_pkg.MergeFlatOPC (file ver.)'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
   end;
 $end
 
-  procedure lll1I1(
-    Oll1II                 IN OUT NOCOPY BLOB,
+  procedure FlatOPC2OOXMLExOld(
+    pio_OOXml                 IN OUT NOCOPY BLOB,
     pio_FlatOPC               IN OUT NOCOPY CLOB,
-    Ill1II IN OUT OlIl0l,
-    lll1Il      IN OUT OlIl0l,
-    Ill0I0       IN OUT IlIl0l,
-    Oll1Il           IN OUT IlIl0l,
-    Ill1l0               boolean,
+    pio_extensionContentTypes IN OUT TContentTypes,
+    pio_fileContentTypes      IN OUT TContentTypes,
+    pio_existingFolders       IN OUT TFoldersAndFiles,
+    pio_nonXMLFiles           IN OUT TFoldersAndFiles,
+    p_finishZip               boolean,
     p_encoding                varchar2 default null
   )
   as
-  lll0l0 SYS.XMLType;
-  Ill0l1 DBMS_XMLDOM.DOMNODELIST;
-  lll0l1 DBMS_XMLDOM.DOMNODE;
-  lll1l0 DBMS_XMLDOM.DOMNODE;
-  Oll0l0 DBMS_XMLDOM.DOMNAMEDNODEMAP;
-  IlIII1 varchar2(400);
-  lll100 number default 1;
-  Oll101 number;
-  Ill010 varchar2(400);
-  Oll000 varchar2(5);
-  Oll1l1 varchar2(400);
-  IlII1l CLOB;
-  Ill1l1 CLOB;
-  lll1lI boolean := false;
-  Oll1lI varchar2(400);
+  l_flatOPCXML SYS.XMLType;
+  l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part DBMS_XMLDOM.DOMNODE;
+  l_binary_or_xml_data DBMS_XMLDOM.DOMNODE;
+  l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_filename varchar2(400);
+  l_startXMLData number default 1;
+  l_endXMLData number;
+  l_contentType varchar2(400);
+  l_ext varchar2(5);
+  l_binary_or_xml_data_name varchar2(400);
+  l_xml CLOB;
+  l_b64 CLOB;
+  l_skip_part boolean := false;
+  l_log varchar2(400);
 
   BEGIN
-    
-    if Ill0I0 is null then
-      Ill0I0 := IlIl0l();
+    --initialization--
+    if pio_existingFolders is null then
+      pio_existingFolders := TFoldersAndFiles();
     end if;
 
-    if Oll1Il is null then
-      Oll1Il := IlIl0l();
+    if pio_nonXMLFiles is null then
+      pio_nonXMLFiles := TFoldersAndFiles();
     end if;
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-extensionContentTypes: '||llIl11(Ill1II)
+     ( p_description => 'Start proc-extensionContentTypes: '||LogContentTypes(pio_extensionContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-fileContentTypes: '||llIl11(lll1Il)
+     ( p_description => 'Start proc-fileContentTypes: '||LogContentTypes(pio_fileContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-existingFolders: '||OlIl10(Ill0I0)
+     ( p_description => 'Start proc-existingFolders: '||LogFoldersAndFiles(pio_existingFolders)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-nonXMLFiles: '||OlIl10(Oll1Il)
+     ( p_description => 'Start proc-nonXMLFiles: '||LogFoldersAndFiles(pio_nonXMLFiles)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
-    OIlIII(pio_FlatOPC, p_encoding);
-    lll0l0 := XMLType(pio_FlatOPC);
-    
-    if lll0l0.getRootElement() = 'package'
-      and lll0l0.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
+    ZipEmbeedings(pio_FlatOPC, p_encoding);
+    l_flatOPCXML := XMLType(pio_FlatOPC);
+    --l_partsToTransform := ':'||translate(p_partsToTransform,',;?*+#!',':::::::')||':';
+    if l_flatOPCXML.getRootElement() = 'package'
+      and l_flatOPCXML.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
     then
-      
-      
-      Ill0l1 := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(lll0l0))));
-      dbms_lob.CreateTemporary(Ill1l1, false);
-      dbms_lob.CreateTemporary(IlII1l, false);
-      
-      for ll01I1 in 0..DBMS_XMLDOM.GETLENGTH(Ill0l1)-1 loop
-        lll0l1 := DBMS_XMLDOM.ITEM(Ill0l1, ll01I1);
+      --l_pkg_parts := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML), 'part');
+      --prebere childe od dokument node-a - <pkg:part> elemente
+      l_pkg_parts := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML))));
+      dbms_lob.CreateTemporary(l_b64, false);
+      dbms_lob.CreateTemporary(l_xml, false);
+      --gremo cez vse <pkg:part> elemente
+      for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
+        l_pkg_part := DBMS_XMLDOM.ITEM(l_pkg_parts, i);
 
-         
-        Oll0l0 := DBMS_XMLDOM.GETATTRIBUTES(lll0l1);
-        IlIII1 := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'name')),'/');
+         --preberemo atribute (pkg:contentType, pkg:name = ime datoteke
+        l_pkg_part_attrs := DBMS_XMLDOM.GETATTRIBUTES(l_pkg_part);
+        l_filename := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'name')),'/');
 
-        if IlIII1 is not null then 
-          Ill010 := DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'contentType'));
+        if l_filename is not null then --naredimo
+          l_contentType := DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'contentType'));
 
           pak_xslt_log.WriteLog
-           ( p_description => 'Start processing file '||IlIII1
+           ( p_description => 'Start processing file '||l_filename
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlI1I'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
            );
 
-          
-          Oll0I0(Oll1II, IlIII1, Ill0I0);
-          lll1lI := false;
+          --dodamo folderje v zip
+          AddFolders(pio_OOXml, l_filename, pio_existingFolders);
+          l_skip_part := false;
 
-          
-          if substr(IlIII1, length(IlIII1)-3) = '.xml' and substr(Ill010, length(Ill010)-3) = '+xml' then
-            if lll1Il.exists(IlIII1) then 
-              lll1lI := true;
+          --ce gre za xml part
+          if substr(l_filename, length(l_filename)-3) = '.xml' and substr(l_contentType, length(l_contentType)-3) = '+xml' then
+            if pio_fileContentTypes.exists(l_filename) then --already exists, ga ne vkljucimo v OOXML
+              l_skip_part := true;
             else
-              lll1Il(IlIII1) := Ill010; 
+              pio_fileContentTypes(l_filename) := l_contentType; --ga vkljucimo
             end if;
-          else 
-            Oll000 := substr(IlIII1, nullif( instr(IlIII1,'.', -1) +1, 1) );
-            if Oll000 is not null and not Ill1II.exists(Oll000) then
-              Ill1II(Oll000) := Ill010;
+          else --sicer gre za vkljucen drug tip dokumenta (npr xlsx v wordu-docx)
+            l_ext := substr(l_filename, nullif( instr(l_filename,'.', -1) +1, 1) );
+            if l_ext is not null and not pio_extensionContentTypes.exists(l_ext) then
+              pio_extensionContentTypes(l_ext) := l_contentType;
             end if;
-            
-            if Oll01I(Oll1Il, IlIII1) then
-              lll1lI := true;
+            --ce že obstaja
+            if FolderOrFileExists(pio_nonXMLFiles, l_filename) then
+              l_skip_part := true;
             else
-              Oll1Il.extend;
-              Oll1Il(Oll1Il.count) := IlIII1;
+              pio_nonXMLFiles.extend;
+              pio_nonXMLFiles(pio_nonXMLFiles.count) := l_filename;
             end if;
           end if;
 
-          lll1l0 := DBMS_XMLDOM.GETFIRSTCHILD(lll0l1); 
-          Oll1l1 := DBMS_XMLDOM.GETNODENAME(lll1l0);
+          l_binary_or_xml_data := DBMS_XMLDOM.GETFIRSTCHILD(l_pkg_part); --preberemo ali <pkg:xmlData> ali <pkg:binaryData>
+          l_binary_or_xml_data_name := DBMS_XMLDOM.GETNODENAME(l_binary_or_xml_data);
 
-          if Oll1l1 = 'pkg:xmlData' then
-            lll100 := dbms_lob.instr(pio_FlatOPC, '<pkg:xmlData>', lll100);
-            exit when nvl(lll100, 0) = 0;
-            lll100 := lll100 + length('<pkg:xmlData>');
-            lll100 := dbms_lob.instr(pio_FlatOPC, '<', lll100);
-            exit when nvl(lll100, 0) = 0;
-            Oll101 := dbms_lob.instr(pio_FlatOPC, '</pkg:xmlData>', lll100);
-            exit when nvl(Oll101, 0) = 0;
+          if l_binary_or_xml_data_name = 'pkg:xmlData' then
+            l_startXMLData := dbms_lob.instr(pio_FlatOPC, '<pkg:xmlData>', l_startXMLData);
+            exit when nvl(l_startXMLData, 0) = 0;
+            l_startXMLData := l_startXMLData + length('<pkg:xmlData>');
+            l_startXMLData := dbms_lob.instr(pio_FlatOPC, '<', l_startXMLData);
+            exit when nvl(l_startXMLData, 0) = 0;
+            l_endXMLData := dbms_lob.instr(pio_FlatOPC, '</pkg:xmlData>', l_startXMLData);
+            exit when nvl(l_endXMLData, 0) = 0;
 
-            if not lll1lI then
-              dbms_lob.Trim(IlII1l, 0);
-              dbms_lob.WriteAppend(IlII1l, length(llIl10), llIl10);
-              dbms_lob.Copy(IlII1l, pio_FlatOPC, Oll101-lll100, dbms_lob.getlength(IlII1l)+1, lll100);
-              zip_util_pkg.add_file(Oll1II, IlIII1, pak_blob_util.Clob2Blob(IlII1l, p_encoding));
-              Oll1lI:='FlatOPC offset '||lll100||' - '||Oll101;
+            if not l_skip_part then
+              dbms_lob.Trim(l_xml, 0);
+              dbms_lob.WriteAppend(l_xml, length(c_xml_proc_instr), c_xml_proc_instr);
+              dbms_lob.Copy(l_xml, pio_FlatOPC, l_endXMLData-l_startXMLData, dbms_lob.getlength(l_xml)+1, l_startXMLData);
+              zip_util_pkg.add_file(pio_OOXml, l_filename, pak_blob_util.Clob2Blob(l_xml, p_encoding));
+              l_log:='FlatOPC offset '||l_startXMLData||' - '||l_endXMLData;
             end if;
-            lll100 := Oll101 + length('</pkg:xmlData>');
-          elsif Oll1l1 = 'pkg:binaryData' then
-            
-            if not lll1lI then
-              dbms_lob.Trim(Ill1l1, 0);
-              DBMS_XMLDOM.WRITETOCLOB(DBMS_XMLDOM.GETFIRSTCHILD(lll1l0), Ill1l1);
-              zip_util_pkg.add_file(Oll1II, IlIII1, pak_blob_util.base64_decode(Ill1l1));
-              Oll1lI:='Binary part';
+            l_startXMLData := l_endXMLData + length('</pkg:xmlData>');
+          elsif l_binary_or_xml_data_name = 'pkg:binaryData' then
+            --decode base64 l_xml_or_binary to BLOB
+            if not l_skip_part then
+              dbms_lob.Trim(l_b64, 0);
+              DBMS_XMLDOM.WRITETOCLOB(DBMS_XMLDOM.GETFIRSTCHILD(l_binary_or_xml_data), l_b64);
+              zip_util_pkg.add_file(pio_OOXml, l_filename, pak_blob_util.base64_decode(l_b64));
+              l_log:='Binary part';
             end if;
           end if;
-          if lll1lI then
+          if l_skip_part then
             pak_xslt_log.WriteLog
-             ( p_description => 'File '||IlIII1||' skipped '
+             ( p_description => 'File '||l_filename||' skipped '
              , p_log_type    => pak_xslt_log.g_information
-             , p_procedure   => 'i1lIlII11.IIlI1I'
+             , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
              );
           else
             pak_xslt_log.WriteLog
-             ( p_description => 'File '||IlIII1||' processed. '||Oll1lI
+             ( p_description => 'File '||l_filename||' processed. '||l_log
              , p_log_type    => pak_xslt_log.g_information
-             , p_procedure   => 'i1lIlII11.IIlI1I'
+             , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
              );
           end if;
         end if;
       end loop;
-      dbms_lob.FreeTemporary(Ill1l1);
-      dbms_lob.FreeTemporary(IlII1l);
+      dbms_lob.FreeTemporary(l_b64);
+      dbms_lob.FreeTemporary(l_xml);
 
-      if Ill1l0 then
-        
-        Ill1II('xml') := 'application/xml'; 
-        zip_util_pkg.add_file(Oll1II, '[Content_Types].xml',
-            pak_blob_util.Clob2Blob(Ill011(Ill1II, lll1Il), p_encoding)
+      if p_finishZip then
+        --add [Content_Types].xml
+        pio_extensionContentTypes('xml') := 'application/xml'; --always in [Content_Types].xml
+        zip_util_pkg.add_file(pio_OOXml, '[Content_Types].xml',
+            pak_blob_util.Clob2Blob(GetContentTypesXml(pio_extensionContentTypes, pio_fileContentTypes), p_encoding)
         );
-        zip_util_pkg.finish_zip(Oll1II);
+        zip_util_pkg.finish_zip(pio_OOXml);
 
         pak_xslt_log.WriteLog
            ( p_description => 'Zip completed'
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlI1I'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
            );
       end if;
     else
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.IIlI1I'
+       , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
        );
-      Oll1II := pak_blob_util.Clob2Blob(pio_FlatOPC, p_encoding);
+      pio_OOXml := pak_blob_util.Clob2Blob(pio_FlatOPC, p_encoding);
     end if;
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-extensionContentTypes: '||llIl11(Ill1II)
+     ( p_description => 'End proc-extensionContentTypes: '||LogContentTypes(pio_extensionContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-fileContentTypes: '||llIl11(lll1Il)
+     ( p_description => 'End proc-fileContentTypes: '||LogContentTypes(pio_fileContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-existingFolders: '||OlIl10(Ill0I0)
+     ( p_description => 'End proc-existingFolders: '||LogFoldersAndFiles(pio_existingFolders)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-nonXMLFiles: '||OlIl10(Oll1Il)
+     ( p_description => 'End proc-nonXMLFiles: '||LogFoldersAndFiles(pio_nonXMLFiles)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.IIlI1I'
+       , p_procedure  => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  END lll1I1;
+  END FlatOPC2OOXMLExOld;
 
-  function OIlI1l(p_Xml CLOB, IIlI1l number, OIlII0 varchar2)
+  function ReadAttribute(p_Xml CLOB, p_offset number, p_attrname varchar2)
   return varchar2
   as
-  Ill1ll number;
-  lll1ll number;
-  Il01I1 varchar2(4000);
+  l_attr_offset number;
+  l_attr_end number;
+  l_ret varchar2(4000);
   begin
-    Ill1ll := dbms_lob.instr(p_Xml, OIlII0||'="', IIlI1l);
-    if Ill1ll > 0 then
-      Ill1ll := Ill1ll + length(OIlII0||'="');
-      lll1ll := dbms_lob.instr(p_Xml, '"', Ill1ll);
-      if lll1ll > 0 then
-        Il01I1 := dbms_lob.substr(p_Xml, lll1ll - Ill1ll, Ill1ll);
+    l_attr_offset := dbms_lob.instr(p_Xml, p_attrname||'="', p_offset);
+    if l_attr_offset > 0 then
+      l_attr_offset := l_attr_offset + length(p_attrname||'="');
+      l_attr_end := dbms_lob.instr(p_Xml, '"', l_attr_offset);
+      if l_attr_end > 0 then
+        l_ret := dbms_lob.substr(p_Xml, l_attr_end - l_attr_offset, l_attr_offset);
       end if;
     end if;
 
-    return Il01I1;
+    return l_ret;
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.OIlI1l'
+       , p_procedure  => 'flat_OPC_pkg.ReadAttribute'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end OIlI1l;
+  end ReadAttribute;
 
-  procedure IIlI1I(
-    Oll1II                 IN OUT NOCOPY BLOB,
+  procedure FlatOPC2OOXMLEx(
+    pio_OOXml                 IN OUT NOCOPY BLOB,
     pio_FlatOPC               IN OUT NOCOPY CLOB,
-    Ill1II IN OUT OlIl0l,
-    lll1Il      IN OUT OlIl0l,
-    Ill0I0       IN OUT IlIl0l,
-    Oll1Il           IN OUT IlIl0l,
-    Ill1l0               boolean,
+    pio_extensionContentTypes IN OUT TContentTypes,
+    pio_fileContentTypes      IN OUT TContentTypes,
+    pio_existingFolders       IN OUT TFoldersAndFiles,
+    pio_nonXMLFiles           IN OUT TFoldersAndFiles,
+    p_finishZip               boolean,
     p_encoding                varchar2 default null
   )
   as
-  
-  
-  lll0l1 varchar2(4000);
-  lll1l0 CLOB;
-  
-  IlIII1 varchar2(400);
-  Ill10l number default 1;
+  --l_flatOPCXML SYS.XMLType;
+  --l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+  l_pkg_part varchar2(4000);
+  l_binary_or_xml_data CLOB;
+  --l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+  l_filename varchar2(400);
+  l_cur_pack_offset number default 1;
 
-  lll100 number default 1;
-  Oll101 number;
-  OllI00 number default 1;
-  IllI00 number;
+  l_startXMLData number default 1;
+  l_endXMLData number;
+  l_startBinaryData number default 1;
+  l_endBinaryData number;
 
-  Ill010 varchar2(400);
-  Oll000 varchar2(5);
-  Oll1l1 varchar2(400);
-  lllI01 number;
-  OllI01 number;
-  IlII1l CLOB;
-  Ill1l1 CLOB;
-  lll1lI boolean := false;
-  Oll1lI varchar2(400);
+  l_contentType varchar2(400);
+  l_ext varchar2(5);
+  l_binary_or_xml_data_name varchar2(400);
+  l_binary_offset number;
+  l_xml_offset number;
+  l_xml CLOB;
+  l_b64 CLOB;
+  l_skip_part boolean := false;
+  l_log varchar2(400);
 
   BEGIN
-    
-    if Ill0I0 is null then
-      Ill0I0 := IlIl0l();
+    --initialization--
+    if pio_existingFolders is null then
+      pio_existingFolders := TFoldersAndFiles();
     end if;
 
-    if Oll1Il is null then
-      Oll1Il := IlIl0l();
+    if pio_nonXMLFiles is null then
+      pio_nonXMLFiles := TFoldersAndFiles();
     end if;
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-extensionContentTypes: '||llIl11(Ill1II)
+     ( p_description => 'Start proc-extensionContentTypes: '||LogContentTypes(pio_extensionContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-fileContentTypes: '||llIl11(lll1Il)
+     ( p_description => 'Start proc-fileContentTypes: '||LogContentTypes(pio_fileContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-existingFolders: '||OlIl10(Ill0I0)
+     ( p_description => 'Start proc-existingFolders: '||LogFoldersAndFiles(pio_existingFolders)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'Start proc-nonXMLFiles: '||OlIl10(Oll1Il)
+     ( p_description => 'Start proc-nonXMLFiles: '||LogFoldersAndFiles(pio_nonXMLFiles)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
-    OIlIII(pio_FlatOPC, p_encoding);
-    
-    
+    ZipEmbeedings(pio_FlatOPC, p_encoding);
+    --l_flatOPCXML := XMLType(pio_FlatOPC);
+    --l_partsToTransform := ':'||translate(p_partsToTransform,',;?*+#!',':::::::')||':';
     if dbms_lob.instr(pio_FlatOPC, '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">') < 200
     then
-      
-      
-      
-      dbms_lob.CreateTemporary(Ill1l1, false);
-      dbms_lob.CreateTemporary(IlII1l, false);
-      
-      
+      --l_pkg_parts := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML), 'part');
+      --prebere childe od dokument node-a - <pkg:part> elemente
+      --l_pkg_parts := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML))));
+      dbms_lob.CreateTemporary(l_b64, false);
+      dbms_lob.CreateTemporary(l_xml, false);
+      --gremo cez vse <pkg:part> elemente
+      --for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
       loop
-        Ill10l := dbms_lob.instr(pio_FlatOPC, '<pkg:part ', Ill10l);
-        exit when nvl(Ill10l, 0) = 0;
+        l_cur_pack_offset := dbms_lob.instr(pio_FlatOPC, '<pkg:part ', l_cur_pack_offset);
+        exit when nvl(l_cur_pack_offset, 0) = 0;
 
-         
-        IlIII1 := OIlI1l(pio_FlatOPC, Ill10l, 'pkg:name');
-        exit when IlIII1 is null;
+         --preberemo atribute (pkg:contentType, pkg:name = ime datoteke
+        l_filename := ReadAttribute(pio_FlatOPC, l_cur_pack_offset, 'pkg:name');
+        exit when l_filename is null;
 
-        Ill010 := OIlI1l(pio_FlatOPC, Ill10l, 'pkg:contentType');
-        exit when Ill010 is null;
+        l_contentType := ReadAttribute(pio_FlatOPC, l_cur_pack_offset, 'pkg:contentType');
+        exit when l_contentType is null;
 
         pak_xslt_log.WriteLog
-         ( p_description => 'Start processing file '||IlIII1
+         ( p_description => 'Start processing file '||l_filename
          , p_log_type    => pak_xslt_log.g_information
-         , p_procedure   => 'i1lIlII11.IIlI1I'
+         , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
          );
 
-        
-        Oll0I0(Oll1II, IlIII1, Ill0I0);
-        lll1lI := false;
+        --dodamo folderje v zip
+        AddFolders(pio_OOXml, l_filename, pio_existingFolders);
+        l_skip_part := false;
 
-        
-        if substr(IlIII1, length(IlIII1)-3) = '.xml' and substr(Ill010, length(Ill010)-3) = '+xml' then
-          if lll1Il.exists(IlIII1) then 
-            lll1lI := true;
+        --ce gre za xml part
+        if substr(l_filename, length(l_filename)-3) = '.xml' and substr(l_contentType, length(l_contentType)-3) = '+xml' then
+          if pio_fileContentTypes.exists(l_filename) then --already exists, ga ne vkljucimo v OOXML
+            l_skip_part := true;
 
             pak_xslt_log.WriteLog
-             ( p_description => 'Skip file '||IlIII1
+             ( p_description => 'Skip file '||l_filename
              , p_log_type    => pak_xslt_log.g_information
-             , p_procedure   => 'i1lIlII11.IIlI1I'
+             , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
              );
           else
             pak_xslt_log.WriteLog
-             ( p_description => 'Include file '||IlIII1
+             ( p_description => 'Include file '||l_filename
              , p_log_type    => pak_xslt_log.g_information
-             , p_procedure   => 'i1lIlII11.IIlI1I'
+             , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
              );
-            lll1Il(IlIII1) := Ill010; 
+            pio_fileContentTypes(l_filename) := l_contentType; --ga vkljucimo
           end if;
-        else 
-          Oll000 := substr(IlIII1, nullif( instr(IlIII1,'.', -1) +1, 1) );
-          if Oll000 is not null and not Ill1II.exists(Oll000) then
-            Ill1II(Oll000) := Ill010;
+        else --sicer gre za vkljucen drug tip dokumenta (npr xlsx v wordu-docx)
+          l_ext := substr(l_filename, nullif( instr(l_filename,'.', -1) +1, 1) );
+          if l_ext is not null and not pio_extensionContentTypes.exists(l_ext) then
+            pio_extensionContentTypes(l_ext) := l_contentType;
           end if;
-          
-          if Oll01I(Oll1Il, IlIII1) then
-            lll1lI := true;
+          --ce že obstaja
+          if FolderOrFileExists(pio_nonXMLFiles, l_filename) then
+            l_skip_part := true;
           else
-            Oll1Il.extend;
-            Oll1Il(Oll1Il.count) := IlIII1;
+            pio_nonXMLFiles.extend;
+            pio_nonXMLFiles(pio_nonXMLFiles.count) := l_filename;
           end if;
         end if;
 
-        
-        
+        --l_binary_or_xml_data := DBMS_XMLDOM.GETFIRSTCHILD(l_pkg_part); --preberemo ali <pkg:xmlData> ali <pkg:binaryData>
+        --l_binary_or_xml_data_name := DBMS_XMLDOM.GETNODENAME(l_binary_or_xml_data);
 
-        lll100 := nvl(dbms_lob.instr(pio_FlatOPC, '<pkg:xmlData>', Ill10l), 0);
-        OllI00 := nvl(dbms_lob.instr(pio_FlatOPC, '<pkg:binaryData>', Ill10l), 0);
+        l_startXMLData := nvl(dbms_lob.instr(pio_FlatOPC, '<pkg:xmlData>', l_cur_pack_offset), 0);
+        l_startBinaryData := nvl(dbms_lob.instr(pio_FlatOPC, '<pkg:binaryData>', l_cur_pack_offset), 0);
 
-        if lll100 > 0 and (lll100 < OllI00 or OllI00 = 0) then
-          
-          
-          lll100 := lll100 + length('<pkg:xmlData>');
-          lll100 := dbms_lob.instr(pio_FlatOPC, '<', lll100);
-          exit when nvl(lll100, 0) = 0;
-          Oll101 := dbms_lob.instr(pio_FlatOPC, '</pkg:xmlData>', lll100);
-          exit when nvl(Oll101, 0) = 0;
+        if l_startXMLData > 0 and (l_startXMLData < l_startBinaryData or l_startBinaryData = 0) then
+          --l_startXMLData := dbms_lob.instr(pio_FlatOPC, '<pkg:xmlData>', l_startXMLData);
+          --exit when nvl(l_startXMLData, 0) = 0;
+          l_startXMLData := l_startXMLData + length('<pkg:xmlData>');
+          l_startXMLData := dbms_lob.instr(pio_FlatOPC, '<', l_startXMLData);
+          exit when nvl(l_startXMLData, 0) = 0;
+          l_endXMLData := dbms_lob.instr(pio_FlatOPC, '</pkg:xmlData>', l_startXMLData);
+          exit when nvl(l_endXMLData, 0) = 0;
 
-          if not lll1lI then
-            dbms_lob.Trim(IlII1l, 0);
-            dbms_lob.WriteAppend(IlII1l, length(llIl10), llIl10);
-            dbms_lob.Copy(IlII1l, pio_FlatOPC, Oll101-lll100, dbms_lob.getlength(IlII1l)+1, lll100);
-            zip_util_pkg.add_file(Oll1II, ltrim(IlIII1,'/'), pak_blob_util.Clob2Blob(IlII1l, p_encoding));
-            Oll1lI:='FlatOPC offset '||lll100||' - '||Oll101;
+          if not l_skip_part then
+            dbms_lob.Trim(l_xml, 0);
+            dbms_lob.WriteAppend(l_xml, length(c_xml_proc_instr), c_xml_proc_instr);
+            dbms_lob.Copy(l_xml, pio_FlatOPC, l_endXMLData-l_startXMLData, dbms_lob.getlength(l_xml)+1, l_startXMLData);
+            zip_util_pkg.add_file(pio_OOXml, ltrim(l_filename,'/'), pak_blob_util.Clob2Blob(l_xml, p_encoding));
+            l_log:='FlatOPC offset '||l_startXMLData||' - '||l_endXMLData;
           end if;
-          lll100 := Oll101 + length('</pkg:xmlData>');
-        elsif OllI00 > 0 and (OllI00 < lll100 or lll100 = 0) then
-          
-          OllI00 := OllI00 + length('<pkg:binaryData>');
-          OllI00 := dbms_lob.instr(pio_FlatOPC, '<', OllI00);
-          exit when nvl(OllI00, 0) = 0;
-          IllI00 := dbms_lob.instr(pio_FlatOPC, '</pkg:binaryData>', OllI00);
-          exit when nvl(OllI00, 0) = 0;
-          if not lll1lI then
-            
-            dbms_lob.Trim(Ill1l1, 0);
-            
-            dbms_lob.Copy(Ill1l1, pio_FlatOPC, IllI00-OllI00, dbms_lob.getlength(Ill1l1)+1, OllI00);
-            zip_util_pkg.add_file(Oll1II, ltrim(IlIII1,'/'), pak_blob_util.base64_decode(Ill1l1));
-            Oll1lI:='Binary part';
+          l_startXMLData := l_endXMLData + length('</pkg:xmlData>');
+        elsif l_startBinaryData > 0 and (l_startBinaryData < l_startXMLData or l_startXMLData = 0) then
+          --decode base64 l_xml_or_binary to BLOB
+          l_startBinaryData := l_startBinaryData + length('<pkg:binaryData>');
+          --l_startBinaryData := dbms_lob.instr(pio_FlatOPC, '<', l_startBinaryData);
+          exit when nvl(l_startBinaryData, 0) = 0;
+          l_endBinaryData := dbms_lob.instr(pio_FlatOPC, '</pkg:binaryData>', l_startBinaryData);
+          exit when nvl(l_startBinaryData, 0) = 0;
+          if not l_skip_part then
+            --TODO preberi v l_b64 na enak nacin kot binaryData
+            dbms_lob.Trim(l_b64, 0);
+            --dbms_lob.WriteAppend(l_b64, length(c_xml_proc_instr), c_xml_proc_instr);
+            dbms_lob.Copy(l_b64, pio_FlatOPC, l_endBinaryData-l_startBinaryData, dbms_lob.getlength(l_b64)+1, l_startBinaryData);
+            zip_util_pkg.add_file(pio_OOXml, ltrim(l_filename,'/'), pak_blob_util.base64_decode(l_b64));
+            l_log:='Binary part';
           end if;
         end if;
-        if lll1lI then
+        if l_skip_part then
           pak_xslt_log.WriteLog
-           ( p_description => 'File '||IlIII1||' skipped '
+           ( p_description => 'File '||l_filename||' skipped '
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlI1I'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
            );
         else
           pak_xslt_log.WriteLog
-           ( p_description => 'File '||IlIII1||' processed. '||Oll1lI
+           ( p_description => 'File '||l_filename||' processed. '||l_log
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlI1I'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
            );
         end if;
-        Ill10l := dbms_lob.instr(pio_FlatOPC, '</pkg:part>', Ill10l);
-        exit when nvl(Ill10l, 0) = 0;
-        Ill10l := Ill10l + length('</pkg:part>');
+        l_cur_pack_offset := dbms_lob.instr(pio_FlatOPC, '</pkg:part>', l_cur_pack_offset);
+        exit when nvl(l_cur_pack_offset, 0) = 0;
+        l_cur_pack_offset := l_cur_pack_offset + length('</pkg:part>');
       end loop;
-      dbms_lob.FreeTemporary(Ill1l1);
-      dbms_lob.FreeTemporary(IlII1l);
+      dbms_lob.FreeTemporary(l_b64);
+      dbms_lob.FreeTemporary(l_xml);
 
-      if Ill1l0 then
-        
-        Ill1II('xml') := 'application/xml'; 
-        zip_util_pkg.add_file(Oll1II, '[Content_Types].xml',
-            pak_blob_util.Clob2Blob(Ill011(Ill1II, lll1Il), p_encoding)
+      if p_finishZip then
+        --add [Content_Types].xml
+        pio_extensionContentTypes('xml') := 'application/xml'; --always in [Content_Types].xml
+        zip_util_pkg.add_file(pio_OOXml, '[Content_Types].xml',
+            pak_blob_util.Clob2Blob(GetContentTypesXml(pio_extensionContentTypes, pio_fileContentTypes), p_encoding)
         );
-        zip_util_pkg.finish_zip(Oll1II);
+        zip_util_pkg.finish_zip(pio_OOXml);
 
         pak_xslt_log.WriteLog
            ( p_description => 'Zip completed'
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlI1I'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
            );
       end if;
     else
       pak_xslt_log.WriteLog
        ( p_description => 'Invalid Format, Not Flat OPC'
        , p_log_type    => pak_xslt_log.g_error
-       , p_procedure   => 'i1lIlII11.IIlI1I'
+       , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
        );
-      Oll1II := pak_blob_util.Clob2Blob(pio_FlatOPC, p_encoding);
+      pio_OOXml := pak_blob_util.Clob2Blob(pio_FlatOPC, p_encoding);
     end if;
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-extensionContentTypes: '||llIl11(Ill1II)
+     ( p_description => 'End proc-extensionContentTypes: '||LogContentTypes(pio_extensionContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-fileContentTypes: '||llIl11(lll1Il)
+     ( p_description => 'End proc-fileContentTypes: '||LogContentTypes(pio_fileContentTypes)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-existingFolders: '||OlIl10(Ill0I0)
+     ( p_description => 'End proc-existingFolders: '||LogFoldersAndFiles(pio_existingFolders)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
 
     pak_xslt_log.WriteLog
-     ( p_description => 'End proc-nonXMLFiles: '||OlIl10(Oll1Il)
+     ( p_description => 'End proc-nonXMLFiles: '||LogFoldersAndFiles(pio_nonXMLFiles)
      , p_log_type    => pak_xslt_log.g_information
-     , p_procedure   => 'i1lIlII11.IIlI1I'
+     , p_procedure   => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
      );
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.IIlI1I'
+       , p_procedure  => 'flat_OPC_pkg.FlatOPC2OOXMLEx'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  END IIlI1I;
+  END FlatOPC2OOXMLEx;
 
-  
-  function IIlI1I(
+  /** Convert Flat OPC XML CLOB to OOXML BLOB (DOCX, XLSX, PPTX).
+  * You should set parameters p_staticParts, p_partsToTransform to non null values only if you really need to compose
+  * final OOXML from two Flat OPC CLOBs. Custom scenario would be producing FlatOPC CLOB with XSLT (dynamic parts) and add the rest of the OOXML parts
+  * from p_staticParts CLOB.
+  * @param pio_FlatOPC Flat OPC clob, on output FLAT OPC with base64 encoded embeeded DOCX and XLSX content that can be opened with Word or Power Point. Excel doesn't support Flat OPC format.
+  * If input CLOB doesn't contain any embeeded DOCX and XLSX content output CLOB is equal to input CLOB.
+  * @param p_staticParts Flat OPC CLOB with static OOXML parts.
+  * These should be parts (dynamic parts) of pio_FlatOPC CLOB. The rest of the parts will be included from p_staticParts CLOB.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  * @return OOXML BLOB
+  */
+  function FlatOPC2OOXMLEx(
     pio_FlatOPC IN OUT NOCOPY CLOB,
     pio_staticParts IN OUT NOCOPY CLOB,
     p_encoding varchar2 default null
   )
   return BLOB AS
 
-  Il01I1 BLOB;
-  Oll00l  OlIl0l;
-  lll00l       OlIl0l;
-  IllI0I IlIl0l := IlIl0l();
-  lllI0I     IlIl0l := IlIl0l();
+  l_ret BLOB;
+  l_extensionContentTypes  TContentTypes;
+  l_fileContentTypes       TContentTypes;
+  l_existingFolders TFoldersAndFiles := TFoldersAndFiles();
+  l_nonXMLFiles     TFoldersAndFiles := TFoldersAndFiles();
   BEGIN
     if pio_staticParts is not null then
-      
-      IIlI1I(
-        Il01I1,
+      --dbms_xslprocessor.clob2file(pio_FlatOPC, 'XMLDIR', 'test1.xml', nvl(NLS_CHARSET_ID(p_encoding), 0));
+      FlatOPC2OOXMLEx(
+        l_ret,
         pio_FlatOPC,
-        Oll00l,
-        lll00l,
-        IllI0I,
-        lllI0I,
-        Ill1l0 => false,
+        l_extensionContentTypes,
+        l_fileContentTypes,
+        l_existingFolders,
+        l_nonXMLFiles,
+        p_finishZip => false,
         p_encoding => p_encoding
       );
 
-      IIlI1I(
-        Il01I1,
+      FlatOPC2OOXMLEx(
+        l_ret,
         pio_staticParts,
-        Oll00l,
-        lll00l,
-        IllI0I,
-        lllI0I,
-        Ill1l0 => true,
+        l_extensionContentTypes,
+        l_fileContentTypes,
+        l_existingFolders,
+        l_nonXMLFiles,
+        p_finishZip => true,
         p_encoding => p_encoding
       );
-    else 
-      IIlI1I(
-        Il01I1,
+    else --p_staticParts is null
+      FlatOPC2OOXMLEx(
+        l_ret,
         pio_FlatOPC,
-        Oll00l,
-        lll00l,
-        IllI0I,
-        lllI0I,
-        Ill1l0 => true,
+        l_extensionContentTypes,
+        l_fileContentTypes,
+        l_existingFolders,
+        l_nonXMLFiles,
+        p_finishZip => true,
         p_encoding => p_encoding
       );
     end if;
 
-    
-    
+    --TODO add l_staticParts into pio_FlatOPC
+    --pio_FlatOPC := MergeFlatOPC(pio_FlatOPC, l_staticParts, p_encoding);
 
-  RETURN Il01I1;
+  RETURN l_ret;
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.IIlI1I(BLOB ver)'
+       , p_procedure  => 'flat_OPC_pkg.FlatOPC2OOXMLEx(BLOB ver)'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  END IIlI1I;
+  END FlatOPC2OOXMLEx;
 
 
-  
+  /** Convert Flat OPC XML CLOB to OOXML BLOB (DOCX, XLSX, PPTX).
+  * You should set parameters p_staticParts, p_partsToTransform to non null values only if you really need to compose
+  * final OOXML from two Flat OPC CLOBs. Custom scenario would be producing FlatOPC CLOB with XSLT (dynamic parts) and add the rest of the OOXML parts
+  * from p_staticParts CLOB.
+  * @param p_FlatOPC Flat OPC clob.
+  * @param p_staticParts Flat OPC CLOB with static OOXML parts.
+  * These should be parts (dynamic parts) of p_FlatOPC CLOB. The rest of the parts will be included from p_staticParts CLOB.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  * @return OOXML BLOB
+  */
   function FlatOPC2OOXML(
     p_FlatOPC CLOB,
     p_staticParts CLOB default null,
     p_encoding varchar2 := null
   )
   return BLOB AS
-  lll11I CLOB := p_FlatOPC;
-  OllI0l CLOB := p_staticParts;
+  l_FlatOPC CLOB := p_FlatOPC;
+  l_staticParts CLOB := p_staticParts;
   begin
-    return IIlI1I(lll11I, OllI0l, p_encoding);
+    return FlatOPC2OOXMLEx(l_FlatOPC, l_staticParts, p_encoding);
   end;
 
 
-$if CCOMPILING.g_utl_file_privilege $then  
-   
+$if CCOMPILING.g_utl_file_privilege $then
+   /** Convert Flat OPC XML file to OOXML file (DOCX, XLSX, PPTX). Optionaly can also write "valid" FLAT OPC file with
+  * base64 encoded embeeded DOCX and XLSX content that can be opened with Word or Power Point. Excel doesn't support Flat OPC format.
+  * You should set parameters p_staticPartsDir, p_staticPartsFile, p_partsToTransform to non null values only if you really need to compose
+  * final OOXML from two Flat OPC files. Custom scenario would be producing FlatOPCFile with XSLT (dynamic parts) and add the rest of the OOXML parts
+  * from p_staticPartsFile file.
+  * @param p_FlatOPCDir Oracle server directory with Flat OPC file.
+  * @param p_FlatOPCFile Flat OPC file name.
+  * @param p_OOXMLDir Oracle server directory with Open XML file.
+  * @param p_OOXMLFile Open XML file name.
+  * @param p_FlatOPCValidDir Oracle server directory with "valid" Flat OPC file. File can be opened with Word or Power Point.
+  * @param p_FlatOPCValidFile "Valid" flat OPC file name. File can be opened with Word or Power Point.
+  * @param p_staticPartsDir Oracle server directory with Flat OPC file with static OOXML parts.
+  * @param p_staticPartsFile Flat OPC name of file with static OOXML parts.
+  * These should be parts (dynamic parts) of p_FlatOPCFile file. The rest of the parts will be included from p_staticPartsFile.
+  * @param p_encoding Encoding (if left null UTF8 assumed).
+  */
   procedure FlatOPC2OOXML(
     p_FlatOPCDir  varchar2,
     p_FlatOPCFile varchar2,
@@ -1567,102 +1707,105 @@ $if CCOMPILING.g_utl_file_privilege $then
     p_staticPartsFile varchar2 := null,
     p_encoding    varchar2 := null
   ) AS
-  lll11I     CLOB;
-  OllI0l  CLOB;
+  l_flatOPC     CLOB;
+  l_staticParts  CLOB;
   l_OOXMLDir  varchar2(400);
   l_OOXMLFile varchar2(400);
-  I100IlI BLOB;
+  l_blob BLOB;
 
   BEGIN
     l_OOXMLDir := nvl(p_OOXMLDir, p_FlatOPCDir);
     l_OOXMLFile := nvl(p_OOXMLFile, p_FlatOPCFile||'.zip');
-    lll11I := pak_blob_util.Read2CLOB(p_FlatOPCDir, p_FlatOPCFile, p_encoding);
+    l_flatOPC := pak_blob_util.Read2CLOB(p_FlatOPCDir, p_FlatOPCFile, p_encoding);
 
     if p_staticPartsDir is not null and p_staticPartsFile is not null then
-      OllI0l := pak_blob_util.Read2CLOB(p_staticPartsDir, p_staticPartsFile, p_encoding);
+      l_staticParts := pak_blob_util.Read2CLOB(p_staticPartsDir, p_staticPartsFile, p_encoding);
     end if;
 
-    I100IlI := IIlI1I(lll11I, OllI0l,  p_encoding);
-    ZIP_UTIL_PKG.save_blob_to_file (l_OOXMLDir, l_OOXMLFile, FlatOPC2OOXML(lll11I, p_encoding));
+    l_blob := FlatOPC2OOXMLEx(l_FlatOPC, l_staticParts, /*p_partsToTransform,*/ p_encoding);
+    ZIP_UTIL_PKG.save_blob_to_file (l_OOXMLDir, l_OOXMLFile, FlatOPC2OOXML(l_FlatOPC, p_encoding));
 
     if p_FlatOPCValidDir is not null and p_FlatOPCValidFile is not null then
-      lll11I := MergeFlatOPC(lll11I, OllI0l, p_encoding);
-      ZIP_UTIL_PKG.save_blob_to_file (p_FlatOPCValidDir, p_FlatOPCValidFile, pak_blob_util.Clob2Blob(lll11I, p_encoding));
+      l_FlatOPC := MergeFlatOPC(l_FlatOPC, l_staticParts, p_encoding);
+      ZIP_UTIL_PKG.save_blob_to_file (p_FlatOPCValidDir, p_FlatOPCValidFile, pak_blob_util.Clob2Blob(l_FlatOPC, p_encoding));
     end if;
-    dbms_lob.freetemporary(lll11I);
+    dbms_lob.freetemporary(l_flatOPC);
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.FlatOPC2OOXML (file ver)'
+       , p_procedure  => 'flat_OPC_pkg.FlatOPC2OOXML (file ver)'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
   END FlatOPC2OOXML;
 $end
 
-  
-  procedure IIlII1(
+  /** Exclude only parts for transformation
+  * @param pio_FlatOPC Flat OPC clob, on output FLAT OPC with parts for XSL transformation only.
+  * @param p_partsToTransform XSL Transformed parts of po_OOXML separated with comma.
+  */
+  procedure FlatOPCTransfromedOnly(
     pio_FlatOPC IN OUT CLOB,
     p_partsToTransform varchar2
   )
   as
-    Ill0l1 DBMS_XMLDOM.DOMNODELIST;
-    lll0l1 DBMS_XMLDOM.DOMNODE;
-    IllI0l DBMS_XMLDOM.DOMNODE;
-    Oll0l0 DBMS_XMLDOM.DOMNAMEDNODEMAP;
-    lllI10 DBMS_XMLDOM.DOMDOCUMENT;
-    IlIII1 varchar2(400);
+    l_pkg_parts DBMS_XMLDOM.DOMNODELIST;
+    l_pkg_part DBMS_XMLDOM.DOMNODE;
+    l_deleted_pkg_part DBMS_XMLDOM.DOMNODE;
+    l_pkg_part_attrs DBMS_XMLDOM.DOMNAMEDNODEMAP;
+    l_xmldoc DBMS_XMLDOM.DOMDOCUMENT;
+    l_filename varchar2(400);
 
-    lll0l0 SYS.XMLType;
+    l_flatOPCXML SYS.XMLType;
   begin
-    
-    lll0l0 := XMLType(pio_FlatOPC);
-       
-    if lll0l0.getRootElement() = 'package'
-      and lll0l0.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
+    --UnzipEmbeedings(pio_FlatOPC);
+    l_flatOPCXML := XMLType(pio_FlatOPC);
+
+    if l_flatOPCXML.getRootElement() = 'package'
+      and l_flatOPCXML.getNamespace() = 'http://schemas.microsoft.com/office/2006/xmlPackage'
     then
-      lllI10 := DBMS_XMLDOM.NEWDOMDOCUMENT(lll0l0);
-      
-      Ill0l1 := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(lllI10)));
-      
-      
-      for ll01I1 in 0..DBMS_XMLDOM.GETLENGTH(Ill0l1)-1 loop
-        lll0l1 := DBMS_XMLDOM.ITEM(Ill0l1, ll01I1);
+      l_xmldoc := DBMS_XMLDOM.NEWDOMDOCUMENT(l_flatOPCXML);
+      --l_pkg_parts := DBMS_XMLDOM.GETELEMENTSBYTAGNAME(l_xmldoc, 'part');
+      l_pkg_parts := DBMS_XMLDOM.GETCHILDNODES(DBMS_XMLDOM.MAKENODE(DBMS_XMLDOM.GETDOCUMENTELEMENT(l_xmldoc)));
+      --dbms_lob.CreateTemporary(l_b64, false);
+      --dbms_lob.CreateTemporary(l_xml, false);
+      for i in 0..DBMS_XMLDOM.GETLENGTH(l_pkg_parts)-1 loop
+        l_pkg_part := DBMS_XMLDOM.ITEM(l_pkg_parts, i);
 
-        Oll0l0 := DBMS_XMLDOM.GETATTRIBUTES(lll0l1);
-        IlIII1 := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(Oll0l0, 'name')),'/');
+        l_pkg_part_attrs := DBMS_XMLDOM.GETATTRIBUTES(l_pkg_part);
+        l_filename := ltrim(DBMS_XMLDOM.GETNODEVALUE(DBMS_XMLDOM.GETNAMEDITEM(l_pkg_part_attrs, 'name')),'/');
 
-        if  nvl(instr(':'||p_partsToTransform||':', ':'||IlIII1||':'), 0)=0 then
-          IllI0l := DBMS_XMLDOM.REMOVECHILD(DBMS_XMLDOM.MAKENODE(lllI10), lll0l1);
+        if  nvl(instr(':'||p_partsToTransform||':', ':'||l_filename||':'), 0)=0 then
+          l_deleted_pkg_part := DBMS_XMLDOM.REMOVECHILD(DBMS_XMLDOM.MAKENODE(l_xmldoc), l_pkg_part);
           pak_xslt_log.WriteLog
-           ( p_description => 'Deleting part '||IlIII1
+           ( p_description => 'Deleting part '||l_filename
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlII1'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPCTransfromedOnly'
            );
         else
           pak_xslt_log.WriteLog
-           ( p_description => 'Part '||IlIII1||' left in OPC'
+           ( p_description => 'Part '||l_filename||' left in OPC'
            , p_log_type    => pak_xslt_log.g_information
-           , p_procedure   => 'i1lIlII11.IIlII1'
+           , p_procedure   => 'flat_OPC_pkg.FlatOPCTransfromedOnly'
            );
         end if;
       end loop;
       dbms_lob.trim(pio_FlatOPC, 0);
-      DBMS_XMLDOM.WRITETOCLOB(DBMS_XMLDOM.MAKENODE(lllI10), pio_FlatOPC);
+      DBMS_XMLDOM.WRITETOCLOB(DBMS_XMLDOM.MAKENODE(l_xmldoc), pio_FlatOPC);
     end if;
   exception
   when others then
     pak_xslt_log.WriteLog
        ( p_description       => 'Error'
        , p_log_type      => pak_xslt_log.g_error
-       , p_procedure  => 'i1lIlII11.IIlII1'
+       , p_procedure  => 'flat_OPC_pkg.FlatOPCTransfromedOnly'
        , P_SQLERRM   =>  sqlerrm
        );
     raise;
-  end IIlII1;
+  end FlatOPCTransfromedOnly;
 
-END "i1lIlII11";
+END FLAT_OPC_PKG;
 
 /

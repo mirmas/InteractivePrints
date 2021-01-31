@@ -1,1145 +1,1357 @@
 
+CREATE OR REPLACE package body IG2REPORT is
 
+-- Interactive Prints using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
+  
+$IF CCOMPILING.g_IG_exists $THEN
 
+/**Procedure adds columns with same aggregation function (SUM, AVG...) to the table of aggregation columns
+* for later use .TODO preveri ali je sploh potrebna
+*
+* @param pio_t_cols_aggr table of of aggregation columns
+* @param p_aggr_cols Aggregation columns separated with :
+* @param p_aggregation Aggregation function (SUM, AVG...)
+*/
+/*
+procedure FillAggrColsTable
+(
+  pio_t_cols_aggr in out APEXREP2REPORT.tp_cols_aggr
+  ,p_aggr_col in varchar2
+  ,p_aggregation in varchar2
+)
+as
+t_strtbl APEXREP2REPORT.tp_strtbl := APEXREP2REPORT.tp_strtbl();
+begin
+  if p_aggr_col is not null then
+      pio_t_cols_aggr.extend;
+      pio_t_cols_aggr(pio_t_cols_aggr.count).column_alias := p_aggr_col;
+      pio_t_cols_aggr(pio_t_cols_aggr.count).aggregation := p_aggregation;
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.FillAggrColsTable', p_sqlerrm => sqlerrm );
+  raise;
+end FillAggrColsTable;
+*/
 
-  CREATE OR REPLACE PACKAGE BODY "l1IIl0lI" is
-$if CCOMPILING.g_IG_exists $then
+/** Bind (compose) sort statement for use in ORDER BY statement in IR suorce in ordinary (non GOUP BY) mode
+*
+* @param p_apr row of current report in apex_application_page_ir_rpt view
+* @param p_already_order_by true if ORDER BY already exists
+*/
+procedure BindSort(
+  p_report_id number,
+  p_use_filters_hidPK number,
+  p_master_report_id number,
+  po_order_by_list out varchar2,
+  po_aggr_order_by_list out varchar2
+)
+as
+--l_sort varchar2(4000);
+--l_break boolean := false;
 
- 
-
-
- 
-procedure ll10Il( 
-  Ol0I1l number,
-  IIl11l number,  
-  O0II0I11 number,  
-  Il10l1 out varchar2,
-  Ol1II1 out varchar2  
-) 
-as 
-
-
-
-cursor O0l0I0I0 is 
-    select  col.NAME||case rcol.report_id when O0II0I11 then '_MASTER' end as column_alias, 
-        case rcol.report_id when O0II0I11 then nvl(rcol.sort_order - 1000, 0) else rcol.break_order end sort_order, 
-        case rcol.report_id when O0II0I11 then nvl(rcol.sort_direction, 'ASC') else rcol.break_sort_direction end sort_direction,
-        case rcol.report_id when O0II0I11 then nvl(rcol.sort_nulls, 'last') else nvl(rcol.break_sort_nulls, 'last') end sort_nulls
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (Ol0I1l, O0II0I11)
-        where rcol.break_order is not null or rcol.report_id = O0II0I11
+cursor c_cur_break is
+    select  case rcol.report_id when p_master_report_id then substr(col.NAME,1,30-length('_MASTER'))||'_MASTER' else col.NAME end as column_alias,
+        case rcol.report_id when p_master_report_id then nvl(rcol.sort_order - 1000, 0) else rcol.break_order end sort_order,
+        case rcol.report_id when p_master_report_id then nvl(rcol.sort_direction, 'ASC') else rcol.break_sort_direction end sort_direction,
+        case rcol.report_id when p_master_report_id then nvl(rcol.sort_nulls, 'last') else nvl(rcol.break_sort_nulls, 'last') end sort_nulls
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (p_report_id, p_master_report_id)
+        where rcol.break_order is not null or rcol.report_id = p_master_report_id
         and col.source_type_code = 'DB_COLUMN'
         and col.item_type not in ('NATIVE_PASSWORD', 'NATIVE_ROW_SELECTOR')
-        and (IIl11l = 0 
-        			or (IIl11l = 1 and (((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes')
-        																				or col.IS_PRIMARY_KEY = 'Yes' or col.item_type = 'NATIVE_HIDDEN')
-        					) 
-        			or (IIl11l = 2 and ((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes'
-        																			  and nvl(col.IS_PRIMARY_KEY, 'No') = 'No' and col.item_type != 'NATIVE_HIDDEN'
+        and (p_use_filters_hidPK = 0
+        			or (p_use_filters_hidPK = 1 and (((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes')
+        																				/*or col.IS_PRIMARY_KEY = 'Yes' or col.item_type = 'NATIVE_HIDDEN'*/)
+        					)
+        			or (p_use_filters_hidPK = 2 and ((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes'
+        																			  /*and nvl(col.IS_PRIMARY_KEY, 'No') = 'No'*/ and col.item_type != 'NATIVE_HIDDEN'
         																			)
         					)
-        																			  
+
         		)
         order by sort_order;
 
-cursor Il0Ill is
+cursor c_cur is
     select  col.HEADING as fullname,
-        col.NAME as column_alias, 
+        col.NAME as column_alias,
         0 BREAK,
         rcol.sort_order,
         rcol.sort_direction,
         rcol.sort_nulls
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id = Ol0I1l
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id = p_report_id
         where rcol.sort_order is not null
         and col.source_type_code = 'DB_COLUMN'
         and col.item_type not in ('NATIVE_PASSWORD', 'NATIVE_ROW_SELECTOR')
-        and (IIl11l = 0 
-        			or (IIl11l = 1 and (((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes')
-        																				or col.IS_PRIMARY_KEY = 'Yes' or col.item_type = 'NATIVE_HIDDEN')
-        					) 
-        			or (IIl11l = 2 and ((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes'
-        																			  and nvl(col.IS_PRIMARY_KEY, 'No') = 'No' and col.item_type != 'NATIVE_HIDDEN'
+        and (p_use_filters_hidPK = 0
+        			or (p_use_filters_hidPK = 1 and (((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes')
+        																				/*or col.IS_PRIMARY_KEY = 'Yes' or col.item_type = 'NATIVE_HIDDEN'*/)
+        					)
+        			or (p_use_filters_hidPK = 2 and ((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes'
+        																			  /*and nvl(col.IS_PRIMARY_KEY, 'No') = 'No'*/ and col.item_type != 'NATIVE_HIDDEN'
         																			)
         					)
-        																			  
+
         		)
         order by sort_order;
-    
 
-begin 
 
-  Il10l1 := null;
-  Ol1II1 := null;
-  
-  for r_cur_break in O0l0I0I0 loop
-      if Ol1II1 is null then
-          Ol1II1 := ' "' || r_cur_break.column_alias || '" ' || rtrim(r_cur_break.sort_direction, 'ending') || ' nulls '|| r_cur_break.sort_nulls ; 
+begin
+--add sorting in source
+  po_order_by_list := null;
+  po_aggr_order_by_list := null;
+
+  for r_cur_break in c_cur_break loop
+      if po_aggr_order_by_list is null then
+          po_aggr_order_by_list := ' "' || r_cur_break.column_alias || '" ' || rtrim(r_cur_break.sort_direction, 'ending') || ' nulls '|| r_cur_break.sort_nulls ;
       else
-          Ol1II1 := Ol1II1 || ', "' || r_cur_break.column_alias || '" ' || rtrim(r_cur_break.sort_direction, 'ending') || ' nulls '|| r_cur_break.sort_nulls ; 
+          po_aggr_order_by_list := po_aggr_order_by_list || ', "' || r_cur_break.column_alias || '" ' || rtrim(r_cur_break.sort_direction, 'ending') || ' nulls '|| r_cur_break.sort_nulls ;
       end if;
   end loop;
-  
-  for r_cur in Il0Ill loop
-      if Il10l1 is null then
-          Il10l1 := ' "' || r_cur.column_alias || '" ' || rtrim(r_cur.sort_direction, 'ending') || ' nulls '|| r_cur.sort_nulls ; 
+
+  for r_cur in c_cur loop
+      if po_order_by_list is null then
+          po_order_by_list := ' "' || r_cur.column_alias || '" ' || rtrim(r_cur.sort_direction, 'ending') || ' nulls '|| r_cur.sort_nulls ;
       else
-          Il10l1 := Il10l1 || ', "' || r_cur.column_alias || '" ' || rtrim(r_cur.sort_direction, 'ending') || ' nulls '|| r_cur.sort_nulls ; 
+          po_order_by_list := po_order_by_list || ', "' || r_cur.column_alias || '" ' || rtrim(r_cur.sort_direction, 'ending') || ' nulls '|| r_cur.sort_nulls ;
       end if;
   end loop;
-  pak_xslt_log.WriteLog( 'Ol0I1l: '||Ol0I1l||' O0II0I11: '||O0II0I11||
-                        ' return Il10l1: '||Il10l1||' Ol1II1: '||
-                        Ol1II1, p_procedure => '"l1IIl0lI".ll10Il'); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => '"l1IIl0lI".ll10Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
+  pak_xslt_log.WriteLog( 'p_report_id: '||p_report_id||' p_master_report_id: '||p_master_report_id||
+                        ' return po_order_by_list: '||po_order_by_list||' po_aggr_order_by_list: '||
+                        po_aggr_order_by_list, p_procedure => 'IG2Report.BindSort');
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'IG2Report.BindSort', p_sqlerrm => sqlerrm );
+  raise;
+end;
 
- 
-function ll01Il( 
-   Ol01Il in number, 
-   IIl1I0 in number 
-) 
-return apex_appl_page_ig_rpts%rowtype 
-as 
-  Il01l0 number; 
-  ll01l0 varchar2(200); 
-  ll0II0 number; 
-  Il01l1 apex_appl_page_ig_rpts%rowtype; 
-begin 
-  
-  
-  
-  
+/** Returns row from apex_appl_page_ig_rpts table which describe user current report of region p_region_id.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @return Row from apex_application_page_ir_rpt table which describe current report of region p_region_id.
+*/
+function Get_current_report_row(
+   p_region_id in number,
+   p_page_id in number
+)
+return apex_appl_page_ig_rpts%rowtype
+as
+  t_pref varchar2(200);
+  l_report_id number;
+  t_apr apex_appl_page_ig_rpts%rowtype;
+begin
+  /*
+  select api.interactive_report_id
+  into t_interactive_report_id
+  from apex_application_page_ir api
+  where api.application_id = APEX_APPLICATION.G_FLOW_ID
+  and   api.page_id = p_page_id
+  and   api.region_id = p_region_id;
+  */
 
-  pak_xslt_log.WriteLog( 'Start for Ol01Il : '||Ol01Il||
-                        ' IIl1I0 : '||IIl1I0, p_procedure => '"l1IIl0lI".ll01Il'); 
-  ll01l0 := apex_util.get_preference( 'APEX_IG_' || to_char(Ol01Il) || '_CURRENT_REPORT'); 
- 
-  if ll01l0 is null then 
-    pak_xslt_log.WriteLog( 'User preference ll01l0 is null', p_procedure => '"l1IIl0lI".ll01Il'); 
- 
-    select * 
-    into Il01l1 
-    from 
-    ( 
-      select * 
-      from apex_appl_page_ig_rpts Ol01lI 
-      where Ol01lI.application_id = APEX_APPLICATION.G_FLOW_ID 
-      and   Ol01lI.page_id = IIl1I0 
-      and   nvl(Ol01lI.APPLICATION_USER, V('APP_USER'))  = V('APP_USER') 
-      and   nvl(Ol01lI.session_id, V('SESSION')) = V('SESSION') 
-      order by Ol01lI.report_id desc 
-    ) where rownum = 1; 
-  else 
-    ll0II0 := rtrim(ll01l0, ':GRID'); 
- 
-    pak_xslt_log.WriteLog( 'User preference ll01l0 is NOT null ll0II0 '||ll0II0, p_procedure => '"l1IIl0lI".ll01Il'); 
- 
-    select * 
-    into Il01l1 
-    from apex_appl_page_ig_rpts Ol01lI 
-    where Ol01lI.application_id = APEX_APPLICATION.G_FLOW_ID 
-    and   Ol01lI.page_id = IIl1I0 
-    and   nvl(Ol01lI.APPLICATION_USER, V('APP_USER'))  = V('APP_USER') 
-    and   Ol01lI.report_id = ll0II0 
-    and   nvl(Ol01lI.session_id, V('SESSION')) = V('SESSION'); 
-  end if; 
- 
-  return Il01l1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".ll01Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll01Il; 
+  --APEX_IG_3172633674777884571_CURRENT_REPORT	6100670905189984406:GRID
+  --APEX_IG_9160334486836517512_CURRENT_REPORT	5384892718947538237:GRID
+--
+  pak_xslt_log.WriteLog( 'Start for p_region_id : '||p_region_id||
+                        ' p_page_id : '||p_page_id, p_procedure => 'IG2Report.Get_current_report_row');
+  t_pref := apex_util.get_preference( 'APEX_IG_' || to_char(p_region_id) || '_CURRENT_REPORT');
 
-function OIl1Il( 
-  IIl1Il number, 
-  OIl1l0 varchar2, 
-  I0I110l APEX_APPL_PAGE_IG_COLUMNS.LOV_ID%type, 
-  ll0O0II APEX_APPL_PAGE_IG_COLUMNS.LOV_SOURCE%type 
-) 
-return varchar2 
-as 
-Il01I1 varchar2(32000); 
-Il1ll0 varchar2(32000); 
-ll1ll0 varchar2(20); 
-Ol1ll1 varchar2(32000); 
-Il1ll1 varchar2(4000); 
-ll1llI number; 
-Ol1llI number; 
-Il1lll boolean default false; 
- 
-begin 
-  if I0I110l is not null then 
-    select list_of_values_query, lov_type 
-    into Il1ll0, ll1ll0 
-    from apex_application_lovs 
-    where application_id = IIl1Il 
-    and lov_id = I0I110l; 
- 
-    if ll1ll0 = 'Static' and IIl1Il is not null then 
-      Il1ll0 := 'select display_value Il1lII, trim(ll10I1) v from APEX_APPLICATION_LOV_ENTRIES where application_id = '|| 
-        IIl1Il||' and lov_id = '||I0I110l; 
-      Il1lll := true; 
-    end if; 
-  elsif ll0O0II is not null then 
-    if substr(upper(trim(ll0O0II)),1,6) = 'SELECT' then 
-      Il1ll0 := ll0O0II; 
-    elsif substr(upper(trim(ll0O0II)),1,6) = 'STATIC'  
-          and instr(ll0O0II,';') > 0 
-          and instr(ll0O0II,':') > 0 
-    then 
-      Ol1ll1 := substr(ll0O0II, instr(ll0O0II,':')+1); 
-      Ol1ll1 := Ol1ll1||','; 
-      loop 
-        ll1llI := nvl(instr(Ol1ll1,','), 0); 
-        exit when ll1llI = 0; 
-        Il1ll1 := substr(Ol1ll1, 1, ll1llI-1); 
-        Ol1llI := nvl(instr(Il1ll1,';'),0); 
-        exit when Ol1llI = 0; 
-        if Il1ll0 is null then 
-          Il1ll0 := 'select '''||substr(Il1ll1,1,Ol1llI - 1)||''' Il1lII, '''|| 
-          substr(Il1ll1, Ol1llI + 1)||''' v from dual'; 
-        else 
-          Il1ll0 := Il1ll0||' union select '''|| 
-            substr(Il1ll1,1,Ol1llI - 1)||''' Il1lII, '''|| 
-            substr(Il1ll1, Ol1llI + 1)||''' v from dual'; 
-        end if; 
-        Ol1ll1 := substr(Ol1ll1, ll1llI+1);
-      end loop; 
-      Il1lll := true; 
-    end if; 
-  end if; 
-  if not Il1lll then 
-                       
-    Il1ll0 := APEXREP2REPORT.ll1lI1(Il1ll0); 
-  end if; 
-  return Il1ll0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".OIl1Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
+  if t_pref is null then
+    pak_xslt_log.WriteLog( 'User preference t_pref is null', p_procedure => 'IG2Report.Get_current_report_row');
 
-function O0IOOII0(
-    O0OO0I0I APEX_APPL_PAGE_IG_COLUMNS.NAME%type,
-    l110Ol0 APEX_APPL_PAGE_IG_RPT_FILTERS.TYPE_CODE%type,
-    IlO00OI APEX_APPL_PAGE_IG_RPT_FILTERS.EXPRESSION%type,
-    II0O1I0 APEX_APPL_PAGE_IG_RPT_FILTERS.OPERATOR%type,
-    Il1I0I APEX_APPL_PAGE_IG_COLUMNS.DATA_TYPE%type,
-    O0I0I11O1 APEX_APPL_PAGE_IG_RPT_FILTERS.IS_CASE_SENSITIVE%type,
-    ll01ll APEXREP2REPORT.Ol0110 default null
+    select *
+    into t_apr
+    from
+    (
+      select *
+      from apex_appl_page_ig_rpts apr
+      where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+      and   apr.page_id = p_page_id
+      and   nvl(apr.APPLICATION_USER, V('APP_USER'))  = V('APP_USER')
+      and   nvl(apr.session_id, V('SESSION')) = V('SESSION')
+      and   apr.region_id = p_region_id
+      order by apr.report_id desc
+    ) where rownum = 1;
+  else
+    l_report_id := rtrim(t_pref, ':GRID');
+
+    pak_xslt_log.WriteLog( 'User preference t_pref is NOT null l_report_id '||l_report_id, p_procedure => 'IG2Report.Get_current_report_row');
+
+    select *
+    into t_apr
+    from apex_appl_page_ig_rpts apr
+    where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+    and   apr.page_id = p_page_id
+    and   nvl(apr.APPLICATION_USER, V('APP_USER'))  = V('APP_USER')
+    and   apr.region_id = p_region_id
+    and   apr.report_id = l_report_id
+    and   nvl(apr.session_id, V('SESSION')) = V('SESSION');
+  end if;
+
+  return t_apr;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.Get_current_report_row', p_sqlerrm => sqlerrm );
+  raise;
+end Get_current_report_row;
+
+function GetLOVSelect(
+  p_app_id number,
+  p_col_alias varchar2,
+  p_LOV_ID APEX_APPL_PAGE_IG_COLUMNS.LOV_ID%type,
+  p_LOV_SOURCE APEX_APPL_PAGE_IG_COLUMNS.LOV_SOURCE%type
 )
 return varchar2
 as
-    OOlIOI1 varchar2(4000);
-    l0l1I00 varchar2(4000);
-    l10l1lI1 varchar2(32000);
-    O0IOIO1I varchar2(32000);
-    IllIO0l varchar2(10);
-    O0IIOOI0 varchar2(1);
-    Il101I0 varchar2(4000);
+l_ret varchar2(32000);
+l_LOV_query varchar2(32000);
+l_LOV_type varchar2(20);
+l_static_LOV varchar2(32000);
+l_row varchar2(4000);
+l_comma number;
+l_semicolon number;
+l_static boolean default false;
+
+begin
+  if p_LOV_ID is not null then --named LOV
+    select list_of_values_query, lov_type
+    into l_LOV_query, l_LOV_type
+    from apex_application_lovs
+    where application_id = p_app_id
+    and lov_id = p_LOV_ID;
+
+    if l_lov_type = 'Static' and p_app_id is not null then --static named LOV
+      l_LOV_query := 'select display_value d, trim(return_value) v from APEX_APPLICATION_LOV_ENTRIES where application_id = '||
+        p_app_id||' and lov_id = '||p_LOV_ID;
+      l_static := true;
+    end if;
+  elsif p_LOV_SOURCE is not null then --not named LOV
+    if substr(upper(trim(p_LOV_SOURCE)),1,6) = 'SELECT' then --dynamic named LOV
+      l_LOV_query := p_LOV_SOURCE;
+    elsif substr(upper(trim(p_LOV_SOURCE)),1,6) = 'STATIC'  --static named LOV
+          and instr(p_LOV_SOURCE,';') > 0
+          and instr(p_LOV_SOURCE,':') > 0
+    then --STATIC:President;1,Member;0
+      l_static_LOV := substr(p_LOV_SOURCE, instr(p_LOV_SOURCE,':')+1); --President;1,Member;0
+      l_static_LOV := l_static_LOV||','; --President;1,Member;0,
+      loop
+        l_comma := nvl(instr(l_static_LOV,','), 0);
+        exit when l_comma = 0;
+        l_row := substr(l_static_LOV, 1, l_comma-1);
+        l_semicolon := nvl(instr(l_row,';'),0);
+        exit when l_semicolon = 0;
+        if l_LOV_query is null then
+          l_LOV_query := 'select '''||substr(l_row,1,l_semicolon - 1)||''' d, '''||
+          substr(l_row, l_semicolon + 1)||''' v from dual';
+        else
+          l_LOV_query := l_LOV_query||' union select '''||
+            substr(l_row,1,l_semicolon - 1)||''' d, '''||
+            substr(l_row, l_semicolon + 1)||''' v from dual';
+        end if;
+        l_static_LOV := substr(l_static_LOV, l_comma+1);--Member;0, on first loop
+      end loop;
+      l_static := true;
+    end if; --static named LOV
+  end if; --not named LOV
+  if not l_static then --must add or chage aliases to d (dispaly_value) and v (return_value)
+                       --also binding variables (APEX ITEMS) takes place
+    l_LOV_query := APEXREP2REPORT.LOVSuperSelect(l_LOV_query);
+  end if;
+  return l_LOV_query;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2REPORT.GetLOVSelect', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+function BuildCondition(
+    p_column_alias APEX_APPL_PAGE_IG_COLUMNS.NAME%type,
+    p_type_code APEX_APPL_PAGE_IG_RPT_FILTERS.TYPE_CODE%type,
+    p_expression APEX_APPL_PAGE_IG_RPT_FILTERS.EXPRESSION%type,
+    p_operator APEX_APPL_PAGE_IG_RPT_FILTERS.OPERATOR%type,
+    p_column_type APEX_APPL_PAGE_IG_COLUMNS.DATA_TYPE%type,
+    p_is_case_sensitive APEX_APPL_PAGE_IG_RPT_FILTERS.IS_CASE_SENSITIVE%type,
+    p_cols APEXREP2REPORT.tp_cols default null
+)
+return varchar2
+as
+    l_operator varchar2(4000);
+    l_expression varchar2(4000);
+    l_row_string varchar2(32000);
+    l_row_string_cs varchar2(32000);
+    l_not varchar2(10);
+    l_cs varchar2(1);
+    l_limit_date varchar2(4000);
 begin
 
-    if l110Ol0 = 'COLUMN' then
-        if II0O1I0 = 'REGEXP' then
-            if O0I0I11O1 = 'No' then
-                O0IIOOI0 := 'll01I1';
+    if p_type_code = 'COLUMN' then
+        if p_operator = 'REGEXP' then
+            if p_is_case_sensitive = 'No' then
+                l_cs := 'i';
             end if;
-            l0l1I00 := ' REGEXP_LIKE ( '||O0OO0I0I||', '''||IlO00OI||''', ''m'||O0IIOOI0||''')';
+            l_expression := ' REGEXP_LIKE ( '||p_column_alias||', '''||p_expression||''', ''m'||l_cs||''')';
         else
-            if II0O1I0 = 'N' then
-                l0l1I00 := 'is null';
+            if p_operator = 'N' then
+                l_expression := 'is null';
             else
-                if II0O1I0 != 'NEXT' and substr(II0O1I0, 1, 1) = 'N' then  
-                    IllIO0l := 'not';
-                    OOlIOI1 := substr(II0O1I0, 2);
-                else 
-                    OOlIOI1 := II0O1I0;
+                if p_operator != 'NEXT' and substr(p_operator, 1, 1) = 'N' then
+                    l_not := 'not';
+                    l_operator := substr(p_operator, 2);
+                else
+                    l_operator := p_operator;
                 end if;
-                if OOlIOI1 = 'N' then
-                    OOlIOI1 := 'is null';
-                elsif OOlIOI1 = 'BETWEEN' then
-                    if Il1I0I = 'VARCHAR2' then
-                        l0l1I00 := ''''||replace(IlO00OI, '~',''' AND ''')||'''' ; 
-                    elsif Il1I0I = 'DATE' then
-                        l0l1I00 := 'to_date('''||replace(IlO00OI, '~',''',''YYYYMMDDhh24miss'') AND to_date(''')||''',''YYYYMMDDhh24miss'')' ;
+                if l_operator = 'N' then
+                    l_operator := 'is null';
+                elsif l_operator = 'BETWEEN' then
+                    if p_column_type = 'VARCHAR2' then
+                        l_expression := ''''||replace(p_expression, '~',''' AND ''')||'''' ;
+                    elsif p_column_type = 'DATE' then
+                        l_expression := 'to_date('''||replace(p_expression, '~',''',''YYYYMMDDhh24miss'') AND to_date(''')||''',''YYYYMMDDhh24miss'')' ;
                     else
-                        l0l1I00 := replace(IlO00OI, '~',' AND ');
+                        l_expression := replace(p_expression, '~',' AND ');
                     end if;
-                elsif OOlIOI1 = 'Illl11' then
-                    OOlIOI1 := 'like';
-                    l0l1I00 := ''''||IlO00OI||'%''';
-                elsif OOlIOI1 = 'Ol1011' then
-                    OOlIOI1 := 'like';
-                    l0l1I00 := '''%'||IlO00OI||'%''';
-                elsif OOlIOI1 = 'IN' then
-                    if Il1I0I = 'DATE' then
-                        l0l1I00 := 'to_date('''||replace(replace(IlO00OI, CHR(13) || CHR(10) ,
+                elsif l_operator = 'S' then
+                    l_operator := 'like';
+                    l_expression := ''''||p_expression||'%''';
+                elsif l_operator = 'C' then
+                    l_operator := 'like';
+                    l_expression := '''%'||p_expression||'%''';
+                elsif l_operator = 'IN' then
+                    if p_column_type = 'DATE' then
+                        l_expression := 'to_date('''||replace(replace(p_expression, CHR(13) || CHR(10) ,
                                                              ''',''YYYYMMDDhh24miss'') , to_date('''), CHR(10) ,''',''YYYYMMDDhh24miss'') AND to_date(''')||
                                                              ''',''YYYYMMDDhh24miss'')';
-                    else 
-                        l0l1I00 := '('''||replace(replace(replace(IlO00OI, CHR(13) || CHR(10) ,''' , '''), CHR(10) ,''' , '''), CHR(1) ,''' , ''')||''')';
-                    
-                    end if;
-                elsif OOlIOI1 in ('GTE', 'LTE', 'GT', 'LT') then
-                    if Il1I0I = 'VARCHAR2' then
-                        l0l1I00 := ''''||IlO00OI||'''';
-                    elsif Il1I0I = 'DATE' then
-                        l0l1I00 := 'to_date('''||IlO00OI||''',''YYYYMMDDhh24miss'')';
                     else
-                        l0l1I00 := IlO00OI;
+                        l_expression := '('''||replace(replace(replace(p_expression, CHR(13) || CHR(10) ,''' , '''), CHR(10) ,''' , '''), CHR(1) ,''' , ''')||''')';
+                    /*
+                    else
+                        l_expression := '('||replace(replace(replace(p_expression, CHR(13) || CHR(10) ,' , '), CHR(10) ,' , '), CHR(1) ,' , ')||')';
+                    */
                     end if;
-                    OOlIOI1 := case OOlIOI1 when 'GTE' then '>=' when 'GT' then '>' when 'LTE' then '<=' when 'LT' then '<' end;
-                elsif OOlIOI1 in ('NEXT', 'LAST') then
-                    Il101I0 := replace(replace(replace(replace(replace(replace(replace(IlO00OI, '~', '*'),'Il1lII','1'),'H','1/24'),'MI','1/(24*60)'),'W','7'), 'M', '30'),'Y', '365');
-                    if OOlIOI1 = 'NEXT' then
-                        l0l1I00 := 'SYSDATE AND SYSDATE + '||Il101I0;
-                    elsif OOlIOI1 = 'LAST' then
-                        l0l1I00 := 'SYSDATE - '||Il101I0||' AND SYSDATE ';
+                elsif l_operator in ('GTE', 'LTE', 'GT', 'LT', 'EQ') then
+                    if p_column_type = 'VARCHAR2' then
+                        l_expression := ''''||p_expression||'''';
+                    elsif p_column_type = 'DATE' then
+                        l_expression := 'to_date('''||p_expression||''',''YYYYMMDDhh24miss'')';
+                    else
+                        l_expression := p_expression;
                     end if;
-                    OOlIOI1 := 'BETWEEN';
+                    l_operator := case l_operator when 'GTE' then '>=' when 'GT' then '>' when 'LTE' then '<=' when 'LT' then '<' when 'EQ' then '=' end;
+                elsif l_operator in ('NEXT', 'LAST') then
+                    l_limit_date := replace(replace(replace(replace(replace(replace(replace(p_expression, '~', '*'),'D','1'),'H','1/24'),'MI','1/(24*60)'),'W','7'), 'M', '30'),'Y', '365');
+                    if l_operator = 'NEXT' then
+                        l_expression := 'SYSDATE AND SYSDATE + '||l_limit_date;
+                    elsif l_operator = 'LAST' then
+                        l_expression := 'SYSDATE - '||l_limit_date||' AND SYSDATE ';
+                    end if;
+                    l_operator := 'BETWEEN';
                 end if;
             end if;
 
-            if O0I0I11O1 = 'No' and ((Il1I0I = 'VARCHAR2' and OOlIOI1 != 'IN') or OOlIOI1 = 'like') then
-                l0l1I00 := 'lower('||O0OO0I0I||') '||OOlIOI1||' '||lower(l0l1I00);
+            if p_is_case_sensitive = 'No' and ((p_column_type = 'VARCHAR2' and l_operator != 'IN') or l_operator = 'like') then
+                l_expression := 'lower('||p_column_alias||') '||l_operator||' '||lower(l_expression);
             else
-                l0l1I00 := O0OO0I0I||' '||OOlIOI1||' '||l0l1I00;
+                l_expression := p_column_alias||' '||l_operator||' '||l_expression;
             end if;
 
-            pak_xslt_log.WriteLog('l0l1I00: '||l0l1I00||' O0OO0I0I: '||O0OO0I0I||' IlO00OI: '||
-                                  IlO00OI||' II0O1I0: '||II0O1I0, p_procedure => '"l1IIl0lI".O0IOOII0');
-        end if; 
+            pak_xslt_log.WriteLog('l_expression: '||l_expression||' p_column_alias: '||p_column_alias||' p_expression: '||
+                                  p_expression||' p_operator: '||p_operator, p_procedure => 'IG2Report.BuildCondition');
+        end if; --Not REGEXP
 
-    elsif l110Ol0 = 'ROW' then
-        
-        for ll01I1 in 1..ll01ll.count loop
-          if ll01ll(ll01I1).col_type != 'VARCHAR2' then
-              if l10l1lI1 is null then
-                  l10l1lI1 := 'lower('||ll01ll(ll01I1).alias||')';
-                  O0IOIO1I := ll01ll(ll01I1).alias;
+    elsif p_type_code = 'ROW' then
+        --row filter
+        for i in 1..p_cols.count loop
+          if p_cols(i).col_type != 'VARCHAR2' then
+              if l_row_string is null then
+                  l_row_string := 'lower('||p_cols(i).alias||')';
+                  l_row_string_cs := p_cols(i).alias;
               else
-                  l10l1lI1 := l10l1lI1||'||'',''||lower('||ll01ll(ll01I1).alias||')';
-                  O0IOIO1I := O0IOIO1I||'||'',''||'||ll01ll(ll01I1).alias;
+                  l_row_string := l_row_string||'||'',''||lower('||p_cols(i).alias||')';
+                  l_row_string_cs := l_row_string_cs||'||'',''||'||p_cols(i).alias;
               end if;
-          elsif ll01ll(ll01I1).col_type != 'NUMBER' then
-              if l10l1lI1 is null then
-                  l10l1lI1 := 'to_char('||ll01ll(ll01I1).alias||')';
-                  O0IOIO1I := 'to_char('||ll01ll(ll01I1).alias||')';
+          elsif p_cols(i).col_type != 'NUMBER' then
+              if l_row_string is null then
+                  l_row_string := 'to_char('||p_cols(i).alias||')';
+                  l_row_string_cs := 'to_char('||p_cols(i).alias||')';
               else
-                  l10l1lI1 := l10l1lI1||'||'',''||to_char('||ll01ll(ll01I1).alias||')';
-                  O0IOIO1I := O0IOIO1I||'||'',''||to_char('||ll01ll(ll01I1).alias||')';
+                  l_row_string := l_row_string||'||'',''||to_char('||p_cols(i).alias||')';
+                  l_row_string_cs := l_row_string_cs||'||'',''||to_char('||p_cols(i).alias||')';
               end if;
           end if;
         end loop;
 
-        if O0I0I11O1 = 'No' then
-          l0l1I00 := 'instr('||l10l1lI1||','''||lower(IlO00OI)||''') > 0'; 
+        if p_is_case_sensitive = 'No' then
+          l_expression := 'instr('||l_row_string||','''||lower(p_expression)||''') > 0';
         else
-          l0l1I00 := 'instr('||O0IOIO1I||','''||IlO00OI||''') > 0'; 
+          l_expression := 'instr('||l_row_string_cs||','''||p_expression||''') > 0';
         end if;
     end if;
 
-    return IllIO0l||' '||l0l1I00;
+    return l_not||' '||l_expression;
 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O0IOOII0', p_sqlerrm => sqlerrm ); 
-  raise; 
-end O0IOOII0;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2REPORT.BuildCondition', p_sqlerrm => sqlerrm );
+  raise;
+end BuildCondition;
 
- 
-procedure lIlOOl1( 
-    Ol01Il number, 
-    IIl1I0 number, 
-    IIl11l number,
-    l10I0OI0 number,
-    ll01ll APEXREP2REPORT.Ol0110,
-    Il10l1 out varchar2, 
-    Ol1II1 out varchar2,
-    ll10lI out varchar2 
-) 
-as 
-  Ol01l1 number; 
-  ll01l0 varchar2(32767); 
-  
-  Ol10lI varchar2(32767); 
-  
- ll0II0 number;
- O01llO01 number;
-  
-  
-  
-  cursor Il10ll(ll101I number) is 
+/** Returns where sentence and order by from filters.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_apr row of current report in apex_application_page_ir_rpt view.
+* @param pio_region_source Source query of region.
+*/
+procedure IGUseFilters(
+    p_region_id number,
+    p_page_id number,
+    p_use_filters_hidPK number,
+    p_master_region_id number,
+    p_cols APEXREP2REPORT.tp_cols,
+    po_order_by_list out varchar2,
+    po_aggr_order_by_list out varchar2,
+    po_where out varchar2
+)
+as
+  t_base_report_id number;
+  t_pref varchar2(32767);
+  --po_where varchar2(32767);
+  t_search varchar2(32767);
+  --t_break_cols tp_strtbl;
+ l_report_id number;
+ l_master_report_id number;
+
+  --filters or searches (conditions) for this versions of IG
+
+  cursor c_con(c_report_id number) is
   select  col.NAME as column_alias,
-        col.data_type as column_type, 
-        ll1lIl.OPERATOR, ll1lIl.IS_CASE_SENSITIVE,
-        ll1lIl.EXPRESSION, ll1lIl.IS_ENABLED
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id  
-        join APEX_APPL_PAGE_IG_RPT_FILTERS ll1lIl on ll1lIl.report_id = rcol.report_id and ll1lIl.column_id = rcol.column_id 
-  where ll1lIl.report_id = ll101I and ll1lIl.TYPE_CODE = 'COLUMN';
-  
-  cursor Il0lOl0(ll101I number) is 
-  select ll1lIl.IS_CASE_SENSITIVE,
-        ll1lIl.EXPRESSION, ll1lIl.IS_ENABLED
-        from APEX_APPL_PAGE_IG_RPT_FILTERS ll1lIl 
-        where ll1lIl.report_id = ll101I and ll1lIl.TYPE_CODE = 'ROW';
-        
- l0l1I00 varchar2(4000);
- 
-begin 
-  
-  pak_xslt_log.WriteLog( 'Start for Ol01Il : '||Ol01Il||
-                        ' IIl1I0 : '||IIl1I0, p_procedure => '"l1IIl0lI".lIlOOl1'); 
-  ll10lI := ''; 
-  Il10l1 := ''; 
-  ll0II0 := ll01Il(Ol01Il, IIl1I0).report_id;
-  
-  if l10I0OI0 is not null then
-      O01llO01 := ll01Il(l10I0OI0, IIl1I0).report_id;
+        col.data_type as column_type,
+        f.OPERATOR, f.IS_CASE_SENSITIVE,
+        f.EXPRESSION, f.IS_ENABLED
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id
+        join APEX_APPL_PAGE_IG_RPT_FILTERS f on f.report_id = rcol.report_id and f.column_id = rcol.column_id
+  where f.report_id = c_report_id and f.TYPE_CODE = 'COLUMN';
+
+  cursor c_con_row(c_report_id number) is
+  select f.IS_CASE_SENSITIVE,
+        f.EXPRESSION, f.IS_ENABLED
+        from APEX_APPL_PAGE_IG_RPT_FILTERS f
+        where f.report_id = c_report_id and f.TYPE_CODE = 'ROW';
+
+ l_expression varchar2(4000);
+
+begin
+  --build where sentence from Filter and Search--
+  pak_xslt_log.WriteLog( 'Start for p_region_id : '||p_region_id||
+                        ' p_page_id : '||p_page_id, p_procedure => 'IG2Report.IGUseFilters');
+  po_where := '';
+  po_order_by_list := '';
+  l_report_id := Get_current_report_row(p_region_id, p_page_id).report_id;
+
+  if p_master_region_id is not null then
+      l_master_report_id := Get_current_report_row(p_master_region_id, p_page_id).report_id;
   end if;
-  
-  if IIl11l > 0 then
-      for ll1101 in Il10ll(ll0II0) 
+
+  if p_use_filters_hidPK > 0 then
+      for r_con in c_con(l_report_id)
       loop
-          l0l1I00 := O0IOOII0(
-                ll1101.column_alias,
+          l_expression := BuildCondition(
+                r_con.column_alias,
                 'COLUMN',
-                ll1101.expression,
-                ll1101.operator,
-                ll1101.column_type,
-                ll1101.is_case_sensitive
+                r_con.expression,
+                r_con.operator,
+                r_con.column_type,
+                r_con.is_case_sensitive
           );
-          
-          if ll10lI is null then 
-              ll10lI := l0l1I00;
-          else 
-              ll10lI := ll10lI ||' and '|| l0l1I00; 
-          end if; 
+
+          if po_where is null then
+              po_where := l_expression;
+          else
+              po_where := po_where ||' and '|| l_expression;
+          end if;
       end loop;
 
-      for r_con_row in Il0lOl0(ll0II0) 
-      loop 
-          l0l1I00 := O0IOOII0(
+      for r_con_row in c_con_row(l_report_id)
+      loop
+          l_expression := BuildCondition(
                 null,
                 'ROW',
                 r_con_row.expression,
                 null,
                 null,
                 r_con_row.is_case_sensitive,
-                ll01ll
+                p_cols
           );
 
-          if ll10lI is null then 
-              ll10lI := l0l1I00;
-          else 
-              ll10lI := ll10lI ||' and '||l0l1I00; 
-          end if; 
+          if po_where is null then
+              po_where := l_expression;
+          else
+              po_where := po_where ||' and '||l_expression;
+          end if;
       end loop;
   end if;
- 
-  ll10Il(ll0II0, IIl11l, O01llO01, Il10l1, Ol1II1); 
- 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".lIlOOl1', p_sqlerrm => sqlerrm ); 
-  raise; 
-end lIlOOl1; 
 
- 
-function Il1000( 
-  O0OO0I0I APEX_APPL_PAGE_IG_COLUMNS.NAME%type,
-  O0O0O1lO1 APEX_APPL_PAGE_IG_COLUMNS.HEADING%type,
-  l110Ol0 APEX_APPL_PAGE_IG_RPT_FILTERS.TYPE_CODE%type,
-  IlO00OI APEX_APPL_PAGE_IG_RPT_FILTERS.EXPRESSION%type,
-  II0O1I0 APEX_APPL_PAGE_IG_RPT_FILTERS.OPERATOR%type,
-  Il1I0I APEX_APPL_PAGE_IG_COLUMNS.DATA_TYPE%type,
-  O0I0I11O1 APEX_APPL_PAGE_IG_RPT_FILTERS.IS_CASE_SENSITIVE%type,
-  ll1000 APEX_APPL_PAGE_IG_RPT_HIGHLTS.NAME%type,
-  Il1I0OO1 APEX_APPL_PAGE_IG_RPT_HIGHLTS.COLUMN_ID%type,
-  lI0O1lO1 APEX_APPL_PAGE_IG_RPT_HIGHLTS.BACKGROUND_COLOR%type,
-  l1O11OlI APEX_APPL_PAGE_IG_RPT_HIGHLTS.TEXT_COLOR%type,
-  ll01ll APEXREP2REPORT.Ol0110 default null  
-) 
-return varchar2 
+  BindSort(l_report_id, p_use_filters_hidPK, l_master_report_id, po_order_by_list, po_aggr_order_by_list);
+
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.IGUseFilters', p_sqlerrm => sqlerrm );
+  raise;
+end IGUseFilters; --end of block Use of filters in select
+
+/**Binds (compose) case sentence to get higlighted rows in source select
+*
+* @param p_condition_sql SQL condition in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_expression first condition expression in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_expression2 second condition expression in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_name second condition name like appears in apex dictionary view apex_application_page_ir_cond
+* @param p_highlight_cell_color highlight cell color in apex dictionary view apex_application_page_ir_cond format
+* @param p_highlight_cell_font_color highlight cell font color in apex dictionary view apex_application_page_ir_cond format
+* @param p_highlight_row_color highlight row color in apex dictionary view apex_application_page_ir_cond format
+* @param p_highlight_row_font_color highlight row font color in apex dictionary view apex_application_page_ir_cond format
+* @param p_col_label column label
+* @return complete case sentence to get higlighted rows in source select
+*/
+function GetHighlightCase(
+  p_column_alias APEX_APPL_PAGE_IG_COLUMNS.NAME%type,
+  p_column_heading APEX_APPL_PAGE_IG_COLUMNS.HEADING%type,
+  p_type_code APEX_APPL_PAGE_IG_RPT_FILTERS.TYPE_CODE%type,
+  p_expression APEX_APPL_PAGE_IG_RPT_FILTERS.EXPRESSION%type,
+  p_operator APEX_APPL_PAGE_IG_RPT_FILTERS.OPERATOR%type,
+  p_column_type APEX_APPL_PAGE_IG_COLUMNS.DATA_TYPE%type,
+  p_is_case_sensitive APEX_APPL_PAGE_IG_RPT_FILTERS.IS_CASE_SENSITIVE%type,
+  p_condition_name APEX_APPL_PAGE_IG_RPT_HIGHLTS.NAME%type,
+  p_column_id APEX_APPL_PAGE_IG_RPT_HIGHLTS.COLUMN_ID%type,
+  p_background_color APEX_APPL_PAGE_IG_RPT_HIGHLTS.BACKGROUND_COLOR%type,
+  p_text_color APEX_APPL_PAGE_IG_RPT_HIGHLTS.TEXT_COLOR%type,
+  p_cols APEXREP2REPORT.tp_cols default null
+)
+return varchar2
 as
-l0l1I00 varchar2(32000);
-begin 
-  l0l1I00 := O0IOOII0(
-    O0OO0I0I,
-    l110Ol0,
-    IlO00OI,
-    II0O1I0,
-    Il1I0I,
-    O0I0I11O1,
-    ll01ll
+l_expression varchar2(32000);
+begin
+  l_expression := BuildCondition(
+    p_column_alias,
+    p_type_code,
+    p_expression,
+    p_operator,
+    p_column_type,
+    p_is_case_sensitive,
+    p_cols
  );
- 
- return 
-  ' (case when '||l0l1I00||
-  ' then ''highlight_name="'||ll1000||'" '|| 
-  'highlight_col="'||Query2Report.IIlIll(O0O0O1lO1)||'" '|| 
-  'highlight_cell="'|| 
- case when Il1I0OO1 is not null then 'true' else 'false' end||'" '|| 
-  'highlight_bkg_color="'||lI0O1lO1||'" '|| 
-  'highlight_font_color="'||l1O11OlI||'"'' end) '; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'Il1000', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il1000; 
 
- 
-function Il1l01( 
-  IIl1I0 number, 
-  Ol01Il number, 
-  Ol1II0 boolean,
-  ll01ll APEXREP2REPORT.Ol0110 default null    
-) 
-return varchar2 
-as 
-Il1010 varchar2(32767); 
-ll0II0 number; 
- 
-cursor ll1l0I(ll101I number) is 
+ return
+  ' (case when '||l_expression||
+  ' then ''highlight_name="'||p_condition_name||'" '||
+  'highlight_col="'||Query2Report.ConvertColName2XmlName(p_column_heading)||'" '||
+  'highlight_cell="'||
+ case when p_column_id is not null then 'true' else 'false' end||'" '||
+  'highlight_bkg_color="'||p_background_color||'" '||
+  'highlight_font_color="'||p_text_color||'"'' end) ';
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'GetHighlightCase', p_sqlerrm => sqlerrm );
+  raise;
+end GetHighlightCase;
+
+/**Combine all highlight conditions of current IG from APEX_APPL_PAGE_IG_RPT_HIGHLTS
+* view into one column compute with case sentence
+*
+* @param p_page_id APEX Page ID.
+* @param p_region_id APEX Region ID.
+* @param p_aggregation true if also aggregation occur
+* @param p_cols collection of columns info
+*/
+function GetHighlightCaseAll(
+  p_page_id number,
+  p_region_id number,
+  p_aggregation boolean,
+  p_cols APEXREP2REPORT.tp_cols default null
+)
+return varchar2
+as
+l_highlight_case varchar2(32767);
+l_report_id number;
+
+cursor c_highlights(c_report_id number) is
   select col.NAME as column_alias,
         col.heading as column_heading,
         col.data_type as column_type,
     h.name, h.column_id, h.execution_seq,
-    h.BACKGROUND_COLOR, h.TEXT_COLOR, h.CONDITION_TYPE, h.CONDITION_TYPE_CODE, h.CONDITION_COLUMN_ID, 
-    h.CONDITION_OPERATOR, h.CONDITION_IS_CASE_SENSITIVE, h.CONDITION_EXPRESSION 
-    from APEX_APPL_PAGE_IG_COLUMNS col  
-    join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id  
-    join APEX_APPL_PAGE_IG_RPT_HIGHLTS h on h.report_id = rcol.report_id and h.condition_column_id = rcol.column_id 
-    where h.CONDITION_TYPE_CODE = 'COLUMN' 
-    and h.region_id = Ol01Il
-    and h.report_id = ll101I
-    and h.page_id = IIl1I0
+    h.BACKGROUND_COLOR, h.TEXT_COLOR, h.CONDITION_TYPE, h.CONDITION_TYPE_CODE, h.CONDITION_COLUMN_ID,
+    h.CONDITION_OPERATOR, h.CONDITION_IS_CASE_SENSITIVE, h.CONDITION_EXPRESSION
+    from APEX_APPL_PAGE_IG_COLUMNS col
+    join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id
+    join APEX_APPL_PAGE_IG_RPT_HIGHLTS h on h.report_id = rcol.report_id and h.condition_column_id = rcol.column_id
+    where h.CONDITION_TYPE_CODE = 'COLUMN'
+    and h.region_id = p_region_id
+    and h.report_id = c_report_id
+    and h.page_id = p_page_id
     and h.IS_ENABLED = 'Yes'
     union
     select null as column_alias,
            null as column_heading,
            null as column_type,
     h.name, h.column_id, h.execution_seq,
-    h.BACKGROUND_COLOR, h.TEXT_COLOR, h.CONDITION_TYPE, h.CONDITION_TYPE_CODE, h.CONDITION_COLUMN_ID, 
-    h.CONDITION_OPERATOR, h.CONDITION_IS_CASE_SENSITIVE, h.CONDITION_EXPRESSION 
+    h.BACKGROUND_COLOR, h.TEXT_COLOR, h.CONDITION_TYPE, h.CONDITION_TYPE_CODE, h.CONDITION_COLUMN_ID,
+    h.CONDITION_OPERATOR, h.CONDITION_IS_CASE_SENSITIVE, h.CONDITION_EXPRESSION
     from APEX_APPL_PAGE_IG_RPT_HIGHLTS h
-    where h.CONDITION_TYPE_CODE = 'ROW' 
-    and h.region_id = Ol01Il
-    and h.report_id = ll101I
-    and h.page_id = IIl1I0
+    where h.CONDITION_TYPE_CODE = 'ROW'
+    and h.region_id = p_region_id
+    and h.report_id = c_report_id
+    and h.page_id = p_page_id
     and h.IS_ENABLED = 'Yes'
-    order by execution_seq; 
- 
-begin 
-  ll0II0 := ll01Il(Ol01Il, IIl1I0).report_id; 
- 
-  for Il1l0l in ll1l0I(ll0II0) loop 
-    Il1010 := Il1010|| 
-                        Il1000( 
-                          Il1l0l.column_alias,
-                          Il1l0l.column_heading,
-                          Il1l0l.condition_type_code,
-                          Il1l0l.condition_expression,
-                          Il1l0l.condition_operator,
-                          Il1l0l.column_type,
-                          Il1l0l.condition_is_case_sensitive,
-                          Il1l0l.name,
-                          Il1l0l.column_id,
-                          Il1l0l.background_color,
-                          Il1l0l.text_color,
-                          ll01ll
-                        )||query2report.g_crlf; 
-  end loop; 
-  if Il1010 is not null then 
-    Il1010:=replace(Il1010, '(case',''); 
-    Il1010:=replace(Il1010, 'end)',''); 
-    if Ol1II0 then 
-      Il1010:=replace(Il1010, 'when','when REGION_AGGREGATES is null and '); 
-    end if; 
-    Il1010:='(case '||Il1010||' end)'; 
-  end if; 
-  return Il1010; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error IIl1I0 '||to_char(IIl1I0)||' ll0II0 '||to_char(ll0II0), 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => '"l1IIl0lI".Il1l01', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il1l01;
+    order by execution_seq;
 
-
-function l010lII(p_attribute_01 varchar2) 
-return varchar2 
-as 
-ll1l0l varchar2(50); 
-Ol1l10 number; 
-Il1l10 varchar2(50); 
-ll1l11 varchar2(50); 
-Il01I1 varchar2(400); 
-begin 
-  Il01I1 := p_attribute_01; 
-  
-  
-  loop 
-    Ol1l10 := regexp_instr(Il01I1, '&([Ol0lI0-zA-Z0-9_]*).'); 
-     exit when nvl(Ol1l10, 0) = 0; 
-    ll1l0l := regexp_substr(Il01I1, '&([Ol0lI0-zA-Z0-9_]*).'); 
-    exit when length(ll1l0l) = 0; 
- 
-    ll1l11 := ltrim(rtrim(ll1l0l,'.'),'&'); 
- 
-    
-      
- 
-    if V(ll1l11) is not null then 
-      Il01I1 := substr(Il01I1, 1, Ol1l10 - 1)||V(ll1l11)||substr(Il01I1, Ol1l10 + length(ll1l0l)); 
-    else 
-      Il01I1 := substr(Il01I1, 1, Ol1l10 - 1)||'x26'||ll1l11||'x2e'||substr(Il01I1, Ol1l10 + length(ll1l0l)); 
-    end if; 
-  end loop; 
- 
-  
-      
-  return Il01I1; 
-exception 
-	when others then 
-  pak_xslt_log.WriteLog( 'Error: '||p_attribute_01, 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'l010lII', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end l010lII; 
-
-
-
-function II0I1IO1(
-   Ol01Il            in number,
-   IIl1I0              in number,
-   IIl11l    in number,
-   l101lO1O1             out varchar2,
-   O0Il1I0I         out number  
-   
-)
-return APEXREP2REPORT.Ol0110
-as
-Ol01I0 APEXREP2REPORT.Ol0110;
-Il0l10 apex_appl_page_ig_rpts%rowtype;
-ll0II0 number;
-IlIlIOl number;
-O01llO01 number;
 begin
-    pak_xslt_log.WriteLog( 'Start for Ol01Il : '||Ol01Il||
-                        ' IIl1I0 : '||IIl1I0, p_procedure => '"l1IIl0lI".II0I1IO1'); 
-                        
-    Il0l10 := ll01Il(Ol01Il, IIl1I0);
-    ll0II0 := Il0l10.report_id;
-    
-    select nvl(max_row_count, 100000) 
-    into O0Il1I0I
-    from APEX_APPL_PAGE_IGS 
-    where application_id = APEX_APPLICATION.G_FLOW_ID 
-    and page_id = IIl1I0 
-    and region_id = Ol01Il;
-    
-    select MASTER_REGION_ID into IlIlIOl from APEX_APPLICATION_PAGE_REGIONS where region_id = Ol01Il;
-    
-    if IlIlIOl is not null then
-        O01llO01 := ll01Il(IlIlIOl, IIl1I0).report_id;
+  l_report_id := Get_current_report_row(p_region_id, p_page_id).report_id;
+
+  for r_highlights in c_highlights(l_report_id) loop
+    l_highlight_case := l_highlight_case||
+                        GetHighlightCase(
+                          r_highlights.column_alias,
+                          r_highlights.column_heading,
+                          r_highlights.condition_type_code,
+                          r_highlights.condition_expression,
+                          r_highlights.condition_operator,
+                          r_highlights.column_type,
+                          r_highlights.condition_is_case_sensitive,
+                          r_highlights.name,
+                          r_highlights.column_id,
+                          r_highlights.background_color,
+                          r_highlights.text_color,
+                          p_cols
+                        )||query2report.g_crlf;
+  end loop;
+  if l_highlight_case is not null then
+    l_highlight_case:=replace(l_highlight_case, '(case','');
+    l_highlight_case:=replace(l_highlight_case, 'end)','');
+    if p_aggregation then
+      l_highlight_case:=replace(l_highlight_case, 'when','when REGION_AGGREGATES is null and ');
     end if;
-    
-    if Il0l10.name is not null then                                                                                                      
-      l101lO1O1 := 'IR_name="'||Il0l10.name||'"';                                                                                       
-    end if;                                                                                                                                        
-    if Il0l10.description is not null then                                                                                               
-      l101lO1O1 := l101lO1O1||' IR_description="'||Il0l10.description||'"';                                                            
-    end if;                                                                                                                                        
+    l_highlight_case:='(case '||l_highlight_case||' end)';
+  end if;
+  return l_highlight_case;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_page_id '||to_char(p_page_id)||' l_report_id '||to_char(l_report_id),
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'IG2REPORT.GetHighlightCaseAll',
+    p_sqlerrm => sqlerrm );
+  raise;
+end GetHighlightCaseAll;
 
-    pak_xslt_log.WriteLog( 'll0l0l: '||l101lO1O1, p_log_type => pak_xslt_log.g_information, p_procedure => '"l1IIl0lI".II0I1IO1');               
+/* TODO future, if we want to display pictures*/
+function HtmlBindColumn(p_attribute_01 varchar2)
+return varchar2
+as
+l_replacment_string varchar2(50);
+l_replacment_strpos number;
+l_replace_with varchar2(50);
+l_item_id varchar2(50);
+l_ret varchar2(400);
+begin
+  l_ret := p_attribute_01;
+  --pak_xslt_log.WriteLog( 'start l_ret: '||l_ret,
+  --    p_procedure => 'BindSSApexItem');
+  loop
+    l_replacment_strpos := regexp_instr(l_ret, '&([a-zA-Z0-9_]*).'); --bind session state values
+     exit when nvl(l_replacment_strpos, 0) = 0;
+    l_replacment_string := regexp_substr(l_ret, '&([a-zA-Z0-9_]*).'); --bind session state values
+    exit when length(l_replacment_string) = 0;
 
-    
-    if IIl11l = 0 then 
-        select report_label, fullname, column_alias, column_type, 
-        format_mask, PRINT_COLUMN_WIDTH, display_seq, 
-        Ol0101, query_id, IIl10I,
-        LOV_SQL, ll010I, item_type
-        bulk collect into Ol01I0 
+    l_item_id := ltrim(rtrim(l_replacment_string,'.'),'&');
+
+    --pak_xslt_log.WriteLog( 'l_item_id: '||l_item_id||' V(l_item_id): '||V(l_item_id),
+      --p_procedure => 'BindSSApexItem');
+
+    if V(l_item_id) is not null then
+      l_ret := substr(l_ret, 1, l_replacment_strpos - 1)||V(l_item_id)||substr(l_ret, l_replacment_strpos + length(l_replacment_string));
+    else
+      l_ret := substr(l_ret, 1, l_replacment_strpos - 1)||'x26'||l_item_id||'x2e'||substr(l_ret, l_replacment_strpos + length(l_replacment_string));
+    end if;
+  end loop;
+
+  --pak_xslt_log.WriteLog( 'return l_ret: '||l_ret,
+      --p_procedure => 'BindSSApexItem');
+  return l_ret;
+exception
+	when others then
+  pak_xslt_log.WriteLog( 'Error: '||p_attribute_01,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'HtmlBindColumn',
+    p_sqlerrm => sqlerrm );
+  raise;
+end HtmlBindColumn;
+
+
+/**  Returns Array of columns in as they appear in IG report (order and quantity) with using filters.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* @param p_current_report_columns Visible IG columns separated with :.
+* @return Array of columns in as they appear in report (order and quantity) with hidden and PK columns at the start if p_hidPK is true.
+*/
+function CollectIGColumns(
+   p_region_id            in number,
+   p_page_id              in number,
+   p_use_filters_hidPK    in number,
+   po_IG_Attr             out varchar2,
+   po_max_rows_IG         out number
+   --p_current_report_columns  in varchar2 default null
+)
+return APEXREP2REPORT.tp_cols
+as
+t_cols APEXREP2REPORT.tp_cols;
+l_rpt_row apex_appl_page_ig_rpts%rowtype;
+l_report_id number;
+l_master_region_id number;
+l_master_report_id number;
+begin
+    pak_xslt_log.WriteLog( 'Start for p_region_id : '||p_region_id||
+                        ' p_page_id : '||p_page_id, p_procedure => 'IG2Report.CollectIGColumns');
+
+    l_rpt_row := Get_current_report_row(p_region_id, p_page_id);
+    l_report_id := l_rpt_row.report_id;
+
+    select nvl(max_row_count, 100000)
+    into po_max_rows_IG
+    from APEX_APPL_PAGE_IGS
+    where application_id = APEX_APPLICATION.G_FLOW_ID
+    and page_id = p_page_id
+    and region_id = p_region_id;
+
+    select MASTER_REGION_ID into l_master_region_id from APEX_APPLICATION_PAGE_REGIONS where region_id = p_region_id;
+
+    if l_master_region_id is not null then
+        l_master_report_id := Get_current_report_row(l_master_region_id, p_page_id).report_id;
+    end if;
+
+    if l_rpt_row.name is not null then
+      po_IG_Attr := 'IR_name="'||l_rpt_row.name||'"';
+    end if;
+    if l_rpt_row.description is not null then
+      po_IG_Attr := po_IG_Attr||' IR_description="'||l_rpt_row.description||'"';
+    end if;
+
+    pak_xslt_log.WriteLog( 'po_IR_Attr: '||po_IG_Attr, p_log_type => pak_xslt_log.g_information, p_procedure => 'IG2Report.CollectIGColumns');
+    pak_xslt_log.WriteLog( 'Before bulk collect selects l_master_region_id: '||l_master_region_id||
+                           ' l_master_report_id: '||l_master_report_id||
+                           ' l_report_id: '||l_report_id||
+                           ' p_page_id: '||p_page_id||
+                           ' p_region_id: '||p_region_id, 
+                           p_procedure => 'IG2Report.CollectIGColumns');
+
+
+    if p_use_filters_hidPK = 0 then --0 - All columns,
+        select report_label, fullname, 
+        column_alias, master_alias, 
+        column_type,
+        format_mask, PRINT_COLUMN_WIDTH, display_seq,
+        sum_total, query_id, html_img_included,
+        LOV_SQL, aggregation, item_type
+        bulk collect into t_cols
         from
         (
-        select APEXREP2REPORT.OIl1ll(regexp_replace(col.HEADING, '<[^>]+>'))||case when col.region_id = nvl(IlIlIOl, 0) then ' Master' end as report_label, 
-        regexp_replace(col.HEADING, '<[^>]+>')||case when col.region_id = nvl(IlIlIOl, 0) then ' Master' end as fullname,
-        col.NAME||case when col.region_id = nvl(IlIlIOl, 0) then '_MASTER' end as column_alias, 
+        select APEXREP2REPORT.PrepareColumnHeader(col.HEADING)||
+        case when col.region_id = nvl(l_master_region_id, 0) then ' Master' end as report_label,
+        APEXREP2REPORT.RemoveLineBreak(col.HEADING)||
+        case when col.region_id = nvl(l_master_region_id, 0) then ' Master' end as fullname,
+        case when col.region_id = nvl(l_master_region_id, 0) then substr(col.NAME,1,30-length('_MASTER'))||'_MASTER' else col.NAME end as column_alias,
+        col.NAME as master_alias,
         case when col.LOV_ID is not null or col.LOV_SOURCE is not null then 'VARCHAR2' else col.data_type end column_type,
         col.format_mask,
         null as PRINT_COLUMN_WIDTH,
-        rcol.display_seq, 
-        case when col.region_id != nvl(IlIlIOl, 0) then substr(Ol0lI0.show_grand_total,1,1) end Ol0101,  
+        rcol.display_seq,
+        case when col.region_id != nvl(l_master_region_id, 0) then substr(a.show_grand_total,1,1) end sum_total,
         null query_id,
-        APEXREP2REPORT.IIl10I(col.item_type, col.attribute_01, col.format_mask) IIl10I,
-        "l1IIl0lI".OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
-        case when col.region_id = IlIlIOl or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else Ol0lI0.function end ll010I, 
-        col.item_type,    
-        case when col.region_id = IlIlIOl then IlIlIOl end MASTER_REGION_ID, 
-        rank() over (partition by col.NAME order by Ol0lI0.aggregate_id desc) rank_num
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (ll0II0, O01llO01)
-        left outer join APEX_APPL_PAGE_IG_RPT_AGGS Ol0lI0 on Ol0lI0.column_id = rcol.column_id and Ol0lI0.report_id = rcol.report_id and Ol0lI0.is_enabled = 'Yes'
-        where col.page_id = IIl1I0 
-        and col.region_id in (Ol01Il, IlIlIOl) 
+        APEXREP2REPORT.Html_img_included(col.item_type, col.attribute_01, col.format_mask) html_img_included,
+        IG2Report.GetLOVSelect(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
+        case when col.region_id = l_master_region_id or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else a.function end aggregation, --show master region cols as break cols
+        col.item_type,
+        case when col.region_id = l_master_region_id then l_master_region_id end MASTER_REGION_ID, --master region
+        rank() over (partition by col.NAME order by a.aggregate_id desc) rank_num
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (l_report_id, l_master_report_id)
+        left outer join APEX_APPL_PAGE_IG_RPT_AGGS a on a.column_id = rcol.column_id and a.report_id = rcol.report_id and a.is_enabled = 'Yes'
+        where col.page_id = p_page_id --2 --30 --2
+        and col.region_id in (p_region_id, l_master_region_id) --adds master region cols
         and col.source_type_code = 'DB_COLUMN'
         and col.item_type not in ('NATIVE_PASSWORD', 'NATIVE_ROW_SELECTOR')
         )
         where rank_num = 1
-        order by master_region_id, display_seq; 
-        
-        
-    elsif  IIl11l = 1 then 
-        select report_label, fullname, column_alias, column_type, 
-        format_mask, PRINT_COLUMN_WIDTH, display_seq, 
-        Ol0101, query_id, IIl10I,
-        LOV_SQL, ll010I, item_type
-        bulk collect into Ol01I0 
+        order by master_region_id, display_seq, column_alias; --master region cols first
+        /*
+        where
+        rcol.is_visible, --Yes/No
+        col.INCLUDE_IN_EXPORT , --Yes/No
+        col.IS_PRIMARY_KEY,  --Yes/No
+        */
+
+    elsif  p_use_filters_hidPK = 1 then --1 - just included in export columns,
+        select report_label, fullname, 
+        column_alias, master_alias, 
+        column_type,
+        format_mask, PRINT_COLUMN_WIDTH, display_seq,
+        sum_total, query_id, html_img_included,
+        LOV_SQL, aggregation, item_type
+        bulk collect into t_cols
         from
         (
-        select APEXREP2REPORT.OIl1ll(regexp_replace(col.HEADING, '<[^>]+>'))||case when col.region_id = nvl(IlIlIOl, 0) then ' Master' end as report_label, 
-        regexp_replace(col.HEADING, '<[^>]+>')||case when col.region_id = nvl(IlIlIOl, 0) then ' Master' end as fullname,
-        col.NAME||case when col.region_id = nvl(IlIlIOl, 0) then '_MASTER' end as column_alias, 
+        select APEXREP2REPORT.PrepareColumnHeader(col.HEADING)||
+        case when col.region_id = nvl(l_master_region_id, 0) then ' Master' end as report_label,
+        APEXREP2REPORT.RemoveLineBreak(col.HEADING)||
+        case when col.region_id = nvl(l_master_region_id, 0) then ' Master' end as fullname,
+        case when col.region_id = nvl(l_master_region_id, 0) then substr(col.NAME,1,30-length('_MASTER'))||'_MASTER' else col.NAME end as column_alias,
+        col.NAME master_alias,
         case when col.LOV_ID is not null or col.LOV_SOURCE is not null then 'VARCHAR2' else col.data_type end column_type,
         col.format_mask,
         null as PRINT_COLUMN_WIDTH,
-        rcol.display_seq, 
-        substr(Ol0lI0.show_grand_total,1,1) Ol0101,  
+        rcol.display_seq,
+        substr(a.show_grand_total,1,1) sum_total,
         null query_id,
-        APEXREP2REPORT.IIl10I(col.item_type, col.attribute_01, col.format_mask) IIl10I,
-        "l1IIl0lI".OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
-        case when col.region_id = IlIlIOl or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else Ol0lI0.function end ll010I, 
-        col.item_type,    
-        case when col.region_id = IlIlIOl then IlIlIOl end MASTER_REGION_ID, 
-        rank() over (partition by col.NAME order by Ol0lI0.aggregate_id desc) rank_num
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (ll0II0, O01llO01)
-        left outer join APEX_APPL_PAGE_IG_RPT_AGGS Ol0lI0 on Ol0lI0.column_id = rcol.column_id and Ol0lI0.report_id = rcol.report_id and Ol0lI0.is_enabled = 'Yes'
-        where col.page_id = IIl1I0 
-        and col.region_id in (Ol01Il, IlIlIOl) 
+        APEXREP2REPORT.Html_img_included(col.item_type, col.attribute_01, col.format_mask) html_img_included,
+        IG2Report.GetLOVSelect(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
+        case when col.region_id = l_master_region_id or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else a.function end aggregation, --show master region cols as break cols
+        col.item_type,
+        case when col.region_id = l_master_region_id then l_master_region_id end MASTER_REGION_ID, --master region
+        rank() over (partition by col.NAME order by a.aggregate_id desc) rank_num
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (l_report_id, l_master_report_id)
+        left outer join APEX_APPL_PAGE_IG_RPT_AGGS a on a.column_id = rcol.column_id and a.report_id = rcol.report_id and a.is_enabled = 'Yes'
+        where col.page_id = p_page_id --2 --30 --2
+        and col.region_id in (p_region_id, l_master_region_id) --adds master region cols
         and col.source_type_code = 'DB_COLUMN'
         and col.item_type not in ('NATIVE_PASSWORD', 'NATIVE_ROW_SELECTOR')
-        and 
+        and
         ((rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes')
-        or col.IS_PRIMARY_KEY = 'Yes' or col.item_type = 'NATIVE_HIDDEN'
+        --or col.IS_PRIMARY_KEY = 'Yes' or col.item_type = 'NATIVE_HIDDEN'
         )
         where rank_num = 1
-        order by master_region_id, display_seq; 
-    elsif  IIl11l = 2 then 
-        select report_label, fullname, column_alias, column_type, 
-        format_mask, PRINT_COLUMN_WIDTH, display_seq, 
-        Ol0101, query_id, IIl10I,
-        LOV_SQL, ll010I, item_type
-        bulk collect into Ol01I0 
+        order by master_region_id, display_seq, column_alias; --master region cols first
+    elsif  p_use_filters_hidPK = 2 then --2 - just included in export and visible columns 
+        select report_label, fullname, 
+        column_alias, master_alias, 
+        column_type,
+        format_mask, PRINT_COLUMN_WIDTH, display_seq,
+        sum_total, query_id, html_img_included,
+        LOV_SQL, aggregation, item_type
+        bulk collect into t_cols
         from
-        (    
-        select APEXREP2REPORT.OIl1ll(regexp_replace(col.HEADING, '<[^>]+>'))||case when col.region_id = nvl(IlIlIOl, 0) then ' Master' end as report_label, 
-        regexp_replace(col.HEADING, '<[^>]+>')||case when col.region_id = nvl(IlIlIOl, 0) then ' Master' end as fullname,
-        col.NAME||case when col.region_id = nvl(IlIlIOl, 0) then '_MASTER' end as column_alias, 
+        (
+        select APEXREP2REPORT.PrepareColumnHeader(col.HEADING)||
+        case when col.region_id = nvl(l_master_region_id, 0) then ' Master' end as report_label,
+        APEXREP2REPORT.RemoveLineBreak(col.HEADING)||
+        case when col.region_id = nvl(l_master_region_id, 0) then ' Master' end as fullname,
+        case when col.region_id = nvl(l_master_region_id, 0) then substr(col.NAME,1,30-length('_MASTER'))||'_MASTER' else col.NAME end as column_alias,        
+        col.NAME master_alias,
         case when col.LOV_ID is not null or col.LOV_SOURCE is not null then 'VARCHAR2' else col.data_type end column_type,
         col.format_mask,
         null as PRINT_COLUMN_WIDTH,
-        rcol.display_seq, 
-        substr(Ol0lI0.show_grand_total,1,1) Ol0101,  
+        rcol.display_seq,
+        substr(a.show_grand_total,1,1) sum_total,
         null query_id,
-        APEXREP2REPORT.IIl10I(col.item_type, col.attribute_01, col.format_mask) IIl10I,
-        "l1IIl0lI".OIl1Il(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
-        case when col.region_id = IlIlIOl or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else Ol0lI0.function end ll010I, 
-        col.item_type,    
-        case when col.region_id = IlIlIOl then IlIlIOl end MASTER_REGION_ID, 
-        rank() over (partition by col.NAME order by Ol0lI0.aggregate_id desc) rank_num
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (ll0II0, O01llO01)
-        left outer join APEX_APPL_PAGE_IG_RPT_AGGS Ol0lI0 on Ol0lI0.column_id = rcol.column_id and Ol0lI0.report_id = rcol.report_id and Ol0lI0.is_enabled = 'Yes'
-        where col.page_id = IIl1I0 
-        and col.region_id in (Ol01Il, IlIlIOl) 
+        APEXREP2REPORT.Html_img_included(col.item_type, col.attribute_01, col.format_mask) html_img_included,
+        IG2Report.GetLOVSelect(col.application_id, col.NAME, col.LOV_ID, col.LOV_SOURCE) LOV_SQL,
+        case when col.region_id = l_master_region_id or rcol.break_is_enabled = 'Yes' then 'GROUP BY' else a.function end aggregation, --show master region cols as break cols
+        col.item_type,
+        case when col.region_id = l_master_region_id then l_master_region_id end MASTER_REGION_ID, --master region
+        rank() over (partition by col.NAME order by a.aggregate_id desc) rank_num
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id and rcol.report_id in (l_report_id, l_master_report_id)
+        left outer join APEX_APPL_PAGE_IG_RPT_AGGS a on a.column_id = rcol.column_id and a.report_id = rcol.report_id and a.is_enabled = 'Yes'
+        where col.page_id = p_page_id --2 --30 --2
+        and col.region_id in (p_region_id, l_master_region_id) --adds master region cols
         and col.source_type_code = 'DB_COLUMN'
         and col.item_type not in ('NATIVE_PASSWORD', 'NATIVE_ROW_SELECTOR', 'NATIVE_HIDDEN')
         and (rcol.is_visible = 'Yes' or rcol.break_is_enabled ='Yes') and col.INCLUDE_IN_EXPORT = 'Yes'
-        and nvl(col.IS_PRIMARY_KEY, 'No') = 'No'
+        --and nvl(col.IS_PRIMARY_KEY, 'No') = 'No'
         )
         where rank_num = 1
-        order by master_region_id, display_seq; 
+        order by master_region_id, display_seq, column_alias; --master region cols first
     end if;
-    
-    APEXREP2REPORT.Il01ll(p_procedure => '"l1IIl0lI".II0I1IO1', ll01ll => Ol01I0 ); 
-    
-    return Ol01I0;
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".II0I1IO1', p_sqlerrm => sqlerrm ); 
-  raise;     
-end;
 
+    APEXREP2REPORT.LogComposeSelectAndAttr(p_procedure => 'IG2Report.CollectIGColumns', p_cols => t_cols );
 
-function O0IlO1OO1(
-  
-  ll01ll            APEXREP2REPORT.Ol0110,
-  llI010 boolean,
-  ll11I0 out varchar2,
-  O0llOlOl  out varchar2
-)
-return boolean
-as
- Il11l0 varchar2(4000);
- O1IlOll   varchar2(4000);
- llOOl1I         varchar2(4000);
- ll11l1 boolean default false;
- Ol11l1 varchar2(4000) default null;
- begin
-  pak_xslt_log.WriteLog( 'Start', p_procedure => '"l1IIl0lI".O0IlO1OO1');
-  for ll01I1 in 1..ll01ll.count loop
-      pak_xslt_log.WriteLog( ll01ll(ll01I1).alias||' :sum total: '||ll01ll(ll01I1).Ol0101, p_procedure => '"l1IIl0lI".O0IlO1OO1');
-      if ll01ll(ll01I1).Ol0101 = 'Y' then
-        if ll01ll(ll01I1).col_type = 'NUMBER' then
-            O1IlOll := 'round('||ll01ll(ll01I1).ll010I||'('||ll01ll(ll01I1).alias||'),3)';
-        else
-            O1IlOll := 'to_char('||ll01ll(ll01I1).ll010I||'("'||ll01ll(ll01I1).alias||'")) ';
-        end if;
-        if ll01ll(ll01I1).lov_sql is not null then
-          O1IlOll := 'to_char('||O0llOlOl||') ';
-        end if;
-        Il11l0 := Il11l0 || ll01ll(ll01I1).ll010I||','||Query2Report.IIlIll(ll01ll(ll01I1).ll0100)||',';
-        ll11l1 := true;
-      else 
-        O1IlOll := 'null "'||ll01ll(ll01I1).alias||'" ';
-      end if;
-      
-      if nvl(instr(ll11I0, '"'||ll01ll(ll01I1).alias||'"'), 0) = 0 then
-          llOOl1I := ' "'||ll01ll(ll01I1).alias||'" ';
-      end if;
-      
-      if ll01I1 = 1 then
-          O0llOlOl := O1IlOll;
-          ll11I0 := llOOl1I;
-      else
-          O0llOlOl := O0llOlOl || ', ' || O1IlOll;
-          ll11I0 := ll11I0 || ', ' || llOOl1I;
-      end if;     
-  end loop;
-  if ll11l1 then
-    APEXREP2REPORT.Ol11I1(
-      Il11I1 => ll11I0,
-      ll11II => O0llOlOl,
-      Ol11II => Ol11l1, 
-      pio_grand_total_col_list => O0llOlOl,  
-      Il11Il => Il11l0,
-      p_break_in_grand_total => llI010 
-    );
-  else
-    O0llOlOl := null;
-  end if;
-  APEXREP2REPORT.Il01ll(
-    '"l1IIl0lI".O0IlO1OO1',
-    null,
-    null,
-    Ol0I00 => ll11I0,
-    p_grand_total_col_list => O0llOlOl
-  );
-  
-  pak_xslt_log.WriteLog( 'Il11l0: '||Il11l0, p_procedure => '"l1IIl0lI".O0IlO1OO1');
-  
-  return ll11l1;
+    return t_cols;
 exception
   when others then
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O0IlO1OO1', p_sqlerrm => sqlerrm );
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.CollectIGColumns', p_sqlerrm => sqlerrm );
   raise;
 end;
 
- 
-procedure Il1l00( 
-  ll01ll in APEXREP2REPORT.Ol0110,
-  Ol1IIl out varchar2, 
-  ll11I0 out varchar2, 
-  Ol11l0 out varchar2, 
-  Il1IIl out varchar2, 
-  llllOI0 in out varchar2, 
-  ll1Il0 out varchar2,
-  O0llOlOl  out varchar2
-)  
-as 
-Ol1Il0 varchar2(50); 
-Il1Il1 boolean; 
-ll1Il1 boolean; 
-O01I110l boolean default false; 
-Ol1I00 boolean default false; 
-Ol1IlI boolean default false; 
-Il1IlI number default 0; 
-Il11l0 varchar2(4000); 
-O0O11IIO1 varchar2(4000); 
-O1IlOll   varchar2(4000);
-
- 
-
-
-begin 
-  
-  
- 
-  for ll01I1 in 1..ll01ll.count loop 
-    Il1Il1 := ll01ll(ll01I1).ll010I is not null; 
-    ll1Il1 := false; 
-    if ll01ll(ll01I1).ll010I = 'GROUP BY' then 
-       Ol1IlI := true; 
-       
-       O1IlOll := ' null "'||ll01ll(ll01I1).alias||'" ';
-       if Ol11l0 is null then 
-          Ol11l0 := ' '||ll01ll(ll01I1).alias; 
-       else 
-          Ol11l0 := Ol11l0||', '||ll01ll(ll01I1).alias; 
-       end if; 
- 
-      if Il1IIl is null then 
-        Il1IIl := ' distinct '||ll01ll(ll01I1).alias; 
-      else 
-        Il1IIl := Il1IIl||', '||ll01ll(ll01I1).alias; 
-      end if; 
- 
-      if ll1Il0 is null then 
-        ll1Il0 := ll01ll(ll01I1).alias; 
-      else 
-        ll1Il0 := ll1Il0||', '||ll01ll(ll01I1).alias; 
-      end if; 
-      Il1IlI := Il1IlI + 1; 
-      Ol1IIl := Ol1IIl||'break_on_col'||to_char(Il1IlI)|| 
-                    '="'||Query2Report.IIlIll(ll01ll(ll01I1).ll0100)||'" '; 
- 
-    else 
-        if Il1Il1 then 
-          Ol1I00 := true; 
-          if ll01ll(ll01I1).ll010I = 'COUNT_DISTINCT' then 
-            Ol1Il0 := 'round(COUNT(DISTINCT '||ll01ll(ll01I1).alias||'),3)'; 
-          else 
-            Ol1Il0 := 'round('||ll01ll(ll01I1).ll010I||'('||ll01ll(ll01I1).alias||'),3)'; 
-          end if; 
-          Il11l0 := Il11l0 || ll01ll(ll01I1).ll010I||','||Query2Report.IIlIll(ll01ll(ll01I1).ll0100)||','; 
-          if ll01ll(ll01I1).ll010I like 'COUNT%' 
-            
-          then 
-            ll1Il1 := true; 
-            Ol1Il0 := 'to_char('||Ol1Il0||')'; 
-          end if; 
-          if Ol11l0 is null then 
-            Ol11l0 := ' '||Ol1Il0||' '||ll01ll(ll01I1).alias; 
-          else 
-            Ol11l0 := Ol11l0||', '||Ol1Il0||' '||ll01ll(ll01I1).alias; 
-          end if; 
-
-          if Il1IIl is null then 
-            Il1IIl := ' distinct null '||ll01ll(ll01I1).alias; 
-          else 
-            Il1IIl := Il1IIl||', null '||ll01ll(ll01I1).alias; 
-          end if; 
-        end if; 
-      
-      
-      if ll01ll(ll01I1).Ol0101 = 'Y' then
-        O01I110l := true;
-        if ll01ll(ll01I1).col_type = 'NUMBER' then
-            O1IlOll := 'round('||ll01ll(ll01I1).ll010I||'('||ll01ll(ll01I1).alias||'),3)';
-        else
-            O1IlOll := 'to_char('||ll01ll(ll01I1).ll010I||'("'||ll01ll(ll01I1).alias||'")) ';
-        end if;
-        if ll01ll(ll01I1).lov_sql is not null then
-          O1IlOll := 'to_char('||O1IlOll||') ';
-        end if;
-        O0O11IIO1 := O0O11IIO1 || ll01ll(ll01I1).ll010I||','||Query2Report.IIlIll(ll01ll(ll01I1).ll0100)||',';
-      else 
-        O1IlOll := 'null "'||ll01ll(ll01I1).alias||'" ';
-      end if;
-    end if; 
-    
-    if ll01I1 = 1 then
-        O0llOlOl := O1IlOll;
-    else
-        O0llOlOl := O0llOlOl || ', ' || O1IlOll;
-    end if;
-    
-    
-    if not Il1Il1 then 
-      if Ol11l0 is null then 
-        Ol11l0 := ' null '||ll01ll(ll01I1).alias; 
-      else 
-        Ol11l0 := Ol11l0||', null '||ll01ll(ll01I1).alias; 
-      end if; 
- 
-      if Il1IIl is null then 
-        Il1IIl := ' distinct null '||ll01ll(ll01I1).alias; 
-      else 
-        Il1IIl := Il1IIl||', null '||ll01ll(ll01I1).alias; 
-      end if; 
-    end if; 
-    
-    if ll11I0 is null then 
-      if ll1Il1 then 
-        ll11I0 := ' to_char('||ll01ll(ll01I1).alias||') '||ll01ll(ll01I1).alias; 
-      else 
-        ll11I0 := ' '||ll01ll(ll01I1).alias; 
-      end if; 
-    else 
-      if ll1Il1 then 
-        ll11I0 := ll11I0||', to_char('||ll01ll(ll01I1).alias||') '||ll01ll(ll01I1).alias; 
-      else 
-        ll11I0 := ll11I0||', '||ll01ll(ll01I1).alias; 
-      end if; 
-    end if; 
-  end loop; 
-  
-  if not O01I110l or not Ol1IlI then
-      O0llOlOl := null;
-  end if;
- 
-  if Ol11l0 is not null then 
-    if Ol1I00 then 
- 
-        if Ol1IlI then 
-          llllOI0 := llllOI0||', BREAKROW, REGION_AGGREGATES desc '; 
-          APEXREP2REPORT.Ol11I1( 
-            Il11I1 => ll11I0, 
-            ll11II => Ol11l0, 
-            Ol11II => Il1IIl, 
-            pio_grand_total_col_list => O0llOlOl,
-            Il11Il => Il11l0,
-            p_grand_total_aggregates => O0O11IIO1
-          ); 
-        else 
-          llllOI0 := 'REGION_AGGREGATES desc '; 
-          Il1IIl := null; 
-          APEXREP2REPORT.Ol11I1( 
-            Il11I1 => ll11I0, 
-            ll11II => Ol11l0, 
-            Ol11II => Il1IIl, 
-            pio_grand_total_col_list => O0llOlOl,
-            Il11Il => Il11l0,
-            p_grand_total_aggregates => O0O11IIO1  
-          ); 
-        end if; 
-    elsif Ol1IlI then
-      pak_xslt_log.WriteLog( 'No ll010I just break', p_procedure => '"l1IIl0lI".Il1l00'); 
-      Ol11l0 := null; 
-      APEXREP2REPORT.Ol11I1( 
-            Il11I1 => ll11I0, 
-            ll11II => Ol11l0, 
-            Ol11II => Il1IIl, 
-            pio_grand_total_col_list => O0llOlOl,
-            Il11Il => Il11l0 
-          ); 
-      llllOI0 := llllOI0||', '||' BREAKROW'; 
-    else 
-      pak_xslt_log.WriteLog( 'No ll010I or break', p_procedure => '"l1IIl0lI".Il1l00'); 
-      Ol11l0 := null; 
-      Il1IIl := null; 
-    end if; 
-  end if; 
-  
-  APEXREP2REPORT.Il01ll(
-    '"l1IIl0lI".Il1l00',
-    Ol0I10 => Ol1IIl, 
-    Ol0I00 => ll11I0, 
-    Il0I00 => Ol11l0, 
-    ll0I01 => Il1IIl, 
-    OIlI0I => llllOI0, 
-    Ol0I0l => ll1Il0,
-    p_grand_total_col_list => O0llOlOl
-  );
- 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".Il1l00', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il1l00; 
-
-
-procedure O01lIlI0( 
-  Ol01Il number,  
-  ll10l10 out varchar2,
-  l10100Il out varchar2,
-  O00I00Il out varchar2,
-  lI111lO1 out number  
+/** Function Check p_cols array for any SUM total and compose select statement.
+* Used for IG with Show Grand Total turned on.
+*
+* @param p_cols table of columns (also aggregation function is there)
+* @param po_basic_col_list basic column list
+* @param po_grand_total_col_list
+*/
+function GrandTotalSelect(
+  --pio_region_source in out nocopy clob,
+  p_cols            APEXREP2REPORT.tp_cols,
+  p_break boolean,
+  po_basic_col_list out varchar2,
+  po_grand_total_col_list  out varchar2
 )
-as 
-  cursor O01l1000 is 
-     select Ol1011.source_expression col, mc.source_expression parent_col from APEX_APPL_PAGE_IG_COLUMNS Ol1011 
-    join APEX_APPL_PAGE_IG_COLUMNS mc on Ol1011.parent_column_id = mc.column_id
-    where Ol1011.region_id = Ol01Il 
-    and Ol1011.source_type_code = 'DB_COLUMN' 
-    and mc.source_type_code = 'DB_COLUMN' ;  
-  
-  cursor c_col_list(c_master_region_id number) is 
+return boolean
+as
+ l_region_aggregates varchar2(4000);
+ l_col_grand_total   varchar2(4000);
+ l_col_basic         varchar2(4000);
+ l_aggregate boolean default false;
+ l_break_col_list varchar2(4000) default null;
+ begin
+  pak_xslt_log.WriteLog( 'Start', p_procedure => 'IG2Report.GrandTotalSelect');
+  for i in 1..p_cols.count loop
+      pak_xslt_log.WriteLog( p_cols(i).alias||' :sum total: '||p_cols(i).sum_total, p_procedure => 'IG2Report.GrandTotalSelect');
+      if p_cols(i).sum_total = 'Y' then
+        if p_cols(i).col_type = 'NUMBER' then
+            l_col_grand_total := 'round('||p_cols(i).aggregation||'('||p_cols(i).alias||'),3)';
+        else
+            l_col_grand_total := 'to_char('||p_cols(i).aggregation||'("'||p_cols(i).alias||'")) ';
+        end if;
+        if p_cols(i).lov_sql is not null then
+          l_col_grand_total := 'to_char('||po_grand_total_col_list||') ';
+        end if;
+        l_region_aggregates := l_region_aggregates || p_cols(i).aggregation||','||Query2Report.ConvertColName2XmlName(p_cols(i).label)||',';
+        l_aggregate := true;
+      else --sum_total <> 'Y'
+        l_col_grand_total := 'null "'||p_cols(i).alias||'" ';
+      end if;
+      --Add column if doesn't already exists in col list. It can exists in IG with Show Grand Total turned on.
+      if nvl(instr(po_basic_col_list, '"'||p_cols(i).alias||'"'), 0) = 0 then
+          l_col_basic := ' "'||p_cols(i).alias||'" ';
+      end if;
+
+      if i = 1 then
+          po_grand_total_col_list := l_col_grand_total;
+          po_basic_col_list := l_col_basic;
+      else
+          po_grand_total_col_list := po_grand_total_col_list || ', ' || l_col_grand_total;
+          po_basic_col_list := po_basic_col_list || ', ' || l_col_basic;
+      end if;
+  end loop;
+  if l_aggregate then
+    APEXREP2REPORT.AddAggregateColumns(
+      pio_basic_col_list => po_basic_col_list,
+      pio_aggr_col_list => po_grand_total_col_list,
+      pio_break_col_list => l_break_col_list, --dummy, always null
+      pio_grand_total_col_list => po_grand_total_col_list,
+      p_region_aggregates => l_region_aggregates,
+      p_break_in_grand_total => p_break
+    );
+  else
+    po_grand_total_col_list := null;
+  end if;
+  APEXREP2REPORT.LogComposeSelectAndAttr(
+    'IG2REPORT.GrandTotalSelect',
+    null,
+    null,
+    p_basic_col_list => po_basic_col_list,
+    p_grand_total_col_list => po_grand_total_col_list
+  );
+
+  pak_xslt_log.WriteLog( 'l_region_aggregates: '||l_region_aggregates, p_procedure => 'IG2Report.GrandTotalSelect');
+
+  return l_aggregate;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.GrandTotalSelect', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/** Function Check apex_application_page_ir_rpt, apex_application_page_ir_comp and other views for any aggregation and outputs parts of select statement if IR is not in GROUP BY mode
+*  Verzija  APEXREP2REPORT.AggregateSelectReport
+*
+*   Source (l_source variable) is region_src or region_src_cc or region_src_filtered or region_src_grpby.
+*
+*   With region_src as (region_select)
+*        ,region_src_cc as (select region_src.*,cc_cols_list from region_src)
+*        ,region_src_filtered as (select from region_src_cc where p_where)
+*   Select formated_labeled_col_list from
+*   (
+*       Select po_basic_col_list{, null BREAKROW}[, null REGION_AGGR] from Source
+*     [Union
+*        Select po_aggr_col_list{, null BREAKROW}, aggr. col. list REGION_AGGR from Source
+*        {Group by po_break_group_by_list}]
+*        {Union
+*        Select po_break_col_list, 1 BREAKROW[, null REGION_AGGR] from Source}
+*   )
+*   Order by [{po_aggr_order_by_list,}] order_by_list;
+*
+* SQL in [] applied only if aggregation is applied on IR.
+* SQL in {} applied only if control break is applied on IR.
+*
+*
+* @param t_cols Structure with column info received in CollectIGColumns function.
+* @param po_breakAttr attribute for Region element of temporary XML
+* @param po_basic_col_list list of columns in select
+* @param po_aggr_col_list columns with which have aggregations defined (SUM, AVG, COUNT..), columns with no aggregation have null values
+* @param po_break_col_list columns in IR break, columns with no break have null values
+* @param po_aggr_order_by_list if aggregation applied this is first part of order by column list (BREAKROW, REGION_AGGREGATES desc)
+* @param po_break_group_by_list if break and aggregation applied
+*/
+procedure AggregateSelect(
+  p_cols in APEXREP2REPORT.tp_cols,
+  po_breakAttr out varchar2,
+  po_basic_col_list out varchar2,
+  po_aggr_col_list out varchar2,
+  po_break_col_list out varchar2,
+  pio_aggr_order_by_list in out varchar2,
+  po_break_group_by_list out varchar2,
+  po_grand_total_col_list  out varchar2
+)
+as
+l_aggregated_col varchar2(50);
+l_found boolean;
+l_count boolean;
+l_grand_total boolean default false;
+l_aggregation boolean default false;
+l_break_enabled boolean default false;
+l_break_count number default 0;
+l_region_aggregates varchar2(4000);
+l_grand_total_aggregates varchar2(4000);
+l_col_grand_total   varchar2(4000);
+--t_cols_aggr APEXREP2REPORT.tp_cols_aggr := APEXREP2REPORT.tp_cols_aggr();
+
+/*
+cursor c_cols(c_report_id number) is
+  select column_alias
+       , display_order
+       , column_type
+       , report_label
+    from apex_application_page_ir_col col
+    where page_id = p_page_id
+    and region_id = p_region_id
+     --commented out 14.2.2013
+    $IF apexrep2report.g_views_granted $THEN
+    union
+
+    select --computed columns
+    comp.computation_column_alias column_alias,
+    999 display_order,
+    comp.computation_column_type column_type,
+    comp.computation_report_label report_label
+   from apex_application_page_regions apr
+   join apex_application_page_ir ir on apr.region_id = ir.region_id
+   join apex_application_page_ir_rpt rpt on rpt.interactive_report_id = ir.interactive_report_id
+   join apex_application_page_ir_comp comp on comp.report_id = rpt.report_id
+   where apr.region_id = p_region_id
+   and rpt.report_id = c_report_id
+   $END
+
+   order by display_order, column_alias;
+*/
+
+begin
+  --l_rpt_row := Get_current_report_row(p_region_id, p_page_id);
+  /*
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.SUM_COLUMNS_ON_BREAK, 'SUM');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.AVG_COLUMNS_ON_BREAK, 'AVG');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.MAX_COLUMNS_ON_BREAK, 'MAX');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.MIN_COLUMNS_ON_BREAK, 'MIN');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.MEDIAN_COLUMNS_ON_BREAK, 'MEDIAN');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.COUNT_COLUMNS_ON_BREAK, 'COUNT');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.COUNT_DISTNT_COL_ON_BREAK, 'COUNT_DISTINCT');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.BREAK_ENABLED_ON, 'GROUP BY');
+  */
+
+  for i in 1..p_cols.count loop
+    l_found := p_cols(i).aggregation is not null;
+    l_count := false;
+    if p_cols(i).aggregation = 'GROUP BY' then
+       l_break_enabled := true;
+
+       l_col_grand_total := ' null "'||p_cols(i).alias||'" ';
+       if po_aggr_col_list is null then
+          po_aggr_col_list := ' '||p_cols(i).alias;
+       else
+          po_aggr_col_list := po_aggr_col_list||', '||p_cols(i).alias;
+       end if;
+
+      if po_break_col_list is null then
+        po_break_col_list := ' distinct '||p_cols(i).alias;
+      else
+        po_break_col_list := po_break_col_list||', '||p_cols(i).alias;
+      end if;
+
+      if po_break_group_by_list is null then
+        po_break_group_by_list := p_cols(i).alias;
+      else
+        po_break_group_by_list := po_break_group_by_list||', '||p_cols(i).alias;
+      end if;
+      l_break_count := l_break_count + 1;
+      po_breakAttr := po_breakAttr||'break_on_col'||to_char(l_break_count)||
+                    '="'||Query2Report.ConvertColName2XmlName(p_cols(i).label)||'" ';
+
+    else
+        if l_found then --not group by
+          l_aggregation := true;
+          if p_cols(i).aggregation = 'COUNT_DISTINCT' then
+            l_aggregated_col := 'round(COUNT(DISTINCT '||p_cols(i).alias||'),3)';
+          else
+            l_aggregated_col := 'round('||p_cols(i).aggregation||'('||p_cols(i).alias||'),3)';
+          end if;
+          l_region_aggregates := l_region_aggregates || p_cols(i).aggregation||','||Query2Report.ConvertColName2XmlName(p_cols(i).label)||',';
+          if p_cols(i).aggregation like 'COUNT%'
+            --and p_cols(i).column_type <> 'NUMBER'
+          then
+            l_count := true;
+            l_aggregated_col := 'to_char('||l_aggregated_col||')';
+          end if;
+          if po_aggr_col_list is null then
+            po_aggr_col_list := ' '||l_aggregated_col||' '||p_cols(i).alias;
+          else
+            po_aggr_col_list := po_aggr_col_list||', '||l_aggregated_col||' '||p_cols(i).alias;
+          end if;
+
+          if po_break_col_list is null then
+            po_break_col_list := ' distinct null '||p_cols(i).alias;
+          else
+            po_break_col_list := po_break_col_list||', null '||p_cols(i).alias;
+          end if;
+        end if; --l_found
+
+      -----------------------------grand total-----------------
+      if p_cols(i).sum_total = 'Y' then
+        l_grand_total := true;
+        if p_cols(i).col_type = 'NUMBER' then
+            l_col_grand_total := 'round('||p_cols(i).aggregation||'('||p_cols(i).alias||'),3)';
+        else
+            l_col_grand_total := 'to_char('||p_cols(i).aggregation||'("'||p_cols(i).alias||'")) ';
+        end if;
+        if p_cols(i).lov_sql is not null then
+          l_col_grand_total := 'to_char('||l_col_grand_total||') ';
+        end if;
+        l_grand_total_aggregates := l_grand_total_aggregates || p_cols(i).aggregation||','||Query2Report.ConvertColName2XmlName(p_cols(i).label)||',';
+      else --sum_total <> 'Y'
+        l_col_grand_total := 'null "'||p_cols(i).alias||'" ';
+      end if;
+    end if;
+
+    if i = 1 then
+        po_grand_total_col_list := l_col_grand_total;
+    else
+        po_grand_total_col_list := po_grand_total_col_list || ', ' || l_col_grand_total;
+    end if;
+    -----------------------------end of grand total-------------------------------------
+
+    if not l_found then
+      if po_aggr_col_list is null then
+        po_aggr_col_list := ' null '||p_cols(i).alias;
+      else
+        po_aggr_col_list := po_aggr_col_list||', null '||p_cols(i).alias;
+      end if;
+
+      if po_break_col_list is null then
+        po_break_col_list := ' distinct null '||p_cols(i).alias;
+      else
+        po_break_col_list := po_break_col_list||', null '||p_cols(i).alias;
+      end if;
+    end if;
+
+    if po_basic_col_list is null then
+      if l_count then
+        po_basic_col_list := ' to_char('||p_cols(i).alias||') '||p_cols(i).alias;
+      else
+        po_basic_col_list := ' '||p_cols(i).alias;
+      end if;
+    else
+      if l_count then
+        po_basic_col_list := po_basic_col_list||', to_char('||p_cols(i).alias||') '||p_cols(i).alias;
+      else
+        po_basic_col_list := po_basic_col_list||', '||p_cols(i).alias;
+      end if;
+    end if;
+  end loop;
+
+  if not l_grand_total or not l_break_enabled then
+      po_grand_total_col_list := null;
+  end if;
+
+  if po_aggr_col_list is not null then
+    if l_aggregation then
+
+        if l_break_enabled then
+          pio_aggr_order_by_list := pio_aggr_order_by_list||', BREAKROW, REGION_AGGREGATES desc ';
+          APEXREP2REPORT.AddAggregateColumns(
+            pio_basic_col_list => po_basic_col_list,
+            pio_aggr_col_list => po_aggr_col_list,
+            pio_break_col_list => po_break_col_list,
+            pio_grand_total_col_list => po_grand_total_col_list,
+            p_region_aggregates => l_region_aggregates,
+            p_grand_total_aggregates => l_grand_total_aggregates
+          );
+        else
+          pio_aggr_order_by_list := 'REGION_AGGREGATES desc ';
+          po_break_col_list := null;
+          APEXREP2REPORT.AddAggregateColumns(
+            pio_basic_col_list => po_basic_col_list,
+            pio_aggr_col_list => po_aggr_col_list,
+            pio_break_col_list => po_break_col_list,
+            pio_grand_total_col_list => po_grand_total_col_list,
+            p_region_aggregates => l_region_aggregates,
+            p_grand_total_aggregates => l_grand_total_aggregates
+          );
+        end if;
+    elsif l_break_enabled then--not aggregation
+      pak_xslt_log.WriteLog( 'No aggregation just break', p_procedure => 'IG2Report.AggregateSelect');
+      po_aggr_col_list := null;
+      APEXREP2REPORT.AddAggregateColumns(
+            pio_basic_col_list => po_basic_col_list,
+            pio_aggr_col_list => po_aggr_col_list,
+            pio_break_col_list => po_break_col_list,
+            pio_grand_total_col_list => po_grand_total_col_list,
+            p_region_aggregates => l_region_aggregates
+          );
+      pio_aggr_order_by_list := pio_aggr_order_by_list||', '||' BREAKROW';
+    else --no aggregation or break
+      pak_xslt_log.WriteLog( 'No aggregation or break', p_procedure => 'IG2Report.AggregateSelect');
+      po_aggr_col_list := null;
+      po_break_col_list := null;
+    end if;
+  end if;
+
+  APEXREP2REPORT.LogComposeSelectAndAttr(
+    'IG2REPORT.AggregateSelect',
+    p_breakAttr => po_breakAttr,
+    p_basic_col_list => po_basic_col_list,
+    p_aggr_col_list => po_aggr_col_list,
+    p_break_col_list => po_break_col_list,
+    p_aggr_order_by_list => pio_aggr_order_by_list,
+    p_break_group_by_list => po_break_group_by_list,
+    p_grand_total_col_list => po_grand_total_col_list
+  );
+ -- return l_aggregation;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.AggregateSelect', p_sqlerrm => sqlerrm );
+  raise;
+end AggregateSelect;
+
+/**Returns Master Region select and join to Details region
+*
+* @param p_region_id Region ID of Details Region
+* @param po_master_region_source Master region source select
+* @param po_join_master_region Join condition in format master_region_src.col1 = region_src.col1 [and master_region_src.colX = region_src.colX]
+* @param po_master_select_list Alias column list in region_src_joined_master inline view
+*/
+procedure MasterRegionSelect(
+  p_region_id number,
+  t_cols APEXREP2REPORT.tp_cols,
+  po_master_region_source out varchar2,
+  po_join_master_region out varchar2,
+  po_master_select_list out varchar2,
+  po_master_region_id out number
+)
+as
+  cursor c_join is
+     select c.source_expression col, mc.source_expression parent_col from APEX_APPL_PAGE_IG_COLUMNS c
+    join APEX_APPL_PAGE_IG_COLUMNS mc on c.parent_column_id = mc.column_id
+    where c.region_id = p_region_id
+    and c.source_type_code = 'DB_COLUMN'
+    and mc.source_type_code = 'DB_COLUMN' ;
+
+  /*
+  cursor c_col_list(c_master_region_id number) is
         select column_alias
         from
         (
-        select 
-        col.NAME||case when col.region_id = nvl(c_master_region_id, 0) then '_MASTER' end as column_alias, 
-        col.display_sequence, 
-        case when col.region_id = c_master_region_id then c_master_region_id end MASTER_REGION_ID 
-        from APEX_APPL_PAGE_IG_COLUMNS col  
-        where col.region_id in (Ol01Il, c_master_region_id) 
+        select
+        case when col.region_id = nvl(c_master_region_id, 0) then substr(col.NAME,1,30-length('_MASTER'))||'_MASTER' else col.NAME end as column_alias,
+        rcol.display_seq,
+        case when col.region_id = c_master_region_id then c_master_region_id end MASTER_REGION_ID --master region
+        from APEX_APPL_PAGE_IG_COLUMNS col
+        join APEX_APPL_PAGE_IG_RPT_COLUMNS rcol on col.column_id = rcol.column_id
+        where col.region_id in (p_region_id, c_master_region_id) --adds master region cols
         and col.source_type_code = 'DB_COLUMN'
         and col.item_type not in ('NATIVE_PASSWORD', 'NATIVE_ROW_SELECTOR')
         )
-        order by master_region_id, display_sequence; 
-        
-  
+        order by master_region_id, display_seq, column_alias; --master region cols first
+  */
+
 begin
-  ll10l10 := null;
-  l10100Il := null;
-  O00I00Il := null;
-  lI111lO1 := null;
-  
-  select mr.region_source, mr.region_id 
-  into ll10l10, lI111lO1
-  from APEX_APPLICATION_PAGE_REGIONS I1001Il 
-  left outer join APEX_APPLICATION_PAGE_REGIONS mr on I1001Il.master_region_id = mr.region_id
-  where I1001Il.region_id = Ol01Il;
-  
-  if ll10l10 is not null then
-      for r_join in O01l1000 loop
-          if l10100Il is null then
-              l10100Il := 'master_region_src.'||r_join.parent_col||' = region_src.'||r_join.col;
+  po_master_region_source := null;
+  po_join_master_region := null;
+  po_master_select_list := null;
+  po_master_region_id := null;
+
+  select mr.region_source, mr.region_id
+  into po_master_region_source, po_master_region_id
+  from APEX_APPLICATION_PAGE_REGIONS r
+  left outer join APEX_APPLICATION_PAGE_REGIONS mr on r.master_region_id = mr.region_id
+  where r.region_id = p_region_id;
+
+  if po_master_region_source is not null then
+      for r_join in c_join loop
+          if po_join_master_region is null then
+              po_join_master_region := 'master_region_src.'||r_join.parent_col||' = region_src.'||r_join.col;
           else
-              l10100Il := l10100Il||' and master_region_src.'||r_join.parent_col||' = region_src.'||r_join.col;
+              po_join_master_region := po_join_master_region||' and master_region_src.'||r_join.parent_col||' = region_src.'||r_join.col;
           end if;
       end loop;
-      if l10100Il is null then
-          ll10l10 := null;
-          pak_xslt_log.WriteLog( 'Cannot compose master region join' , p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm );  
+      if po_join_master_region is null then
+          po_master_region_source := null;
+          pak_xslt_log.WriteLog( 'Cannot compose master region join - p_region_id: '||p_region_id , 
+                                p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.MasterRegionSelect', p_sqlerrm => sqlerrm );
       end if;
-  else
-     pak_xslt_log.WriteLog( 'Cannot find master region source' , p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm );  
-  end if;
-  
-  O00I00Il := '(';
-  for r_col_list in c_col_list(lI111lO1) loop
-      O00I00Il := O00I00Il || r_col_list.column_alias||',';
-  end loop;
-  
-  if O00I00Il is not null then
-      O00I00Il := rtrim(O00I00Il,',')||')';
-  else
-      pak_xslt_log.WriteLog( 'Cannot compose alias list' , p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm );  
-  end if;
-  
-  if ll10l10 is null then
-      O00I00Il := null;
-  end if;
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => '"l1IIl0lI".O01lIlI0', p_sqlerrm => sqlerrm ); 
-  raise; 
-end;
-$end
-end "l1IIl0lI";
+      
+      for i in t_cols.first..t_cols.last loop
+          if t_cols(i).master_alias != t_cols(i).alias then
+            po_master_select_list := po_master_select_list || ' master_region_src.'||t_cols(i).master_alias||' '||t_cols(i).alias||', ';
+          end if;
+      end loop;
 
+      if po_master_select_list is null then
+          pak_xslt_log.WriteLog( 'Cannot compose alias list' , p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.MasterRegionSelect', p_sqlerrm => sqlerrm );
+      end if;
+      
+  else
+     pak_xslt_log.WriteLog( 'Cannot find master region source - p_region_id: '||p_region_id , 
+                             p_procedure => 'IG2Report.MasterRegionSelect');
+  end if;
+
+  
+  if po_master_region_source is null then
+      po_master_select_list := null;
+  end if;
+  
+  exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IG2Report.MasterRegionSelect', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+$END
+
+end IG2REPORT;
 /

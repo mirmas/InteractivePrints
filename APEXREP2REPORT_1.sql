@@ -1,3869 +1,4748 @@
 
+CREATE OR REPLACE PACKAGE BODY "APEXREP2REPORT" AS
 
+-- Interactive Prints using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
 
+/** Type for region name with (optional - mixed syntax) queries */
+type tp_region is record
+(
+  region_name varchar2(32000),
+  region_query varchar2(32000),
+  max_rows number
+);
 
-  CREATE OR REPLACE PACKAGE BODY "APEXREP2REPORT" AS 
- 
+/** Type for array of region names with (optional - mixed syntax) queries */
+type tp_regions is table of tp_region;
 
- 
- 
-type Ol010I is record 
-( 
-  region_name varchar2(32000), 
-  Il010l varchar2(32000), 
-  ll010l number 
-); 
-  
- 
-type Ol0111 is table of Ol010I; 
- 
- 
-TYPE Il011I IS TABLE OF varchar2(30) INDEX BY VARCHAR2(2); 
- 
-type ll011I is table of varchar2(40) index by binary_integer; 
- 
- 
+/** Indexed table of columns in computed columns. Index is one or two capital letter word, like in interactive report*/
+TYPE tp_idcols IS TABLE OF varchar2(30) INDEX BY VARCHAR2(2);
 
- 
-procedure Ol011l( 
-  lob_loc IN OUT NOCOPY CLOB CHARACTER SET ANY_CS, 
-   Il011l  IN            VARCHAR2 CHARACTER SET lob_loc%CHARSET 
-) 
-as 
-begin 
-  dbms_lob.writeappend(lob_loc, length(Il011l), Il011l); 
-end; 
- 
-function ll01I0(Ol01I0 Ol0110) 
-return varchar2 
-as 
-Il01I1 varchar2(32000); 
-begin 
-  for ll01I1 in 1..Ol01I0.count loop 
-    Il01I1:=Il01I1||ll01I1||'.'||Ol01I0(ll01I1).query_id||'.'||Ol01I0(ll01I1).display_sequence||','||Ol01I0(ll01I1).alias||','||Ol01I0(ll01I1).ll0100||'|'; 
-  end loop; 
-  return Il01I1; 
-end; 
- 
- 
- 
- 
- 
-function Ol01II(Ol01I0 Ol0110) 
-return t_coltype_table 
-as 
-Il01I1     t_coltype_table := t_coltype_table(); 
-Il01II varchar2(100); 
-begin 
-  for ll01I1 in 1..Ol01I0.count loop 
-    Il01II := Query2Report.IIlIll(Ol01I0(ll01I1).ll0100); 
-    
-    Il01I1.extend; 
-    Il01I1(Il01I1.count) := t_coltype_row(Il01II, Ol01I0(ll01I1).col_type, Ol01I0(ll01I1).format_mask, Ol01I0(ll01I1).PRINT_COLUMN_WIDTH, 
-    replace(htf.escape_sc(IIl1lI(Ol01I0(ll01I1).fullname)),'''','&#39;')); 
-     
-  end loop; 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Ol01II', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol01II; 
- 
- 
-function ll01Il( 
-   Ol01Il in number, 
-   IIl1I0 in number 
-) 
-return apex_application_page_ir_rpt%rowtype 
-as 
-  Il01l0 number; 
-  ll01l0 varchar2(200); 
-  Ol01l1 number; 
-  Il01l1 apex_application_page_ir_rpt%rowtype; 
-begin 
- 
-  select ll01lI.interactive_report_id 
-  into Il01l0 
-  from apex_application_page_ir ll01lI 
-  where ll01lI.application_id = APEX_APPLICATION.G_FLOW_ID
-  and   ll01lI.page_id = IIl1I0 
-  and   ll01lI.region_id = Ol01Il; 
+type tp_order_cols is table of varchar2(40) index by binary_integer;
 
-  ll01l0 := apex_util.get_preference( 'FSP_IR_' || to_char(APEX_APPLICATION.G_FLOW_ID) || '_P' || IIl1I0 || '_W' || Il01l0, v( 'APP_USER') ); 
- 
-  if ll01l0 is null then 
-    pak_xslt_log.WriteLog( 'User preference ll01l0 is null', p_procedure => 'll01Il'); 
- 
-    select * 
-    into Il01l1 
-    from 
-    ( 
-      select * 
-      from apex_application_page_ir_rpt Ol01lI 
-      where Ol01lI.application_id = APEX_APPLICATION.G_FLOW_ID 
-      and   Ol01lI.page_id = IIl1I0 
-      and   Ol01lI.APPLICATION_USER  = V('APP_USER') 
-      and   Ol01lI.session_id = V('SESSION') 
-      order by Ol01lI.report_id desc 
-    ) where rownum = 1; 
-  else 
-    Ol01l1 := substr( ll01l0, 1, instr( ll01l0, '_' ) - 1 ); 
- 
-    pak_xslt_log.WriteLog( 'User preference ll01l0 is NOT null Ol01l1 '||Ol01l1, p_procedure => 'll01Il'); 
- 
-    select * 
-    into Il01l1 
-    from apex_application_page_ir_rpt Ol01lI 
-    where Ol01lI.application_id = APEX_APPLICATION.G_FLOW_ID 
-    and   Ol01lI.page_id = IIl1I0 
-    and   Ol01lI.APPLICATION_USER  = V('APP_USER') 
-    and   Ol01lI.base_report_id = Ol01l1 
-    and   Ol01lI.session_id = V('SESSION'); 
-  end if; 
- 
-  
- 
-  return Il01l1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll01Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll01Il; 
- 
-procedure Il01ll( 
-  p_procedure           varchar2, 
-  Ol01Il           number default null, 
-  IIl11l   number default null, 
-  ll01ll                Ol0110 default null, 
-  Ol0I00      varchar2 default null, 
-  Il0I00       varchar2 default null, 
-  ll0I01      varchar2 default null, 
-  Ol0I01               varchar2 default null, 
-  Il0I0I       varchar2 default null, 
-  IIlI0l       varchar2 default null, 
-  OIlI0I  varchar2 default null, 
-  ll0I0I   varchar2 default null, 
-  Ol0I0l varchar2 default null, 
-  Il0I0l         varchar2 default null, 
-  ll0I10              varchar2 default null, 
-  Ol0I10           varchar2 default null, 
-  Il0I11           varchar2 default null, 
-  ll0I11         varchar2 default null, 
-  Ol0I1I    varchar2 default null,
-  p_grand_total_col_list varchar2 default null,
-  p_master_region_source varchar2 default null,   
-  p_join_master_region   varchar2 default null,
-  p_alias_list           varchar2 default null
-) 
-as 
-Il01I1 varchar(32000); 
-begin 
-  if Ol01Il is not null then 
-    Il01I1 := 'Ol01Il: '||Ol01Il; 
-  end if; 
- 
-  if IIl11l is not null then 
-    Il01I1 := Il01I1|| 
-    case IIl11l 
-      when OIl100 then ' No filters ' 
-      when IIl101 then ' Hidden PK ' 
-      when OIl10I then ' Use filters ' 
-    end; 
-  end if; 
-  if ll01ll is not null then 
-    Il01I1 := Il01I1 ||' ll01ll: '||ll01I0(ll01ll); 
-  end if; 
-  if Ol0I00 is not null then 
-    Il01I1 := Il01I1 ||' Ol0I00: '||Ol0I00; 
-  end if; 
-  if Il0I00 is not null then 
-    Il01I1 := Il01I1 ||' Il0I00: '||Il0I00; 
-  end if; 
-  if ll0I01 is not null then 
-    Il01I1 := Il01I1 ||' ll0I01: '||ll0I01; 
-  end if; 
-  if Il0I0l is not null then 
-    Il01I1 := Il01I1 ||' Il0I0l: '||Il0I0l; 
-  end if; 
-  if Ol0I01 is not null then 
-    Il01I1 := Il01I1 ||' Ol0I01: '||Ol0I01; 
-  end if; 
-  if Il0I0I is not null then 
-    Il01I1 := Il01I1 ||' Il0I0I: '||Il0I0I; 
-  end if; 
-   if Ol0I0l is not null then 
-    Il01I1 := Il01I1 ||' Ol0I0l: '||Ol0I0l; 
-  end if; 
-  if IIlI0l is not null then 
-    Il01I1 := Il01I1 ||' IIlI0l: '||IIlI0l; 
-  end if; 
-  if OIlI0I is not null then 
-    Il01I1 := Il01I1 ||' OIlI0I: '||OIlI0I; 
-  end if; 
-  if ll0I0I is not null then 
-    Il01I1 := Il01I1 ||' ll0I0I: '||ll0I0I; 
-  end if; 
-  if ll0I10 is not null then 
-    Il01I1 := Il01I1 ||' ll0I10: '||ll0I10; 
-  end if; 
-  if Ol0I10 is not null then 
-    Il01I1 := Il01I1 ||' Ol0I10: '||Ol0I10; 
-  end if; 
-  if Il0I11 is not null then 
-    Il01I1 := Il01I1 ||' Il0I11: '||Il0I11; 
-  end if; 
-  if ll0I11 is not null then 
-    Il01I1 := Il01I1 ||' ll0I11: '||ll0I11; 
-  end if; 
-  if Ol0I1I is not null then 
-    Il01I1 := Il01I1 ||' Ol0I1I: '||Ol0I1I; 
-  end if;
-  if p_grand_total_col_list is not null then 
-    Il01I1 := Il01I1 ||' p_grand_total_col_list: '||p_grand_total_col_list; 
-  end if;
-  if p_master_region_source is not null then 
-    Il01I1 := Il01I1 ||' p_master_region_source: '||p_master_region_source; 
-  end if;
-  if p_join_master_region is not null then 
-    Il01I1 := Il01I1 ||' p_join_master_region: '||p_join_master_region; 
-  end if;
-  if p_alias_list is not null then 
-    Il01I1 := Il01I1 ||' p_alias_list: '||p_alias_list; 
-  end if;
-  
-  pak_xslt_log.WriteLog( Il01I1, p_procedure => p_procedure); 
-end; 
- 
-function Il0I1I( 
-   Ol01Il            in number, 
-   IIl1I0              in number 
-) 
-return pls_integer 
-as 
-Il01I1 pls_integer; 
-begin 
-  select max_row_count into Il01I1 
-  from apex_application_page_ir 
-  where page_id = IIl1I0 
-  and region_id = Ol01Il; 
- 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il0I1I', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-function IIl10I( 
-  OIl10l          varchar2 
-  ,IIl110   varchar2 
-  ,OIl111        varchar2 
-) 
-return number 
-as 
-begin 
-  if OIl10l in ('WITHOUT_MODIFICATION', 'NATIVE_HTML_EXPRESSION') then 
-    if IIl110 like '%<img %' or OIl111 like 'IMAGE%' then 
-      return 2; 
-    else 
-      return 1; 
-    end if; 
-  end if; 
-  return 0; 
-end IIl10I; 
- 
- 
-function ll0I1l( 
-   Ol01Il            in number, 
-   IIl1I0              in number, 
-   Ol0I1l            in number, 
-   IIl11l    in number, 
-   Il0II0  in varchar2 default null 
-) 
-return Ol0110 
-as 
-Ol01I0 Ol0110; 
-ll0II0 number; 
-begin 
-  pak_xslt_log.WriteLog( 'Start Ol0I1l '||Ol0I1l||' Ol01Il '||Ol01Il|| 
-                        ' IIl11l '||IIl11l|| 
-                        ' Il0II0 '||Il0II0, 
-                        p_procedure => 'll0I1l'); 
- 
-  if IIl11l = 0 then 
-    select report_label 
-           , column_alias 
-           , column_fullname 
-           , column_type 
-           , format_mask 
-           , PRINT_COLUMN_WIDTH 
-           , display_order 
-           , null Ol0101 
-           , null query_id 
-           , IIl10I(display_text_as, column_linktext, format_mask) IIl10I 
-           , OIl1Il(application_id, column_alias, named_LOV, null) LOV_SQL 
-           , null as ll010I
-           , null as item_type
-    bulk collect into Ol01I0 
-    from 
-    ( 
-      select OIl1ll(report_label) report_label
-           , report_label column_fullname 
-           , column_alias 
-           , case when col.named_LOV is not null then 'STRING' else col.column_type end column_type
-           , format_mask 
-           , null as PRINT_COLUMN_WIDTH 
-           , display_order 
-           , display_text_as 
-           , column_linktext 
-           , named_LOV 
-           , application_id 
-        from apex_application_page_ir_col col 
-        where region_id = Ol01Il 
-        and   upper(col.column_alias) <> 'ROWID' 
- 
-        $IF CCOMPILING.g_views_granted $THEN 
-        union 
- 
-        select 
-        OIl1ll(Ol0II1.computation_report_label) report_label, 
-        Ol0II1.computation_report_label column_fullname, 
-        Ol0II1.computation_column_alias column_alias, 
-        Ol0II1.computation_column_type column_type, 
-        Ol0II1.computation_format_mask format_mask, 
-        null as print_column_width, 
-        999 display_order, 
-        null display_text_as, 
-        null column_link_test, 
-         null named_LOV, 
-         Ol0II1.application_id 
-         from apex_application_page_regions Ol01lI 
-         join apex_application_page_ir Il0II1 on Ol01lI.region_id = Il0II1.region_id 
-         join apex_application_page_ir_rpt ll0III on ll0III.interactive_report_id = Il0II1.interactive_report_id 
-         join apex_application_page_ir_comp Ol0II1 on Ol0II1.report_id = ll0III.report_id 
-         where Ol01lI.region_id = Ol01Il 
-         and ll0III.report_id = Ol0I1l 
-         order by display_order, column_alias 
-         $END 
-     ); 
-  elsif Il0II0 is not null then 
-    if  IIl11l = 1 then 
-      select report_label 
-           , column_fullname 
-           , column_alias 
-           , column_type 
-           , format_mask 
-           , PRINT_COLUMN_WIDTH 
-           , Ol0III display_sequence 
-           , null Ol0101 
-           , null query_id 
-           , IIl10I(display_text_as, column_linktext, format_mask) IIl10I 
-           , OIl1Il(application_id, column_alias, named_LOV, null) LOV_SQL 
-           , null as ll010I
-           , null as item_type
-      bulk collect into Ol01I0 
-      from 
-      ( 
-        select OIl1ll(col.report_label) report_label 
-             , col.report_label column_fullname 
-             , col.column_alias 
-             , case when col.named_LOV is not null then 'STRING' else col.column_type end column_type
-             , col.format_mask 
-             , null as PRINT_COLUMN_WIDTH 
-             , 0 Ol0III 
-             , col.display_text_as 
-             , col.column_linktext 
-             , col.named_LOV 
-             , col.application_id 
-        from apex_application_page_ir_col col 
-        where col.application_id = APEX_APPLICATION.G_FLOW_ID
-        and   col.page_id = IIl1I0 
-        and   col.region_id = Ol01Il 
-        
-        and   col.display_text_as = 'HIDDEN' 
-        and   upper(col.column_alias) <> 'ROWID' 
-        and   (col.report_label , col.column_alias , col.format_mask) not in 
-        
-        ( 
-           select OIl1ll(col.report_label) report_label 
-               , col.column_alias 
-               
-               , col.format_mask 
-          from apex_application_page_ir_col col 
-             , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                      , level Ol0III 
-                 from ( select Il0II0 Il0IIl 
-                             , ':' ll0IIl from dual ) 
-                 connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-               ) Ol0Il0 
-          where col.application_id = APEX_APPLICATION.G_FLOW_ID
-          and   col.page_id = IIl1I0 
-          and   col.region_id = Ol01Il 
-          and   col.column_alias = Ol0Il0.col 
- 
-          $IF CCOMPILING.g_views_granted $THEN 
-          union 
- 
-          select  
-          OIl1ll(Ol0II1.computation_report_label) report_label, 
-          Ol0II1.computation_column_alias column_alias, 
-          
-          Ol0II1.computation_format_mask  format_mask
-          
-          from apex_application_page_regions Ol01lI 
-          , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                  , level Ol0III 
-             from ( select Il0II0 Il0IIl 
-                         , ':' ll0IIl from dual ) 
-             connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-           ) Ol0Il0, 
-          apex_application_page_ir Il0II1, 
-          apex_application_page_ir_rpt ll0III, 
-          apex_application_page_ir_comp Ol0II1 
-          where Ol01lI.region_id = Ol01Il 
-          and Ol01lI.region_id = Il0II1.region_id 
-          and ll0III.interactive_report_id = Il0II1.interactive_report_id 
-          and ll0III.report_id = Ol0I1l 
-          and Ol0II1.computation_column_alias = Ol0Il0.col 
-          and Ol0II1.report_id = ll0III.report_id 
-          $END 
-        ) 
- 
-        union 
- 
-        select OIl1ll(col.report_label) report_label 
-             , col.report_label column_fullname 
-             , col.column_alias 
-             , col.column_type 
-             , col.format_mask 
-             , NULL AS PRINT_COLUMN_WIDTH 
-             , Ol0Il0.Ol0III 
-             , col.display_text_as 
-             , col.column_linktext 
-             , col.named_LOV 
-             , col.application_id 
-        from apex_application_page_ir_col col 
-           , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                    , level Ol0III 
-               from ( select Il0II0 Il0IIl 
-                           , ':' ll0IIl from dual ) 
-               connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-             ) Ol0Il0 
-        where col.application_id = APEX_APPLICATION.G_FLOW_ID 
-        and   col.page_id = IIl1I0 
-        and   col.region_id = Ol01Il 
-        and   col.column_alias = Ol0Il0.col 
-        and   upper(col.column_alias) <> 'ROWID' 
- 
-        $IF CCOMPILING.g_views_granted $THEN 
-        union 
- 
-        select 
-        OIl1ll(Ol0II1.computation_report_label) report_label, 
-        Ol0II1.computation_report_label column_fullname, 
-        Ol0II1.computation_column_alias column_alias, 
-        Ol0II1.computation_column_type  column_type, 
-        Ol0II1.computation_format_mask format_mask, 
-        null as_print_column_width, 
-        Ol0Il0.Ol0III, 
-        null display_text_as, 
-        null column_linktext, 
-        null named_LOV, 
-        Ol0II1.application_id 
-        from apex_application_page_regions Ol01lI 
-        , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                , level Ol0III 
-           from ( select Il0II0 Il0IIl 
-                       , ':' ll0IIl from dual ) 
-           connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-         ) Ol0Il0, 
-        apex_application_page_ir Il0II1, 
-        apex_application_page_ir_rpt ll0III, 
-        apex_application_page_ir_comp Ol0II1 
-        where Ol01lI.region_id = Ol01Il 
-        and Ol01lI.region_id = Il0II1.region_id 
-        and ll0III.interactive_report_id = Il0II1.interactive_report_id 
-        and ll0III.report_id = Ol0I1l 
-        and Ol0II1.computation_column_alias = Ol0Il0.col 
-        and Ol0II1.report_id = ll0III.report_id 
-        $END 
-      ) 
-      order by Ol0III; 
-    elsif  IIl11l = 2 then 
-      select report_label 
-           , fullname 
-           , column_alias 
-           , column_type 
-           , format_mask 
-           , PRINT_COLUMN_WIDTH 
-           , Ol0III display_sequence 
-           , null Ol0101 
-           , null query_id 
-           , IIl10I(display_text_as, column_linktext, format_mask) IIl10I 
-           , OIl1Il(application_id, column_alias, named_LOV, null) LOV_SQL 
-           , null as ll010I
-           , null as item_type
-      bulk collect into Ol01I0 
-      from 
-      ( 
-        select OIl1ll(col.report_label) report_label 
-             , col.report_label fullname 
-             , col.column_alias 
-             , case when col.named_LOV is not null then 'STRING' else col.column_type end column_type
-             , col.format_mask 
-             , null as PRINT_COLUMN_WIDTH 
-             , Ol0Il0.Ol0III 
-             , col.display_text_as 
-             , col.column_linktext 
-             , col.named_LOV 
-             , col.application_id 
-        from apex_application_page_ir_col col 
-           , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                    , level Ol0III 
-               from ( select Il0II0 Il0IIl 
-                           , ':' ll0IIl from dual ) 
-               connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-             ) Ol0Il0 
-        where col.application_id = APEX_APPLICATION.G_FLOW_ID 
-        and   col.page_id = IIl1I0 
-        and   col.region_id = Ol01Il 
-        and   col.column_alias = Ol0Il0.col 
-        and   col.display_text_as <> 'HIDDEN' 
-        and   upper(col.column_alias) <> 'ROWID' 
- 
-        $IF CCOMPILING.g_views_granted $THEN 
-        union 
- 
-        select 
-        OIl1ll(Ol0II1.computation_report_label) report_label, 
-        Ol0II1.computation_report_label fullname, 
-        Ol0II1.computation_column_alias column_alias, 
-        Ol0II1.computation_column_type column_type, 
-        Ol0II1.computation_format_mask format_mask, 
-        null as print_column_width, 
-        Ol0Il0.Ol0III, 
-        null display_text_as, 
-        null column_link_text, 
-        null named_LOV, 
-        Ol0II1.application_id 
-        from apex_application_page_regions Ol01lI 
-        , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                , level Ol0III 
-           from ( select Il0II0 Il0IIl 
-                       , ':' ll0IIl from dual ) 
-           connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-         ) Ol0Il0, 
-        apex_application_page_ir Il0II1, 
-        apex_application_page_ir_rpt ll0III, 
-        apex_application_page_ir_comp Ol0II1 
-        where Ol01lI.region_id = Ol01Il 
-        and Ol01lI.region_id = Il0II1.region_id 
-        and ll0III.interactive_report_id = Il0II1.interactive_report_id 
-        and ll0III.report_id = Ol0I1l 
-        and Ol0II1.computation_column_alias = Ol0Il0.col 
-        and Ol0II1.report_id = ll0III.report_id 
-        $END 
-      ) 
-      order by Ol0III; 
-    end if; 
-  end if; 
- 
-  return Ol01I0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll0I1l', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll0I1l; 
- 
- 
-function Il0Il0( 
-  Ol01Il         number, 
-  IIl1I0           number, 
-  Ol0I1l         number, 
-  ll0Il1     varchar2, 
-  Ol0Il1   varchar2 
-) 
-return varchar2 
-as 
-Il0IlI varchar2(200); 
-begin 
-  pak_xslt_log.WriteLog( 'Start IIl1I0 '||IIl1I0||' Ol01Il '||Ol01Il|| 
-                        ' Ol0Il1 '||Ol0Il1, 
-                        p_procedure => 'Il0Il0'); 
- 
-  select ll0100 into Il0IlI from 
-  ( 
-    select nvl(report_label, column_alias) ll0100 
-    from apex_application_page_ir_col 
-    where page_id = IIl1I0 
-    and region_id = Ol01Il 
-    and column_alias = Ol0Il1 
- 
-    $IF CCOMPILING.g_views_granted $THEN 
-    union 
-    select Ol0II1.computation_column_alias ll0100 
-    from apex_application_page_regions Ol01lI 
-    join apex_application_page_ir Il0II1 on Ol01lI.region_id = Il0II1.region_id 
-    join apex_application_page_ir_rpt ll0III on ll0III.interactive_report_id = Il0II1.interactive_report_id 
-    join apex_application_page_ir_comp Ol0II1 on Ol0II1.report_id = ll0III.report_id 
-    where Ol01lI.region_id = Ol01Il 
-    and ll0III.report_id = Ol0I1l 
-    and Ol0II1.computation_column_alias = Ol0Il1 
-    $END 
-  ); 
- 
-  Il0IlI := 
-  case ll0Il1 
-    when 'AVG' then 'Average' 
-    when 'MAX' then 'Maximum' 
-    when 'MIN' then 'Minimum' 
-    when 'RATIO_TO_REPORT_SUM' then 'Percent of Total Sum' 
-    when 'RATIO_TO_REPORT_COUNT' then 'Percent of Total Count' 
-    else initcap(lower(ll0Il1)) 
-  end ||' '|| Il0IlI; 
- 
-  return Il0IlI; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il0Il0', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
-function ll0IlI( 
-  Ol0I1l  in  apex_application_page_ir_rpt.report_id%type, 
-  Ol0Ill out apex_application_page_ir_grpby%rowtype 
-) 
-return boolean 
-as 
-  Il01I1 boolean default false; 
- 
-  cursor Il0Ill is 
-  select * from apex_application_page_ir_grpby 
-  where report_id = Ol0I1l; 
- 
-begin 
-  open Il0Ill; 
-  fetch Il0Ill into Ol0Ill; 
-  Il01I1 := Il0Ill%found; 
-  close Il0Ill; 
-  if Il01I1 then 
-    pak_xslt_log.WriteLog( 'Group by mode : '||to_char(Ol0I1l), p_procedure => 'll0IlI'); 
-  else 
-    pak_xslt_log.WriteLog( 'Report mode', p_procedure => 'll0IlI'); 
-  end if; 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll0IlI', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll0IlI; 
- 
- 
- 
- 
-function ll0l00( 
-   Ol01Il            in number, 
-   IIl1I0              in number, 
-   Ol0l00              apex_application_page_ir_rpt%rowtype, 
-   Il0l01          out varchar2 
-) 
-return Ol0110 
-as 
-Ol01I0 Ol0110; 
-ll0l01 Il0100; 
-Ol0l0I apex_application_page_ir_grpby%rowtype; 
-begin 
-    select report_label 
-         , fullname 
-         , column_alias 
-         , column_type 
-         , format_mask 
-         , PRINT_COLUMN_WIDTH 
-         , Ol0III 
-         , null Ol0101 
-         , null query_id 
-         , IIl10I(display_text_as, column_linktext, format_mask) IIl10I 
-         , OIl1Il(application_id, column_alias, named_LOV, null) LOV_SQL 
-         , null as ll010I
-         , null as item_type
-         bulk collect into Ol01I0 
-    from 
-    ( 
-      select OIl1ll(col.report_label) report_label 
-           , col.report_label fullname 
-           , col.column_alias 
-           , case when col.named_LOV is not null then 'STRING' else col.column_type end column_type 
-           , col.format_mask 
-           , null as PRINT_COLUMN_WIDTH 
-           , Ol0Il0.Ol0III 
-           , col.display_text_as 
-           , col.column_linktext 
-           , col.named_LOV 
-           , col.application_id 
-      from apex_application_page_ir_col col 
-         , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-                  , level Ol0III 
-             from ( select group_by_columns Il0IIl, ':' ll0IIl from apex_application_page_ir_grpby Il0IIl 
-                    where application_id = APEX_APPLICATION.G_FLOW_ID and page_id = IIl1I0 and report_id = Ol0l00.report_id 
-                  ) 
-             connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-           ) Ol0Il0 
-      where col.application_id = APEX_APPLICATION.G_FLOW_ID 
-      and   col.page_id = IIl1I0 
-      and   col.region_id = Ol01Il 
-      and   col.column_alias = Ol0Il0.col 
- 
-      $IF CCOMPILING.g_views_granted $THEN 
-      union 
- 
-      select 
-      OIl1ll(Ol0II1.computation_report_label) report_label, 
-      Ol0II1.computation_report_label fullname, 
-      Ol0II1.computation_column_alias column_alias, 
-      Ol0II1.computation_column_type column_type, 
-      Ol0II1.computation_format_mask format_mask, 
-      null as PRINT_COLUMN_WIDTH, 
-      Ol0Il0.Ol0III, 
-      null display_text_as, 
-      null column_link_text, 
-      null named_LOV, 
-      Ol0II1.application_id 
-      from apex_application_page_regions Ol01lI 
-      , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-              , level Ol0III 
-         from ( select group_by_columns Il0IIl, ':' ll0IIl from apex_application_page_ir_grpby Il0IIl 
-                    where application_id = APEX_APPLICATION.G_FLOW_ID and page_id = IIl1I0 and report_id = Ol0l00.report_id ) 
-         connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-       ) Ol0Il0, 
-      apex_application_page_ir Il0II1, 
-      apex_application_page_ir_rpt ll0III, 
-      apex_application_page_ir_comp Ol0II1 
-      where Ol01lI.region_id = Ol01Il 
-      and Ol01lI.region_id = Il0II1.region_id 
-      and ll0III.interactive_report_id = Il0II1.interactive_report_id 
-      and ll0III.report_id = Ol0l00.report_id 
-      and Ol0II1.computation_column_alias = Ol0Il0.col 
-      and Ol0II1.report_id = ll0III.report_id 
-      $END 
-    ) 
-    order by Ol0III; 
- 
-    
-    for ll01I1 in 1..Ol01I0.count loop 
-      Il0l01 := Il0l01||' grpby_col'||to_char(ll01I1)||'="'||Query2Report.IIlIll(Ol01I0(ll01I1).ll0100)||'"'; 
-    end loop; 
- 
-    select * into Ol0l0I 
-    from apex_application_page_ir_grpby Il0IIl 
-    where application_id = APEX_APPLICATION.G_FLOW_ID 
-    and page_id = IIl1I0 
-    and report_id = Ol0l00.report_id; 
- 
-    if Ol0l0I.function_01 is not null then 
-      ll0l01.ll0100 := OIl1ll(nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_01, Ol0l0I.function_column_01))); 
-      ll0l01.fullname := nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_01, Ol0l0I.function_column_01)); 
-      ll0l01.col_type := 'NUMBER'; 
-      ll0l01.alias := Ol0l0I.function_db_column_name_01; 
-      ll0l01.format_mask := Ol0l0I.function_format_mask_01; 
-      ll0l01.display_sequence := 991; 
-      ll0l01.Ol0101 := Ol0l0I.function_sum_01; 
-      Ol01I0.extend; 
-      Ol01I0(Ol01I0.count) := ll0l01; 
-    end if; 
- 
-     if Ol0l0I.function_02 is not null then 
-      ll0l01.ll0100 := OIl1ll(nvl(Ol0l0I.function_label_02, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_02, Ol0l0I.function_column_02))); 
-      ll0l01.fullname := nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_02, Ol0l0I.function_column_02)); 
-      ll0l01.col_type := 'NUMBER'; 
-      ll0l01.alias := Ol0l0I.function_db_column_name_02; 
-      ll0l01.format_mask := Ol0l0I.function_format_mask_02; 
-      ll0l01.display_sequence := 992; 
-      ll0l01.Ol0101 := Ol0l0I.function_sum_02; 
-      Ol01I0.extend; 
-      Ol01I0(Ol01I0.count) := ll0l01; 
-    end if; 
- 
-    if Ol0l0I.function_03 is not null then 
-      ll0l01.ll0100 := OIl1ll(nvl(Ol0l0I.function_label_03, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_03, Ol0l0I.function_column_03))); 
-      ll0l01.fullname := nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_03, Ol0l0I.function_column_03)); 
-      ll0l01.col_type := 'NUMBER'; 
-      ll0l01.alias := Ol0l0I.function_db_column_name_03; 
-      ll0l01.format_mask := Ol0l0I.function_format_mask_03; 
-      ll0l01.display_sequence := 993; 
-      ll0l01.Ol0101 := Ol0l0I.function_sum_03; 
-      Ol01I0.extend; 
-      Ol01I0(Ol01I0.count) := ll0l01; 
-    end if; 
- 
-    if Ol0l0I.function_04 is not null then 
-      ll0l01.ll0100 := OIl1ll(nvl(Ol0l0I.function_label_04, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_04, Ol0l0I.function_column_04))); 
-      ll0l01.fullname := nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_04, Ol0l0I.function_column_04)); 
-      ll0l01.col_type := 'NUMBER'; 
-      ll0l01.alias := Ol0l0I.function_db_column_name_04; 
-      ll0l01.format_mask := Ol0l0I.function_format_mask_04; 
-      ll0l01.display_sequence := 994; 
-      ll0l01.Ol0101 := Ol0l0I.function_sum_04; 
-      Ol01I0.extend; 
-      Ol01I0(Ol01I0.count) := ll0l01; 
-    end if; 
- 
-    if Ol0l0I.function_05 is not null then 
-      ll0l01.ll0100 := OIl1ll(nvl(Ol0l0I.function_label_05, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_05, Ol0l0I.function_column_05))); 
-      ll0l01.fullname := nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_05, Ol0l0I.function_column_05)); 
-      ll0l01.col_type := 'NUMBER'; 
-      ll0l01.alias := Ol0l0I.function_db_column_name_05; 
-      ll0l01.format_mask := Ol0l0I.function_format_mask_05; 
-      ll0l01.display_sequence := 995; 
-      ll0l01.Ol0101 := Ol0l0I.function_sum_05; 
-      Ol01I0.extend; 
-      Ol01I0(Ol01I0.count) := ll0l01; 
-    end if; 
- 
-    if Ol0l0I.function_06 is not null then 
-      ll0l01.ll0100 := OIl1ll(nvl(Ol0l0I.function_label_06, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_06, Ol0l0I.function_column_06))); 
-      ll0l01.fullname := nvl(Ol0l0I.function_label_01, 
-        Il0Il0(Ol01Il, IIl1I0, Ol0l00.report_id, Ol0l0I.function_06, Ol0l0I.function_column_06)); 
-      ll0l01.col_type := 'NUMBER'; 
-      ll0l01.alias := Ol0l0I.function_db_column_name_06; 
-      ll0l01.format_mask := Ol0l0I.function_format_mask_06; 
-      ll0l01.display_sequence := 996; 
-      ll0l01.Ol0101 := Ol0l0I.function_sum_06; 
-      Ol01I0.extend; 
-      Ol01I0(Ol01I0.count) := ll0l01; 
-    end if; 
-return Ol01I0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll0l00', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll0l00; 
- 
- 
-function Il0l0I( 
-   Ol01Il            in number, 
-   IIl1I0              in number, 
-   IIl11l    in number, 
-   Il0II0  in varchar2 default null, 
-   ll0l0l             out varchar2, 
-   Ol0l0l           out varchar2 
-) 
-return Ol0110 
-as 
-Il0l10 apex_application_page_ir_rpt%rowtype; 
-begin 
-  Ol0l0l := null; 
-  ll0l0l := null; 
-  Il0l10 := ll01Il(Ol01Il, IIl1I0); 
-  if Il0l10.report_name is not null then 
-    ll0l0l := 'IR_name="'||Il0l10.report_name||'"'; 
-  end if; 
-  if Il0l10.report_description is not null then 
-    ll0l0l := ll0l0l||' IR_description="'||Il0l10.report_description||'"'; 
-  end if; 
- 
-  pak_xslt_log.WriteLog( 'll0l0l: '||ll0l0l, p_log_type => pak_xslt_log.g_information, p_procedure => 'Il0l0I'); 
- 
-  if Il0l10.report_view_mode = 'GROUP_BY' then 
-    return ll0l00(Ol01Il, IIl1I0, Il0l10, Ol0l0l); 
-  else 
-    return ll0I1l( 
-       Ol01Il, 
-       IIl1I0, 
-       Il0l10.report_id, 
-       IIl11l, 
-       Il0II0 
-    ); 
-  end if; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il0l0I', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il0l0I; 
- 
- 
-function OIlI01( 
-  OIl111 varchar2 
-) 
-return varchar2 
-as 
-  function ll0l10(OIl111 varchar2) 
-  return boolean 
-  as 
-  Ol0l11 varchar2(200); 
-  begin 
-    Ol0l11 := to_char(sysdate, OIl111); 
-    return true; 
-  exception 
-    when others then 
-    return false; 
-  end; 
- 
-  function Il0l11(OIl111 varchar2) 
-  return boolean 
-  as 
-  Ol0l11 varchar2(200); 
-  begin 
-    Ol0l11 := to_char(12345.45, OIl111); 
-    return true; 
-  exception 
-    when others then 
-    return false; 
-  end; 
-begin 
-  if OIl111 is null then 
-    return 'STRING'; 
-  elsif Il0l11(OIl111) then 
-    return 'NUMBER'; 
-  elsif ll0l10(OIl111) then 
-    return 'DATE'; 
-  else 
-    return 'STRING'; 
-  end if; 
-end; 
- 
-function  OIllll(Ol01Il in number) 
-return t_coltype_table 
-as 
-ll0l1I  varchar2(32000); 
-Il01I1            t_coltype_table; 
-begin 
-  select region_source 
-  into ll0l1I 
-  from apex_application_page_regions 
-  where region_id = Ol01Il; 
- 
-  return Query2Report.OIllll(ll0l1I); 
-end; 
- 
- 
-function Ol0l1I( 
-   Ol01Il in number, 
-   IIl11l number 
-) 
-return Ol0110 
-as 
-Ol01I0 Ol0110; 
-ll0l1I   varchar2(32000); 
-Il0l1l     number default 1; 
-ll0l1l        t_coltype_table; 
-begin 
-  pak_xslt_log.WriteLog( 'Ol01Il: '||to_char(Ol01Il)|| 
-                         ' IIl11l: '||to_char(IIl11l), 
-                          p_procedure => 'Ol0l1I'); 
- 
-  ll0l1l := OIllll(Ol01Il); 
- 
-  if IIl11l = 0 then 
-    select OIl1ll(nvl(Ol0lI0.heading, Ol0lI0.column_alias)) heading 
-         , nvl(Ol0lI0.heading, Ol0lI0.column_alias) fullname 
-         , Ol0lI0.column_alias 
-         
-         , case when nvl(Ol0lI0.format_mask, nvl(Ol0lI0.named_list_of_values, Ol0lI0.inline_list_of_values)) is not null then OIlI01(Ol0lI0.format_mask) else Il0lI0.coltype end column_type 
-         , Ol0lI0.format_mask 
-         , Ol0lI0.PRINT_COLUMN_WIDTH 
-         , Ol0lI0.display_sequence 
-         , substr(Ol0lI0.sum_column,1,1) Ol0101 
- 
-         $IF CCOMPILING.g_views_granted $THEN 
-         , ll0lI1.query_column_id query_id 
-         $ELSE 
-         , null query_id 
-         $END 
- 
-         , IIl10I(Ol0lI0.display_as_code, Ol0lI0.column_link_text, Ol0lI0.format_mask) IIl10I 
-         , OIl1Il(Ol0lI0.application_id, Ol0lI0.column_alias, Ol0lI0.named_list_of_values, Ol0lI0.inline_list_of_values) LOV_SQL 
-         , null as ll010I
-         , null as item_type
-    bulk collect into Ol01I0 
-    from apex_application_page_rpt_cols Ol0lI0 
-    join table(ll0l1l) Il0lI0 on Ol0lI0.column_alias = Il0lI0.colname 
- 
-    $IF CCOMPILING.g_views_granted $THEN 
-    join APEX_RPT_COLS_QUERY_ID ll0lI1 on Ol0lI0.region_report_column_id = ll0lI1.region_report_column_id 
-    $END 
- 
-    where Ol0lI0.region_id = Ol01Il 
-    
-    and Ol0lI0.column_alias not like 'CHECK$__' 
-    and Ol0lI0.column_alias not like 'DERIVED$__' 
-    and   upper(Ol0lI0.column_alias) <> 'ROWID' 
-    order by Ol0lI0.display_sequence; 
-  elsif IIl11l = 2 then 
-    select OIl1ll(nvl(Ol0lI0.heading, Ol0lI0.column_alias)) heading 
-     , nvl(Ol0lI0.heading, Ol0lI0.column_alias) fullname 
-     , Ol0lI0.column_alias 
-     , case when nvl(Ol0lI0.format_mask, nvl(Ol0lI0.named_list_of_values, Ol0lI0.inline_list_of_values)) is not null then OIlI01(Ol0lI0.format_mask) else Il0lI0.coltype end column_type 
-     , Ol0lI0.format_mask 
-     , Ol0lI0.PRINT_COLUMN_WIDTH 
-     , Ol0lI0.display_sequence 
-     , substr(Ol0lI0.sum_column,1,1) Ol0101 
- 
-     $IF CCOMPILING.g_views_granted $THEN 
-     , ll0lI1.query_column_id query_id 
-     $ELSE 
-     , null query_id 
-     $END 
- 
-     , IIl10I(Ol0lI0.display_as_code, Ol0lI0.column_link_text, Ol0lI0.format_mask) IIl10I 
-     , OIl1Il(Ol0lI0.application_id, Ol0lI0.column_alias, Ol0lI0.named_list_of_values, Ol0lI0.inline_list_of_values) LOV_SQL 
-     , null as ll010I
-     , null as item_type
-    bulk collect into Ol01I0 
-    from apex_application_page_rpt_cols Ol0lI0 
-    join table(ll0l1l) Il0lI0 on Ol0lI0.column_alias = Il0lI0.colname 
- 
-    $IF CCOMPILING.g_views_granted $THEN 
-    join APEX_RPT_COLS_QUERY_ID ll0lI1 on Ol0lI0.region_report_column_id = ll0lI1.region_report_column_id 
-    $END 
- 
-    where Ol0lI0.region_id = Ol01Il 
-    and   nvl( Ol0lI0.include_in_export, 'Yes') = 'Yes' 
-    and   Ol0lI0.COLUMN_IS_HIDDEN <>'Yes' 
-    and   nvl(Ol0lI0.Primary_key_column_source_type, 'N') <> 'Il0lI0' 
-    and   Ol0lI0.display_as_code <> 'HIDDEN' 
-    and   Ol0lI0.column_alias not like 'CHECK$__' 
-    and   Ol0lI0.column_alias not like 'DERIVED$__' 
-    and   upper(Ol0lI0.column_alias) <> 'ROWID' 
-    
-    order by Ol0lI0.display_sequence; 
-  elsif IIl11l = 1 then 
-    select OIl1ll(nvl(Ol0lI0.heading, Ol0lI0.column_alias)) heading 
-         , nvl(Ol0lI0.heading, Ol0lI0.column_alias) fullname 
-         , Ol0lI0.column_alias 
-         , case when nvl(Ol0lI0.format_mask, nvl(Ol0lI0.named_list_of_values, Ol0lI0.inline_list_of_values)) is not null then OIlI01(Ol0lI0.format_mask) else Il0lI0.coltype end column_type 
-         , Ol0lI0.format_mask 
-         , Ol0lI0.PRINT_COLUMN_WIDTH 
-         , Ol0lI0.display_sequence 
-         , substr(Ol0lI0.sum_column,1,1) Ol0101 
- 
-         $IF CCOMPILING.g_views_granted $THEN 
-         , ll0lI1.query_column_id query_id 
-         $ELSE 
-         , null query_id 
-         $END 
- 
-         , IIl10I(Ol0lI0.display_as_code, Ol0lI0.column_link_text, Ol0lI0.format_mask) IIl10I 
-         , OIl1Il(Ol0lI0.application_id, Ol0lI0.column_alias, Ol0lI0.named_list_of_values, Ol0lI0.inline_list_of_values) LOV_SQL 
-         , null as ll010I
-         , null as item_type
-    bulk collect into Ol01I0 
-    from apex_application_page_rpt_cols Ol0lI0 
-    join table(ll0l1l) Il0lI0 on Ol0lI0.column_alias = Il0lI0.colname 
- 
-    $IF CCOMPILING.g_views_granted $THEN 
-    join APEX_RPT_COLS_QUERY_ID ll0lI1 on Ol0lI0.region_report_column_id = ll0lI1.region_report_column_id 
-    $END 
- 
-    where Ol0lI0.region_id = Ol01Il 
-    and   nvl( Ol0lI0.include_in_export, 'Yes') = 'Yes' 
-    and   Ol0lI0.column_alias not like 'CHECK$__' 
-    and   Ol0lI0.column_alias not like 'DERIVED$__' 
-    and   upper(Ol0lI0.column_alias) <> 'ROWID' 
-    
-    
-    order by Ol0lI0.display_sequence; 
-  end if; 
-  return Ol01I0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Ol0l1I', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol0l1I; 
- 
- 
- 
-function Ol0lI1( 
-  Il0lII varchar2, 
-  Ol01I0 Il011I 
-) return varchar2 
-as 
-Il01I1 varchar2(1000); 
-ll0lII Il0110 := Il0110(); 
-Ol0lIl varchar2(20); 
-begin 
-  Il01I1 := Il0lII; 
-  pak_xslt_log.WriteLog( 'Il0lII '||Il0lII, 
-   p_procedure => 'Ol0lI1'); 
-  for ll01I1 in 1..length(Il0lII) loop 
-    if substr(Il0lII,ll01I1,1) between 'A' and 'Z' then 
-      Ol0lIl := Ol0lIl || substr(Il0lII,ll01I1,1); 
-      
-      
-    else 
-      if length(Ol0lIl) in (1,2) and Ol01I0.exists(Ol0lIl) then 
-        
-        ll0lII.extend; 
-        ll0lII(ll0lII.count) := Ol0lIl; 
-        pak_xslt_log.WriteLog( 'Added to table at '|| ll0lII.count||' Ol0lIl '||Ol0lIl, 
-        p_procedure => 'Ol0lI1'); 
-      end if; 
-      Ol0lIl := ''; 
-    end if; 
-  end loop; 
-  
- 
-  pak_xslt_log.WriteLog( 'end loop Il0lII Ol0lIl '||Ol0lIl, 
-    p_procedure => 'Ol0lI1'); 
- 
-  if length(Ol0lIl) in (1,2) then 
-    
-    ll0lII.extend; 
-    ll0lII(ll0lII.count) := Ol0lIl; 
-    pak_xslt_log.WriteLog( 'Added to table at '|| ll0lII.count||' Ol0lIl '||Ol0lIl, 
-    p_procedure => 'Ol0lI1'); 
-  end if; 
- 
-  
- 
-  for ll01I1 in 1..ll0lII.count loop 
-    
-    pak_xslt_log.WriteLog( 'Before regexp_replace ll01I1 '||ll01I1|| ' Ol01I0(ll0lII(ll01I1)) '||Ol01I0(ll0lII(ll01I1))|| 
-                          ' ll0lII(ll01I1) '||ll0lII(ll01I1), 
-                            p_procedure => 'Ol0lI1'); 
- 
-    Il01I1 := regexp_replace(Il01I1, '(^|\W)('||ll0lII(ll01I1)||')(\W|$)', '\1'||Ol01I0(ll0lII(ll01I1))||'\3'); 
-    
-    pak_xslt_log.WriteLog( 'After regexp_replace Il01I1 '||Il01I1, p_procedure => 'Ol0lI1'); 
-  end loop; 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'Ol0lI1', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol0lI1; 
- 
- 
-function Il0lIl( 
-  ll0ll0 varchar2, 
-  Ol0ll0 varchar2, 
-  Il0ll1 varchar2 
-) 
-return varchar2 
-as 
-  ll0ll1 pls_integer; 
-  Ol0llI pls_integer; 
-  Il0llI pls_integer; 
-  ll0lll varchar2(32767); 
-  Ol0lll varchar2(32767); 
- 
-begin 
-  Ol0lll := ll0ll0; 
-  if instr( Ol0lll, '#APXWS_EXPR#' ) > 0 
-  then 
-    Ol0lll := replace( Ol0lll, '#APXWS_EXPR#', '''' || replace( Ol0ll0, '''', '''''' ) || '''' ); 
-  end if; 
-  if instr( Ol0lll, '#APXWS_EXPR2#' ) > 0 
-  then 
-    Ol0lll := replace( Ol0lll, '#APXWS_EXPR2#', '''' || replace( Il0ll1, '''', '''''' ) || '''' ); 
-  end if; 
-  
-  Ol0llI := 1; 
-  ll0ll1 := 1; 
-  while instr( Ol0lll, '#APXWS_EXPR_VAL' || ll0ll1 || '#' ) > 0 
-  loop 
-    Il0llI := instr( Ol0ll0 || ',', ',', Ol0llI ); 
-    ll0lll := trim( substr( Ol0ll0, Ol0llI, Il0llI - Ol0llI ) ); 
-    if ll0lll is null 
-    then 
-      Ol0lll := replace( Ol0lll, ', #APXWS_EXPR_VAL' || ll0ll1 || '#' ); 
-      Ol0lll := replace( Ol0lll, '#APXWS_EXPR_VAL' || ll0ll1 || '# ,' ); 
-    else 
-      Ol0lll := replace( Ol0lll, '#APXWS_EXPR_VAL' || ll0ll1 || '#', '''' || replace( ll0lll, '''', '''''' ) || '''' ); 
-    end if; 
-    ll0ll1 := ll0ll1 + 1; 
-    Ol0llI := Il0llI + 1; 
-  end loop; 
-  return Ol0lll; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'Il0lIl', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il0lIl; 
- 
- 
- 
- 
-function Il1000( 
-  ll0ll0 varchar2, 
-  Ol0ll0 varchar2, 
-  Il0ll1 varchar2, 
-  ll1000 varchar2, 
-  Ol1001 varchar2, 
-  Il1001 varchar2, 
-  ll100I varchar2, 
-  Ol100I varchar2, 
-  Il100l varchar2
-) 
-return varchar2 
-as 
-begin 
-  return 
-  replace(apexrep2report.Il0lIl(ll0ll0, Ol0ll0, Il0ll1), '#APXWS_HL_ID#', 
-  '''highlight_name="'||ll1000||'" '|| 
-  'highlight_col="'||Query2Report.IIlIll(Il100l)||'" '|| 
-  'highlight_cell="'|| 
-  case when nvl(Ol1001, Il1001)  is not null then 'true' else 'false' end||'" '|| 
-  'highlight_bkg_color="'||nvl(ll100I, Ol1001)||'" '|| 
-  'highlight_font_color="'||nvl(Ol100I, Il1001)||'"'''); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'Il1000', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il1000; 
- 
- 
- 
-$IF CCOMPILING.g_views_granted $THEN 
-function ll100l( 
-    IIl1I0 number, 
-    Ol01Il number 
-) 
-return varchar2 
-as 
-ll0II0 number; 
-Ol1010 varchar2(32767); 
-Il1010 varchar2(4000); 
-Ol01I0 Il011I; 
- 
-cursor ll1011 is 
-  select Ol1011.column_alias 
-        , Ol1011.display_order 
-        , cid.column_identifier 
-    from apex_application_page_ir_col Ol1011 
-    join apex_application_page_ir_colid cid on Ol1011.column_id = cid.column_id 
-    where Ol1011.region_id = Ol01Il; 
- 
-cursor Il101I(ll101I number) is 
- select 
-    Ol0II1.computation_column_alias column_alias, 
-    Ol0II1.COMPUTATION_EXPRESSION Ol101l 
-   from apex_application_page_regions Ol01lI 
-   join apex_application_page_ir Il0II1 on Ol01lI.region_id = Il0II1.region_id 
-   join apex_application_page_ir_rpt ll0III on ll0III.interactive_report_id = Il0II1.interactive_report_id 
-   join apex_application_page_ir_comp Ol0II1 on Ol0II1.report_id = ll0III.report_id 
-   where Ol01lI.region_id = Ol01Il 
-   and ll0III.report_id = ll101I 
-   order by column_alias; 
- 
-begin 
-  for Il101l in ll1011 loop 
-    Ol01I0(Il101l.column_identifier) := Il101l.column_alias; 
-  end loop; 
- 
-  ll0II0 := ll01Il(Ol01Il, IIl1I0).report_id; 
-  for ll10I0 in Il101I(ll0II0) loop 
-    Ol1010 := Ol1010||', '||Ol0lI1(ll10I0.Ol101l, Ol01I0)|| 
-                      ' "'||ll10I0.column_alias||'"'; 
- 
-  end loop; 
- 
-  pak_xslt_log.WriteLog( ' Ol01Il '||Ol01Il|| ' Ol1010: '||Ol1010, 
-                          p_procedure => 'll100l' 
-                        ); 
- 
-  
-   
-   return Ol1010; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error IIl1I0 '||IIl1I0||' Ol01Il '||Ol01Il, 
-                          p_log_type => pak_xslt_log.g_error, 
-                          p_procedure => 'll100l', 
-                          p_sqlerrm => sqlerrm 
-                        ); 
-  raise; 
-end; 
-$END 
- 
-function Ol10I0(Il10I1 in varchar2) 
-return Il0110 
-AS 
-ll10I1         Il0110 := Il0110(); 
-Ol10II            VARCHAR2(4000) default Il10I1 || ':'; 
-ll01I1                    number; 
-Il10II          varchar2(30); 
-begin 
-loop 
-ll01I1 := instr(Ol10II, ':'); 
-exit when nvl(ll01I1,0) = 0; 
-Il10II := trim(substr(Ol10II, 1, ll01I1-1)); 
-if Il10II <>'0' then 
-  ll10I1.extend; 
-  ll10I1(ll10I1.count) := trim(substr(Ol10II, 1, ll01I1-1)); 
-END IF; 
-Ol10II := substr(Ol10II, ll01I1 + length(':')); 
-end loop; 
-return ll10I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'Ol10I0', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol10I0; 
- 
- 
-function ll10Il( 
-  Ol10Il apex_application_page_ir_rpt%rowtype 
-) 
-return varchar2 
-as 
-Il10l0 varchar2(4000); 
-begin 
+/** Type for array of hidden or PK columns in report (just label)*/
+--type tp_hidden_pk_cols is table of varchar2(200);
 
-  if nvl(Ol10Il.sort_column_1, '0') <> '0' 
-  then 
-    Il10l0 := ' "' || Ol10Il.sort_column_1 || '" ' || Ol10Il.sort_direction_1; 
-    if nvl(Ol10Il.sort_column_2, '0') <> '0' 
-    then 
-      Il10l0 := Il10l0 || ', "' || Ol10Il.sort_column_2 || '" ' || Ol10Il.sort_direction_2; 
-    end if; 
-    if nvl(Ol10Il.sort_column_3, '0') <> '0' 
-    then 
-      Il10l0 := Il10l0 || ', "' || Ol10Il.sort_column_3 || '" ' || Ol10Il.sort_direction_3; 
-    end if; 
-    if nvl(Ol10Il.sort_column_4, '0') <> '0' 
-    then 
-      Il10l0 := Il10l0 || ', "' || Ol10Il.sort_column_4 || '" ' || Ol10Il.sort_direction_4; 
-    end if; 
-    if nvl(Ol10Il.sort_column_5, '0') <> '0' 
-    then 
-      Il10l0 := Il10l0 || ', "' || Ol10Il.sort_column_5 || '" ' || Ol10Il.sort_direction_5; 
-    end if; 
-    if nvl(Ol10Il.sort_column_6, '0') <> '0' 
-    then 
-      Il10l0 := Il10l0 || ', "' || Ol10Il.sort_column_6 || '" ' || Ol10Il.sort_direction_6; 
-    end if; 
-  end if; 
-  pak_xslt_log.WriteLog( 'return '||Il10l0, p_procedure => 'll10Il' ); 
-  return Il10l0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'll10Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-function ll10Il( 
-  Ol10Il apex_application_page_ir_grpby%rowtype, 
-  ll10l0 varchar2 
-) 
-return varchar2 
-as 
-Il10l0 varchar2(4000); 
-begin 
+procedure WriteAppendAllString(
+  lob_loc IN OUT NOCOPY CLOB CHARACTER SET ANY_CS,
+   buffer  IN            VARCHAR2 CHARACTER SET lob_loc%CHARSET
+)
+as
+begin
+  dbms_lob.writeappend(lob_loc, length(buffer), buffer);
+end;
 
-  if nvl(Ol10Il.sort_column_01, '0') <> '0' and regexp_instr(ll10l0,'(:|^)'||Ol10Il.sort_column_01||'(:|$)') > 0 
-  then 
-    Il10l0 := ' ' || Ol10Il.sort_column_01 || ' ' || Ol10Il.sort_direction_01; 
- 
-    if nvl(Ol10Il.sort_column_02, '0') <> '0' and regexp_instr(ll10l0,'(:|^)'||Ol10Il.sort_column_02||'(:|$)') > 0 
-    then 
-      Il10l0 := Il10l0 || ', ' || Ol10Il.sort_column_02 || ' ' || Ol10Il.sort_direction_02; 
-    end if; 
-    if nvl(Ol10Il.sort_column_03, '0') <> '0' and regexp_instr(ll10l0,'(:|^)'||Ol10Il.sort_column_03||'(:|$)') > 0 
-    then 
-      Il10l0 := Il10l0 || ', ' || Ol10Il.sort_column_03 || ' ' || Ol10Il.sort_direction_03; 
-    end if; 
-    if nvl(Ol10Il.sort_column_04, '0') <> '0' and regexp_instr(ll10l0,'(:|^)'||Ol10Il.sort_column_04||'(:|$)') > 0 
-    then 
-      Il10l0 := Il10l0 || ', ' || Ol10Il.sort_column_04 || ' ' || Ol10Il.sort_direction_04; 
-    end if; 
-  end if; 
-  pak_xslt_log.WriteLog( 'return '||Il10l0, p_procedure => 'll10Il(group_by)' ); 
-  return Il10l0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, 
-  p_procedure => 'll10Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-procedure Ol10l1( 
-    Ol01Il number, 
-    IIl1I0 number, 
-    Ol10Il apex_application_page_ir_rpt%rowtype, 
-    Il10l1 out varchar2, 
-    ll10lI out varchar2 
-) 
-as 
-  Ol01l1 number; 
-  ll01l0 varchar2(32767); 
-  
-  Ol10lI varchar2(32767); 
-  
- 
-  
-  
-  cursor Il10ll is 
-  select replace(ll10ll.condition_sql, '#APXWS_CC_EXPR#',ll10ll.condition_column_name) condition_sql 
-        , ll10ll.condition_type 
-        , ll10ll.condition_expr_type 
-        , ll10ll.condition_expression 
-        , ll10ll.condition_expression2 
-   from apex_application_page_ir_cond ll10ll 
-   where ll10ll.application_id = APEX_APPLICATION.G_FLOW_ID
-   and   ll10ll.page_id = IIl1I0 
-   and   ll10ll.report_id = Ol10Il.report_id 
-   and   ll10ll.condition_enabled = 'Yes' 
-   and   ll10ll.condition_type in ( 'Filter', 'Search' ); 
- 
- 
-   cursor Ol1100(Il1100 varchar2) is 
-   select col.column_alias 
-   from apex_application_page_ir_col col 
-      , ( select substr( Il0IIl, instr( ll0IIl || Il0IIl, ll0IIl, 1, level ), instr( Il0IIl || ll0IIl, ll0IIl, 1, level ) - instr( ll0IIl || Il0IIl, ll0IIl, 1, level ) ) col 
-               , level Ol0III 
-         from ( select Il1100 Il0IIl 
-                     , ':' ll0IIl from dual ) 
-         connect by level <= length( Il0IIl ) - nvl( length( replace( Il0IIl, ll0IIl ) ), 0 ) + 1 
-        ) Ol0Il0 
-  where col.application_id = APEX_APPLICATION.G_FLOW_ID 
-  and   col.page_id = IIl1I0 
-  and   col.region_id = Ol01Il 
-  and   col.column_alias = Ol0Il0.col 
-  and   col.allow_filtering = 'Yes' 
-  and   col.column_type in ( 'STRING', 'NUMBER', 'CLOB' ); 
- 
-begin 
-  
-  ll10lI := ''; 
-  Il10l1 := ''; 
-  for ll1101 in Il10ll 
-  loop 
-    if (   ll1101.condition_type = 'Filter' 
-       and ll1101.condition_sql is not null 
-       ) 
-    then 
-      if ll1101.condition_expr_type = 'ROW' 
-      then 
-        if ll10lI is null then 
-          ll10lI := '(' || ll1101.condition_sql || ')'; 
-        else 
-          ll10lI := ll10lI ||' and (' || ll1101.condition_sql || ')'; 
-        end if; 
-      else 
-        if ll10lI is null then 
-          ll10lI := Il0lIl(ll1101.condition_sql, ll1101.condition_expression, ll1101.condition_expression2); 
-        else 
-          ll10lI := ll10lI ||' and '|| Il0lIl(ll1101.condition_sql, ll1101.condition_expression, ll1101.condition_expression2); 
-        end if; 
-      end if; 
-    end if; 
+function tp_col2string(t_cols tp_cols)
+return varchar2
+as
+l_ret varchar2(32000);
+begin
+  for i in 1..t_cols.count loop
+    l_ret:=l_ret||i||'.'||t_cols(i).query_id||'.'||t_cols(i).display_sequence||','||t_cols(i).alias||','||t_cols(i).label||'|';
+  end loop;
+  return l_ret;
+end;
 
-    if ll1101.condition_type = 'Search' 
-    then 
-      for Ol1101 in Ol1100(Ol10Il.report_columns) 
-      loop 
-        Ol10lI := Ol10lI || 'or instr( upper( "' || Ol1101.column_alias || '" ), upper( ''' || replace( ll1101.condition_expression, '''', '''''' ) || ''' ) ) > 0 '; 
-      end loop; 
-      if Ol10lI is not null 
-      then 
-        if length(trim(ll10lI)) > 0 then 
-          ll10lI := ll10lI||' and ( ' || ltrim( Ol10lI, 'or' ) || ' )'; 
-        else 
-          ll10lI := ll10lI||' ( ' || ltrim( Ol10lI, 'or' ) || ' )'; 
-        end if; 
-      end if; 
-    end if; 
-  end loop; 
+/**Converts column label to valid xml name. At the same time it also must
+* be valid column name for use in super select so it's cut to 30 chars
+*
+* @param p_col_label column label
+* @return valid xml name cuted to 30 chars.
+*/
+/*
+function Query2Report.ConvertColName2XmlName(p_col_label varchar2)
+return varchar2
+as
+begin
+  return substr(translate(p_col_label,' ()','_'), 1, 30);
+end;
+*/
 
-   
- 
-  Il10l1 := ll10Il(Ol10Il); 
-   
- 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Ol10l1', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol10l1; 
- 
-function Il110I( 
-  ll110I varchar2, 
-  Ol0Il1 varchar2 
-  
-) 
-return varchar2 
-as 
-Ol110l varchar2(30); 
-begin 
-  pak_xslt_log.WriteLog( 'Starting ll110I '||ll110I||' Ol0Il1 '||Ol0Il1, 
-                        p_procedure => 'Il110I'); 
-  
-  if ll110I like 'RATIO_TO_REPORT_%' then 
-    Ol110l := substr(ll110I, instr(ll110I, '_', -1) + 1); 
-    
-    return '100 * RATIO_TO_REPORT('||Ol110l||'('||Ol0Il1||')) OVER() '; 
-  elsif ll110I = 'COUNT_DISTINCT' then 
-    return 'COUNT(DISTINCT '||Ol0Il1||') '; 
-  else 
-    return ll110I||'('||Ol0Il1||') '; 
-  end if; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il110I', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il110I; 
- 
- 
-procedure Il110l( 
-  ll1110         in out varchar2, 
-  Ol1110  in out varchar2, 
+/** Generates REPORT_TYPES XML element
+*
+* @param t_cols table of cols records.
+* @return REPORT_TYPES XML element.
+*/
+function ReportTypesTable(t_cols tp_cols)
+return t_coltype_table
+as
+l_ret     t_coltype_table := t_coltype_table();
+l_xmlname varchar2(100);
+begin
+  for i in 1..t_cols.count loop
+    l_xmlname := Query2Report.ConvertColName2XmlName(t_cols(i).label);
+    --l_xmlname := t_cols(i).label;
+    l_ret.extend;
+    l_ret(l_ret.count) := t_coltype_row(l_xmlname, t_cols(i).col_type, t_cols(i).format_mask, t_cols(i).PRINT_COLUMN_WIDTH,
+    replace(htf.escape_sc(BindSSApexItem(t_cols(i).fullname)),'''','&#39;'),
+    i, Query2Report.ExcelCol(i),
+    null, null, null, null, null, null, null, null, null, null, null);
+    /*
+    l_ret := l_ret||'<'||l_xmlname||'>'||Query2Report.g_crlf;
+    l_ret := l_ret||'<TYPE>'||t_cols(i).col_type||'</TYPE>'||Query2Report.g_crlf;
+    l_ret := l_ret||'<FORMAT_MASK>'||t_cols(i).format_mask||'</FORMAT_MASK>'||Query2Report.g_crlf;
+    l_ret := l_ret||'</'||l_xmlname||'>'||Query2Report.g_crlf;
+    */
+  end loop;
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'ReportTypesTable', p_sqlerrm => sqlerrm );
+  raise;
+end ReportTypesTable;
 
-  ll110I varchar2, 
-  Ol0Il1 varchar2, 
-  Il1111 varchar2 
-) 
-as 
-
- 
-begin 
-  if ll110I is not null then 
-    ll1110 := ll1110 || ', ' || 
-    Il110I(ll110I, Ol0Il1) || 
-    Il1111; 
-    Ol1110 := Ol1110|| ':' ||Ol0Il1; 
+function RemoveSemicolon(p_region_source VARCHAR2)
+return VARCHAR2
+as
+l_ret VARCHAR2(32000);
+l_region_source VARCHAR2(32000):= rtrim(p_region_source,';');
+l_semicolon_pos NUMBER := 0;
+i PLS_INTEGER := 1;
+begin
+    l_semicolon_pos := instr(l_region_source, ';',-1,1);
     
-  end if; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il110l', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il110l; 
- 
- 
-procedure ll1111( 
-    IIl1I0 number, 
-    Ol10Il apex_application_page_ir_rpt%rowtype, 
-    Ol111I     out varchar2, 
-    Il111I  out varchar2, 
-    Il10l1      out varchar2 
-) 
-as 
-ll111l apex_application_page_ir_grpby%rowtype; 
-Ol111l varchar2(4000); 
- 
-begin 
-  select * into ll111l 
-  from apex_application_page_ir_grpby 
-  where  page_id=IIl1I0 and report_id = Ol10Il.report_id; 
-  Il111I := replace(ll111l.group_by_columns,':',', ');
-  Ol111l := ll111l.group_by_columns; 
-      Il110l( 
-        Il111I, 
-        Ol111l, 
-        ll111l.function_01, 
-        ll111l.function_column_01, 
-        ll111l.function_db_column_name_01 
-      ); 
-      Il110l( 
-        Il111I, 
-        Ol111l, 
-        ll111l.function_02, 
-        ll111l.function_column_02, 
-        ll111l.function_db_column_name_02 
-      ); 
-      Il110l( 
-        Il111I, 
-        Ol111l, 
-        ll111l.function_03, 
-        ll111l.function_column_03, 
-        ll111l.function_db_column_name_03 
-      ); 
-      Il110l( 
-        Il111I, 
-        Ol111l, 
-        ll111l.function_04, 
-        ll111l.function_column_04, 
-        ll111l.function_db_column_name_04 
-      ); 
-      Il110l( 
-        Il111I, 
-        Ol111l, 
-        ll111l.function_05, 
-        ll111l.function_column_05, 
-        ll111l.function_db_column_name_05 
-      ); 
-      Il110l( 
-        Il111I, 
-        Ol111l, 
-        ll111l.function_06, 
-        ll111l.function_column_06, 
-        ll111l.function_db_column_name_06 
-      ); 
- 
-       
-      Ol111I := replace(ll111l.group_by_columns,':',', '); 
-      Il10l1 := ll10Il(ll111l, Ol111l); 
-      Il01ll( 
-        'll1111', 
-        Il0I0I => Ol111I, 
-        IIlI0l => Il10l1, 
-        ll0I0I => Il111I 
-      ); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll1111', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-procedure Il11I0( 
-    Ol01Il number, 
-    IIl1I0 number, 
-    IIl11l number, 
-    ll11I0 out varchar2, 
-    Ol111I out varchar2, 
-    Il10l1 out varchar2, 
-    ll10lI out varchar2, 
-    Il111I out varchar2 
-) 
-as 
-Il01l1 apex_application_page_ir_rpt%rowtype; 
- 
-begin 
-  Il10l1 := null; 
-  Il01l1 := ll01Il(Ol01Il, IIl1I0); 
- 
-  if IIl11l > 0 then 
-    Ol10l1( 
-      Ol01Il, 
-      IIl1I0, 
-      Il01l1, 
-      Il10l1 => Il10l1, 
-      ll10lI => ll10lI 
-    ); 
-  end if; 
- 
-  if Il01l1.report_view_mode = 'GROUP_BY' then 
-    ll1111( 
-        IIl1I0, 
-        Il01l1, 
-        Ol111I => Ol111I, 
-        Il111I => Il111I, 
-        Il10l1 => Il10l1 
-    ); 
-  else 
-    
-    ll11I0 :=Il01l1.report_columns; 
-  end if; 
-  Il01ll( 
-    'Il11I0', 
-    Ol01Il, 
-    IIl11l, 
-    Ol0I00 => ll11I0, 
-    Il0I0I => Ol111I, 
-    ll0I0I => Il111I, 
-    IIlI0l => Il10l1, 
-    Ol0I01 => ll10lI 
-  ); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il11I0', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-procedure Ol11I1( 
-  
-  Il11I1  in out varchar2, 
-  ll11II   in out varchar2, 
-  Ol11II  in out varchar2, 
-  pio_grand_total_col_list in out varchar2,
-  Il11Il in varchar2 default null, 
-  p_grand_total_aggregates in varchar2 default null,   
-  p_break_in_grand_total in boolean default false  
-) 
-as 
- 
-begin 
-  Il11I1 := Il11I1|| 
-    case when Ol11II is not null then ', null BREAKROW ' else '' end|| 
-    case when ll11II is not null then ', null REGION_AGGREGATES ' else '' end; 
- 
-  if ll11II is not null then 
-    ll11II := ll11II|| 
-    case when Ol11II is not null then ', null BREAKROW ' else '' end|| 
-    ', '''||Il11Il||''' REGION_AGGREGATES '; 
-  end if; 
- 
-  if Ol11II is not null then 
-    Ol11II := Ol11II||', 1 BREAKROW '|| 
-    case when ll11II is not null then ', null REGION_AGGREGATES ' else '' end; 
-  end if; 
-  
-  if pio_grand_total_col_list is not null then 
-    pio_grand_total_col_list := pio_grand_total_col_list||', 2 BREAKROW '|| 
-    case when pio_grand_total_col_list is not null then ', '''||p_grand_total_aggregates||''' REGION_AGGREGATES ' else '' end; 
-  end if; 
- 
-   
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Ol11I1', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
- 
-function ll11Il( 
-  
-  ll01ll            Ol0110, 
-  ll11I0 out varchar2, 
-  Ol11l0  out varchar2 
-) 
-return boolean 
-as 
- Il11l0 varchar2(4000); 
- ll11l1 boolean default false; 
- Ol11l1 varchar2(4000) default null; 
- III0110 varchar2(4000) default null; 
- begin 
-  for ll01I1 in 1..ll01ll.count loop 
-    if ll01I1 = 1 then 
-      if ll01ll(ll01I1).Ol0101 = 'Y' then 
-        Ol11l0 := 'SUM("'||ll01ll(ll01I1).alias||'") '; 
-        if ll01ll(ll01I1).lov_sql is not null then 
-          Ol11l0 := 'to_char('||Ol11l0||') '; 
-        end if; 
-        Il11l0 := Il11l0 || 'SUM,'||Query2Report.IIlIll(ll01ll(ll01I1).ll0100)||','; 
-        ll11l1 := true; 
-      else 
-        Ol11l0 := 'null "'||ll01ll(ll01I1).alias||'" '; 
-      end if; 
-      ll11I0 := ' "'||ll01ll(ll01I1).alias||'" '; 
-    else 
-      if ll01ll(ll01I1).Ol0101 = 'Y' then 
-        if ll01ll(ll01I1).lov_sql is not null then 
-          Ol11l0 := Ol11l0||', to_char(SUM("'||ll01ll(ll01I1).alias||'")) '; 
-        else 
-          Ol11l0 := Ol11l0||', SUM("'||ll01ll(ll01I1).alias||'") '; 
-        end if; 
-        Il11l0 := Il11l0 || 'SUM,'||Query2Report.IIlIll(ll01ll(ll01I1).ll0100)||','; 
-        ll11l1 := true; 
-      else 
-        Ol11l0 := Ol11l0||',null "'||ll01ll(ll01I1).alias||'"'; 
-      end if; 
-      ll11I0 := ll11I0||', "'||ll01ll(ll01I1).alias||'" '; 
-    end if; 
-  end loop; 
- 
-  if ll11l1 then 
-    Ol11I1( 
-      Il11I1 => ll11I0, 
-      ll11II => Ol11l0, 
-      Ol11II => Ol11l1, 
-      pio_grand_total_col_list => III0110, 
-      Il11Il => Il11l0 
-    ); 
-  else 
-    Ol11l0 := null; 
-  end if; 
- 
-  Il01ll( 
-    'll11Il', 
-    null, 
-    null, 
-    Ol0I00 => ll11I0, 
-    Il0I00 => Ol11l0 
-  ); 
- 
-  return ll11l1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll11Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
-function Il11lI( 
-  Ol01I0 Ol0110, 
-  ll11lI varchar2 
-) 
-return varchar2 
-as 
-Ol11ll number; 
-begin 
-  pak_xslt_log.WriteLog( 'll11lI '||ll11lI||' Ol01I0: '||ll01I0(Ol01I0), p_procedure => 'Il11lI'); 
-  Ol11ll := to_number(ll11lI); 
-  for ll01I1 in 1..Ol01I0.count loop 
-    if Ol01I0(ll01I1).query_id = Ol11ll then 
-      return Ol01I0(ll01I1).alias; 
-    end if; 
-  end loop; 
-  return ll11lI; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il11lI', p_sqlerrm => sqlerrm ); 
-  return ll11lI; 
-end; 
- 
- 
- 
-procedure Il11ll( 
-    Ol01Il number, 
-    IIl1I0 number, 
-    IIl11l number, 
-    ll1I00 out Ol0110, 
-    ll11I0 out varchar2, 
-    Ol11l0 out varchar2, 
-    Il10l1 out varchar2 
-    
-    
-) 
-as 
-  
-  ll01l0 varchar2(32767); 
-  Ol1I00 boolean default false; 
-  
-begin 
- 
-  ll1I00 :=  Ol0l1I(Ol01Il, IIl11l => IIl11l); 
-  pak_xslt_log.WriteLog( 'Ol0l1I: '||ll01I0(ll1I00), p_procedure => 'Il11ll'); 
- 
-  if IIl11l > 0 
-  then 
-    ll01l0 := apex_util.get_preference( 'FSP' || to_char(APEX_APPLICATION.G_FLOW_ID) || '_P' || IIl1I0 || '_R' || Ol01Il || '_SORT', v('APP_USER')); 
-    if instr( ll01l0, 'fsp_sort_' ) = 1 
-    then 
-      Il10l1 := substr( ll01l0, 10 ); 
-      pak_xslt_log.WriteLog( 'Il10l1(1): '||Il10l1, p_procedure => 'Il11ll'); 
-      if instr( Il10l1, 'desc' ) > 0 
-      then 
-        Il10l1 := substr( Il10l1, 1, instr( Il10l1, '_' ) - 1 ); 
-        Il10l1 := Il11lI(ll1I00, Il10l1) || ' asc'; 
- 
-      else 
-        Il10l1 := Il11lI(ll1I00, Il10l1) || ' desc'; 
-      end if; 
-      pak_xslt_log.WriteLog( 'Il10l1(2): '||Il10l1, p_procedure => 'Il11ll'); 
-    end if; 
-    if Il10l1 is null 
-    then 
-      Il10l1 := replace( substr( ll01l0, 10 ), '_', ' ' ); 
-      pak_xslt_log.WriteLog( 'Il10l1(3): '||Il10l1, p_procedure => 'Il11ll'); 
-      Il10l1 := Il11lI(ll1I00, Il10l1); 
-      pak_xslt_log.WriteLog( 'Il10l1(4): '||Il10l1, p_procedure => 'Il11ll'); 
-    end if; 
-  end if; 
- 
-  Ol1I00 := ll11Il( 
-    ll1I00, 
-    ll11I0 => ll11I0, 
-    Ol11l0 => Ol11l0 
-  ); 
- 
-  if Ol1I00 then 
-    if Il10l1 is null then 
-      Il10l1 := 'REGION_AGGREGATES desc '; 
-    else 
-      $IF CCOMPILING.g_views_granted $THEN 
-        Il10l1 := 'REGION_AGGREGATES desc, '||Il10l1; 
-      $ELSE 
-        Il10l1 := 'REGION_AGGREGATES desc '; 
-      $END 
- 
-    end if; 
-  end if; 
- 
-  Il01ll( 
-    'Il11ll', 
-    Ol01Il, 
-    IIl11l, 
-    Ol0I00 => ll11I0, 
-    Il0I00 => Ol11l0, 
-    IIlI0l => Il10l1 
-  ); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il11ll', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il11ll; 
- 
-function Il1I01( 
-  ll1I01 query2report.tab_string 
-) 
-return CLOB 
-as 
-ll01I1 number default 1; 
-Il01I1 CLOB; 
-begin 
-  dbms_lob.CreateTemporary(Il01I1, false); 
-  for ll01I1 in 1..ll1I01.count() loop 
-    dbms_lob.writeappend(Il01I1, length(ll1I01(ll01I1)), ll1I01(ll01I1)); 
-    if ll01I1 < ll1I01.count() then 
-      dbms_lob.writeappend(Il01I1, 3, ';'||query2report.g_crlf); 
-    else 
-      dbms_lob.writeappend(Il01I1, 1, ';'); 
-    end if; 
-  end loop; 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il1I01', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
-function Ol1I0I(OIl111 varchar2, Il1I0I varchar2) 
-return boolean 
-as 
-ll1I0l    varchar2(50); 
-Ol1I0l  varchar2(50); 
-begin 
-  if Il1I0I = 'STRING' then 
-    return Ol1I0I(OIl111, 'DATE') or Ol1I0I(OIl111, 'NUMBER'); 
-  elsif Il1I0I = 'DATE' then 
-    ll1I0l := to_char(sysdate, OIl111); 
-  elsif Il1I0I = 'NUMBER' then 
-    Ol1I0l := to_char(9999999.99, OIl111); 
-  end if; 
-  RETURN TRUE; 
-EXCEPTION 
-    WHEN OTHERS THEN 
-        RETURN FALSE; 
-end Ol1I0I; 
- 
- 
-function Il1I10( 
-  ll1I10 Il0100, 
-  OIl1I0 number, 
-  Ol1I11 in out varchar2, 
-  Il1I11 in out varchar2 
-) 
-return varchar2 
-as 
-Il01I1 varchar2(256); 
-Il0IlI varchar2(256); 
-ll1I1I varchar2(256); 
-begin 
-  if (ll1I10.IIl10I > 0 and OIl1I0 = 1) 
-  or (ll1I10.IIl10I = 2 and OIl1I0 in (0,2)) 
-  then 
-    return null; 
-  end if; 
-  if ll1I10.display_sequence = 0 or ll1I10.ll0100 is null or length(ll1I10.ll0100) = 0 then 
-    Il0IlI := '"'||ll1I10.alias||'"'; 
-  else 
-    Il0IlI := '"'||Query2Report.IIlIll(ll1I10.ll0100)||'"'; 
-  end if; 
-  if (ll1I10.format_mask is not null and Ol1I0I(ll1I10.format_mask, ll1I10.col_type))
-      or ll1I10.item_type = 'NATIVE_YES_NO'
-  then 
-    
-    if ll1I10.item_type = 'NATIVE_YES_NO' then
-       ll1I1I  := ' decode("'||ll1I10.alias||'", ''Y'', ''Yes'', ''N'', ''No'')';
+    if nvl(l_semicolon_pos, 0) > 0 
+        and nvl(regexp_substr(substr(l_region_source, l_semicolon_pos + 1),'(\s*)(\)/\*end of region_src\*/)*'),'') = 
+        nvl(substr(l_region_source, l_semicolon_pos + 1),'') --just whitespaces after semicolon 
+    then
+        l_ret := trim(substr(l_region_source, 1, l_semicolon_pos - 1));
     else
-        if ll1I10.col_type = 'NUMBER' then 
-          ll1I1I := ' trim(to_char("'||ll1I10.alias||'", '''||ll1I10.format_mask||'''))'; 
-        else 
-          ll1I1I := ' to_char("'||ll1I10.alias||'", '''||ll1I10.format_mask||''')'; 
-        end if; 
+        l_ret := trim(l_region_source);
     end if;
-  else 
-    ll1I1I := ' "'||ll1I10.alias||'" '; 
-  end if; 
-  if (ll1I10.IIl10I > 0 and OIl1I0 in (0,4)) then 
-    ll1I1I := ' query2report.html2str('||ll1I1I||')'; 
-  end if; 
-  Il01I1 := ll1I1I||' '||Il0IlI||','; 
- 
-  Il0IlI := trim('"' from Il0IlI); 
- 
-  if (ll1I10.IIl10I = 1 and OIl1I0 in (2,3)) then 
-    if Ol1I11 is null then 
-      Ol1I11 := 'html_cols="'||Il0IlI ; 
-    else 
-      Ol1I11 := Ol1I11||','||Il0IlI ; 
-    end if; 
-  end if; 
- 
-  if (ll1I10.IIl10I = 2 and OIl1I0 = 3) then 
-    if Il1I11 is null then 
-      Il1I11 := 'img_cols="'||Il0IlI ; 
-    else 
-      Il1I11 := Il1I11||','||Il0IlI ; 
-    end if; 
-  end if; 
- 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Il1I10', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-procedure Ol1I1I 
-( 
-  Il1I1l in out ll0111 
-  ,ll1I1l in varchar2 
-  ,Ol1II0 in varchar2 
-) 
-as 
-Il1II0 Il0110 := Il0110(); 
-begin 
-  if ll1I1l is not null then 
-    Il1II0:=Ol10I0(ll1I1l); 
-    for ll01I1 in 1..Il1II0.count loop 
-      Il1I1l.extend; 
-      Il1I1l(Il1I1l.count).column_alias := Il1II0(ll01I1); 
-      Il1I1l(Il1I1l.count).ll010I := Ol1II0; 
-    end loop; 
-  end if; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Ol1I1I', p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol1I1I; 
- 
- 
-function ll1II1( 
-  IIl1I0         number, 
-  Ol0l00         apex_application_page_ir_rpt%rowtype, 
-  ll01ll            Ol0110, 
-  ll11I0 out varchar2, 
-  Ol11l0  out varchar2, 
-  Ol1II1  out varchar2 
-) 
-return boolean 
-as 
- 
- ll11l1 boolean default false; 
- Il1III varchar2(32000); 
-begin 
-  ll11l1 := ll11Il( 
-    ll01ll, 
-    ll11I0 => ll11I0, 
-    Ol11l0 => Ol11l0 
-  ); 
-  if ll11l1 then 
-     
-    Ol1II1 := 'REGION_AGGREGATES desc '; 
-  end if; 
- 
-  return ll11l1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll1II1', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-function ll1III( 
-  Ol01Il in number, 
-  IIl1I0 in number, 
-  Ol0l00 apex_application_page_ir_rpt%rowtype, 
-  Ol1IIl out varchar2, 
-  ll11I0 out varchar2, 
-  Ol11l0 out varchar2, 
-  Il1IIl out varchar2, 
-  Ol1II1 out varchar2, 
-  ll1Il0 out varchar2 
-) 
-return boolean 
-as 
-Ol1Il0 varchar2(50); 
-Il1Il1 boolean; 
-ll1Il1 boolean; 
-Ol1I00 boolean default false; 
-Ol1IlI boolean default false; 
-Il1IlI number default 0; 
-Il11l0 varchar2(4000); 
-III0110 varchar2(4000) default null;  
-ll1Ill ll0111 := ll0111(); 
- 
- 
-cursor ll1011(ll101I number) is 
-  select column_alias 
-       , display_order 
-       , column_type 
-       , report_label 
-    from apex_application_page_ir_col col 
-    where page_id = IIl1I0 
-    and region_id = Ol01Il 
-     
-    $IF CCOMPILING.g_views_granted $THEN 
-    union 
- 
-    select 
-    Ol0II1.computation_column_alias column_alias, 
-    999 display_order, 
-    Ol0II1.computation_column_type column_type, 
-    Ol0II1.computation_report_label report_label 
-   from apex_application_page_regions Ol01lI 
-   join apex_application_page_ir Il0II1 on Ol01lI.region_id = Il0II1.region_id 
-   join apex_application_page_ir_rpt ll0III on ll0III.interactive_report_id = Il0II1.interactive_report_id 
-   join apex_application_page_ir_comp Ol0II1 on Ol0II1.report_id = ll0III.report_id 
-   where Ol01lI.region_id = Ol01Il 
-   and ll0III.report_id = ll101I 
-   $END 
- 
-   order by display_order, column_alias; 
- 
-begin 
-  
-  Ol1I1I(ll1Ill, Ol0l00.SUM_COLUMNS_ON_BREAK, 'SUM'); 
-  Ol1I1I(ll1Ill, Ol0l00.AVG_COLUMNS_ON_BREAK, 'AVG'); 
-  Ol1I1I(ll1Ill, Ol0l00.MAX_COLUMNS_ON_BREAK, 'MAX'); 
-  Ol1I1I(ll1Ill, Ol0l00.MIN_COLUMNS_ON_BREAK, 'MIN'); 
-  Ol1I1I(ll1Ill, Ol0l00.MEDIAN_COLUMNS_ON_BREAK, 'MEDIAN'); 
-  Ol1I1I(ll1Ill, Ol0l00.COUNT_COLUMNS_ON_BREAK, 'COUNT'); 
-  Ol1I1I(ll1Ill, Ol0l00.COUNT_DISTNT_COL_ON_BREAK, 'COUNT_DISTINCT'); 
-  Ol1I1I(ll1Ill, Ol0l00.BREAK_ENABLED_ON, 'GROUP BY'); 
- 
-  for Ol1Ill in ll1011(Ol0l00.report_id) loop 
-    Il1Il1 := false; 
-    ll1Il1 := false; 
-    for ll01I1 in 1..ll1Ill.count loop 
-      if Ol1Ill.column_alias = ll1Ill(ll01I1).column_alias then 
-        Il1Il1 := true; 
-        if ll1Ill(ll01I1).ll010I = 'GROUP BY' then 
-          Ol1IlI := true; 
-          if Ol11l0 is null then 
-            Ol11l0 := ' '||Ol1Ill.column_alias; 
-          else 
-            Ol11l0 := Ol11l0||', '||Ol1Ill.column_alias; 
-          end if; 
- 
-          if Il1IIl is null then 
-            Il1IIl := ' distinct '||Ol1Ill.column_alias; 
-          else 
-            Il1IIl := Il1IIl||', '||Ol1Ill.column_alias; 
-          end if; 
- 
-          if ll1Il0 is null then 
-            ll1Il0 := ll1Ill(ll01I1).column_alias; 
-          else 
-            ll1Il0 := ll1Il0||', '||ll1Ill(ll01I1).column_alias; 
-          end if; 
-          Il1IlI := Il1IlI + 1; 
-          Ol1IIl := Ol1IIl||'break_on_col'||to_char(Il1IlI)|| 
-                        '="'||Query2Report.IIlIll(Ol1Ill.report_label)||'" '; 
- 
- 
-        else 
-          Ol1I00 := true; 
-          if ll1Ill(ll01I1).ll010I = 'COUNT_DISTINCT' then 
-            Ol1Il0 := 'round(COUNT(DISTINCT '||ll1Ill(ll01I1).column_alias||'),3)'; 
-          else 
-            Ol1Il0 := 'round('||ll1Ill(ll01I1).ll010I||'('||ll1Ill(ll01I1).column_alias||'),3)'; 
-          end if; 
-          Il11l0 := Il11l0 || ll1Ill(ll01I1).ll010I||','||Query2Report.IIlIll(Ol1Ill.report_label)||','; 
-          if ll1Ill(ll01I1).ll010I like 'COUNT%' 
-            
-          then 
-            ll1Il1 := true; 
-            Ol1Il0 := 'to_char('||Ol1Il0||')'; 
-          end if; 
-          if Ol11l0 is null then 
-            Ol11l0 := ' '||Ol1Il0||' '||ll1Ill(ll01I1).column_alias; 
-          else 
-            Ol11l0 := Ol11l0||', '||Ol1Il0||' '||ll1Ill(ll01I1).column_alias; 
-          end if; 
- 
-          if Il1IIl is null then 
-            Il1IIl := ' distinct null '||Ol1Ill.column_alias; 
-          else 
-            Il1IIl := Il1IIl||', null '||Ol1Ill.column_alias; 
-          end if; 
- 
-        end if; 
-      end if; 
-    end loop; 
-    if not Il1Il1 then 
-      if Ol11l0 is null then 
-        Ol11l0 := ' null '||Ol1Ill.column_alias; 
-      else 
-        Ol11l0 := Ol11l0||', null '||Ol1Ill.column_alias; 
-      end if; 
- 
-      if Il1IIl is null then 
-        Il1IIl := ' distinct null '||Ol1Ill.column_alias; 
-      else 
-        Il1IIl := Il1IIl||', null '||Ol1Ill.column_alias; 
-      end if; 
-    end if; 
- 
-    if ll11I0 is null then 
-      if ll1Il1 then 
-        ll11I0 := ' to_char('||Ol1Ill.column_alias||') '||Ol1Ill.column_alias; 
-      else 
-        ll11I0 := ' '||Ol1Ill.column_alias; 
-      end if; 
-    else 
-      if ll1Il1 then 
-        ll11I0 := ll11I0||', to_char('||Ol1Ill.column_alias||') '||Ol1Ill.column_alias; 
-      else 
-        ll11I0 := ll11I0||', '||Ol1Ill.column_alias; 
-      end if; 
-    end if; 
-  end loop; 
- 
-  if Ol11l0 is not null then 
-    if Ol1IlI then 
-      
-      Ol1II1 := trim(both ',' from ll1Il0); 
-    end if; 
- 
-    if Ol1I00 then 
- 
-        if Ol1IlI then 
-          Ol1II1 := Ol1II1||', BREAKROW, REGION_AGGREGATES desc '; 
-          Ol11I1( 
-            Il11I1 => ll11I0, 
-            ll11II => Ol11l0, 
-            Ol11II => Il1IIl, 
-            pio_grand_total_col_list => III0110, 
-            Il11Il => Il11l0 
-          ); 
-        else 
-          Ol1II1 := 'REGION_AGGREGATES desc '; 
-          Il1IIl := null; 
-          Ol11I1( 
-            Il11I1 => ll11I0, 
-            ll11II => Ol11l0, 
-            Ol11II => Il1IIl, 
-            pio_grand_total_col_list => III0110, 
-            Il11Il => Il11l0 
-          ); 
-        end if; 
-    elsif Ol1IlI then
-      pak_xslt_log.WriteLog( 'No ll010I just break', p_procedure => 'll1III'); 
-      Ol11l0 := null; 
-      Ol11I1( 
-            Il11I1 => ll11I0, 
-            ll11II => Ol11l0, 
-            Ol11II => Il1IIl, 
-            pio_grand_total_col_list => III0110, 
-            Il11Il => Il11l0 
-          ); 
-      Ol1II1 := Ol1II1||', '||' BREAKROW'; 
-    else 
-      pak_xslt_log.WriteLog( 'No ll010I or break', p_procedure => 'll1III'); 
-      Ol11l0 := null; 
-      Il1IIl := null; 
-    end if; 
-  end if; 
-  return Ol1I00; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'll1III', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll1III; 
- 
- 
-procedure Il1l00( 
-  
-  Ol01Il             in number, 
-  IIl1I0               in number, 
-  IIl11l     in number, 
-  Il11I1      in out varchar2, 
-  Ol11l0        out varchar2, 
-  Il1IIl       out varchar2, 
-  ll1Il0  out varchar2, 
-  Ol1II1   out varchar2, 
-  ll1l00               out varchar2, 
-  Ol1IIl            out varchar2, 
-  Il0l01            out varchar2, 
-  Ol1l01          out number, 
-  ll1I00                 out Ol0110 
-) 
-as 
-Il0l10 apex_application_page_ir_rpt%rowtype; 
- 
-Ol1I00 boolean; 
- 
-begin 
-  ll1I00 := Il0l0I(Ol01Il, IIl1I0, IIl11l, Il11I1, ll1l00, Il0l01); 
-  Il01ll( 
-    'Il1l00 after Il0l0I', 
-    Ol01Il, 
-    IIl11l, 
-    ll01ll => ll1I00 
-  ); 
- 
-  Ol1l01 := Il0I1I(Ol01Il, IIl1I0); 
- 
-  Il0l10 := ll01Il(Ol01Il, IIl1I0); 
-  if Il0l10.report_view_mode = 'GROUP_BY' then 
-    Ol1IIl := null; 
-    Ol1I00 := ll1II1( 
-      
-      IIl1I0, 
-      Il0l10, 
-      ll1I00, 
-      
-      ll11I0 => Il11I1, 
-      Ol11l0 => Ol11l0, 
-      Ol1II1 => Ol1II1 
-    ); 
-  else 
-    Ol1I00 := ll1III( 
-      
-      Ol01Il, 
-      IIl1I0, 
-      Il0l10, 
-      Ol1IIl => Ol1IIl, 
-      ll11I0 => Il11I1, 
-      Ol11l0 => Ol11l0, 
-      Il1IIl => Il1IIl, 
-      Ol1II1 => Ol1II1, 
-      ll1Il0 => ll1Il0 
-    ); 
-  end if; 
-  if not Ol1I00 then 
-    Ol11l0 := null; 
-  end if; 
-  Il01ll( 
-    'Il1l00', 
-    Ol01Il, 
-    IIl11l, 
-    ll01ll => ll1I00, 
-    Ol0I00 => Il11I1, 
-    Il0I00 => Ol11l0, 
-    ll0I01 => Il1IIl, 
-    Ol0I0l => ll1Il0, 
-    OIlI0I => Ol1II1, 
-    ll0I10 => ll1l00, 
-    Ol0I10 => Ol1IIl, 
-    Il0I11 => Il0l01 
-  ); 
- 
-end Il1l00; 
- 
- 
-function Il1l01( 
-  IIl1I0 number, 
-  Ol01Il number, 
-  Ol1II0 boolean 
-) 
-return varchar2 
-as 
-Il1010 varchar2(32767); 
-ll0II0 number; 
- 
-cursor ll1l0I(ll101I number) is 
-  select  Ol1l0I.condition_sql, 
-          Ol1l0I.condition_expression, 
-          Ol1l0I.condition_expression2, 
-          Ol1l0I.condition_name, 
-          Ol1l0I.highlight_cell_color, 
-          Ol1l0I.highlight_cell_font_color, 
-          Ol1l0I.highlight_row_color, 
-          Ol1l0I.highlight_row_font_color, 
-          col.report_label 
-  from 
-  apex_application_page_ir_cond Ol1l0I 
-  join apex_application_page_ir_col col on 
-  Ol1l0I.application_id = col.application_id 
-  and Ol1l0I.page_id = col.page_id 
-  and col.column_alias = Ol1l0I.condition_column_name 
-   where Ol1l0I.page_id = IIl1I0 
-   and Ol1l0I.report_id = ll101I 
-   and Ol1l0I.condition_type = 'Highlight' 
-   and Ol1l0I.condition_enabled = 'Yes' 
-   order by Ol1l0I.highlight_sequence desc; 
- 
- 
-begin 
-  ll0II0 := ll01Il(Ol01Il, IIl1I0).report_id; 
- 
-  for Il1l0l in ll1l0I(ll0II0) loop 
-    Il1010 := Il1010|| 
-                        Il1000( 
-                          Il1l0l.condition_sql, 
-                          Il1l0l.condition_expression, 
-                          Il1l0l.condition_expression2, 
-                          Il1l0l.condition_name, 
-                          Il1l0l.highlight_cell_color, 
-                          Il1l0l.highlight_cell_font_color, 
-                          Il1l0l.highlight_row_color, 
-                          Il1l0l.highlight_row_font_color, 
-                          Il1l0l.report_label 
-                          )||query2report.g_crlf; 
-  end loop; 
-  if Il1010 is not null then 
-    Il1010:=replace(Il1010, '(case',''); 
-    Il1010:=replace(Il1010, 'end)',''); 
-    if Ol1II0 then 
-      Il1010:=replace(Il1010, 'when','when REGION_AGGREGATES is null and '); 
-    end if; 
-    Il1010:='(case '||Il1010||' end)'; 
-  end if; 
-  return Il1010; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error IIl1I0 '||to_char(IIl1I0)||' ll0II0 '||to_char(ll0II0), 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'Il1l01', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end Il1l01; 
- 
-function IIl1lI(p_name varchar2) 
-return varchar2 
-as 
-ll1l0l varchar2(50); 
-Ol1l10 number := 1; 
-Il1l10 varchar2(50); 
-ll1l11 varchar2(50); 
-Il01I1 varchar2(400); 
+    return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_region_source '||p_region_source,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'RemoveSemicolon',
+    p_sqlerrm => sqlerrm );
+  raise;
+end;
 
-begin 
-  Il01I1 := p_name; 
-  
-  
-  loop 
-    Ol1l10 := regexp_instr(Il01I1, '&([Ol0lI0-zA-Z0-9_]*).', Ol1l10); 
-    exit when nvl(Ol1l10, 0) = 0; 
-    ll1l0l := regexp_substr(Il01I1, '&([Ol0lI0-zA-Z0-9_]*).', Ol1l10); 
-    exit when length(ll1l0l) = 0; 
-    
-    if substr(ll1l0l, length(ll1l0l), 1) = '.' then
-        ll1l11 := ltrim(rtrim(ll1l0l,'.'),'&'); 
 
-        
-          
+/** Returns row from apex_application_page_ir_rpt table which describe base report of region p_region_id.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @return Row from apex_application_page_ir_rpt table which describe current report of region p_region_id.
+*/
+function Get_current_report_row(
+   p_region_id in number,
+   p_page_id in number
+)
+return apex_application_page_ir_rpt%rowtype
+as
+  t_interactive_report_id number;
+  t_pref varchar2(200);
+  t_base_report_id number;
+  t_apr apex_application_page_ir_rpt%rowtype;
+  l_exists number; 				  
+begin
 
-        if V(ll1l11) is not null then 
-          Il01I1 := substr(Il01I1, 1, Ol1l10 - 1)||V(ll1l11)||substr(Il01I1, Ol1l10 + length(ll1l0l));    
-          
-        end if; 
-    end if;    
-    
-    Ol1l10 := Ol1l10 + length(ll1l0l);
-  end loop; 
-  
- 
-  
-      
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error: '||p_name, 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'IIl1lI', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end IIl1lI; 
- 
-function OIl1ll(IIlI00 varchar2) 
-return varchar2 
-as 
-Il01I1 varchar2(400); 
-begin 
-  Il01I1 := IIl1lI(IIlI00); 
-  
-  Il01I1 := Query2Report.IIlIll(Il01I1); 
-  
-  pak_xslt_log.WriteLog( 'Il01I1: '||Il01I1, 
-      p_procedure => 'OIl1ll'); 
-  return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error: '||IIlI00, 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'OIl1ll', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end OIl1ll; 
- 
-function Ol1l11(Il1l1I varchar2) 
-return varchar2 
-as 
-ll1l1I number; 
-Ol1l1l number; 
-ll0l1I varchar2(32767); 
-Il1l1l varchar2(32767); 
- 
-begin 
-  ll1l1I := instr(Il1l1I, ''''); 
-  Ol1l1l := instr(Il1l1I, '''', 1, 2); 
- 
-  if nvl(ll1l1I, 0) = 0 or nvl(Ol1l1l, 0) = 0 then 
-    ll0l1I := replace(Il1l1I, '#OWNER#', V('OWNER')); 
-    ll0l1I := replace(ll0l1I, '#owner#', V('OWNER')); 
-    ll0l1I := replace(ll0l1I, '#FLOW_OWNER#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER); 
-    ll0l1I := replace(ll0l1I, '#flow_owner#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER); 
-    return regexp_replace(ll0l1I, ':([Ol0lI0-zA-Z0-9_]*)','v(''\1'')'); 
-  else 
-    Il1l1l := substr(Il1l1I, 1 , ll1l1I - 1); 
-    Il1l1l := replace(Il1l1l, '#OWNER#', V('OWNER')); 
-    Il1l1l := replace(Il1l1l, '#owner#', V('OWNER')); 
-    Il1l1l := replace(Il1l1l, '#FLOW_OWNER#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER); 
-    Il1l1l := replace(Il1l1l, '#flow_owner#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER); 
-    Il1l1l := regexp_replace(Il1l1l, ':([Ol0lI0-zA-Z0-9_]*)','v(''\1'')'); 
-    ll0l1I := Il1l1l||
-                       substr(Il1l1I, ll1l1I, Ol1l1l - ll1l1I+1); 
-    if Ol1l1l < length(Il1l1I) then 
-      ll0l1I := ll0l1I||Ol1l11(substr(Il1l1I, Ol1l1l + 1)); 
-    end if; 
-    RETURN ll0l1I; 
-  end if; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'Ol1l11', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end Ol1l11; 
- 
-procedure ll1lI0( 
-  Il0I0l           in varchar2, 
-  Ol0I01                 in varchar2, 
-  l10I0OI0      in number,   
-  ll0I0I     in varchar2, 
-  Ol1lI0               out varchar2, 
-  Il1lI1 out varchar2 
-) 
-as 
- 
-begin 
-  Il01ll( 
-    p_procedure         =>  'll1lI0 start', 
-    Il0I0l       => Il0I0l, 
-    ll0I0I => ll0I0I, 
-    Ol0I01             => Ol0I01 
-  ); 
-  if l10I0OI0 is not null then
-      Ol1lI0 := 'region_src_joined_master'; 
-      Il1lI1 := 'region_src_joined_master'; 
+  select api.interactive_report_id
+  into t_interactive_report_id
+  from apex_application_page_ir api
+  where api.application_id = APEX_APPLICATION.G_FLOW_ID
+  and   api.page_id = p_page_id
+  and   api.region_id = p_region_id;
+--
+  t_pref := apex_util.get_preference( 'FSP_IR_' || to_char(APEX_APPLICATION.G_FLOW_ID) || '_P' || p_page_id || '_W' || t_interactive_report_id, v( 'APP_USER') );
+
+  if t_pref is null then
+    pak_xslt_log.WriteLog( 'User preference t_pref is null', p_procedure => 'Get_current_report_row');
+
+    select *
+    into t_apr
+    from
+    (
+      select *
+      from apex_application_page_ir_rpt apr
+      where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+      and   apr.page_id = p_page_id
+      and   apr.APPLICATION_USER  = V('APP_USER')
+      and   apr.session_id = V('SESSION')
+$IF CCOMPILING.g_IG_exists $THEN	  
+      and   apr.region_id = p_region_id
+$END	  
+      order by apr.report_id desc
+    ) where rownum = 1;
   else
-      Ol1lI0 := 'region_src'; 
-      Il1lI1 := 'region_src'; 
-  end if;
- 
-  if Il0I0l is not null then 
-    Il1lI1 := 'region_src_cc'; 
-  end if; 
- 
-  if ll0I0I is not null then 
-    Ol1lI0 := 'region_src_grpby'; 
-  elsif Ol0I01 is not null then 
-    Ol1lI0 := 'region_src_filtered'; 
-  elsif Il0I0l is not null then 
-    Ol1lI0 := 'region_src_cc'; 
-  end if; 
- 
-  pak_xslt_log.WriteLog( 'Finished Ol1lI0 '||Ol1lI0|| 
-                         ' Il1lI1 '||Il1lI1, 
-  p_procedure => 'll1lI0'); 
-end; 
- 
-function ll1lI1(Ol1lII varchar2) 
-return varchar2 
-as 
-  Ol1011           NUMBER; 
-  Il1lII           NUMBER; 
-  col_cnt     INTEGER; 
-  ll1lIl           BOOLEAN; 
-  Ol1lIl     DBMS_SQL.DESC_TAB; 
-  col_num    NUMBER; 
-begin 
-  if Ol1lII is null then 
-    return null; 
-  end if; 
- 
-  Ol1011 := DBMS_SQL.OPEN_CURSOR; 
-  
-  DBMS_SQL.PARSE(Ol1011, Ol1l11(Ol1lII), DBMS_SQL.NATIVE); 
-  Il1lII := DBMS_SQL.EXECUTE(Ol1011); 
-  DBMS_SQL.DESCRIBE_COLUMNS(Ol1011, col_cnt, Ol1lIl); 
-  DBMS_SQL.CLOSE_CURSOR(Ol1011); 
-  if col_cnt <> 2 then 
-    return null; 
-  end if; 
-  return 'select '||Ol1lIl(1).col_name||' Il1lII, '||Ol1lIl(2).col_name||' v from ('||Ol1lII||')'; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error Ol1lII: '||Ol1lII, p_log_type => pak_xslt_log.g_error, p_procedure => 'll1lI1', p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll1lI1; 
- 
-function OIl1Il( 
-  IIl1Il number, 
-  OIl1l0 varchar2, 
-  IIl1l1 varchar2, 
-  OIl1lI varchar2 
-) 
-return varchar2 
-as 
-Il01I1 varchar2(32000); 
-Il1ll0 varchar2(32000); 
-ll1ll0 varchar2(20); 
-Ol1ll1 varchar2(32000); 
-Il1ll1 varchar2(4000); 
-ll1llI number; 
-Ol1llI number; 
-Il1lll boolean default false; 
- 
-begin 
-  if IIl1l1 is not null then 
-    select list_of_values_query, lov_type 
-    into Il1ll0, ll1ll0 
-    from apex_application_lovs 
-    where application_id = IIl1Il 
-    and list_of_values_name = IIl1l1; 
- 
-    if ll1ll0 = 'Static' and IIl1Il is not null then 
-      Il1ll0 := 'select display_value Il1lII, trim(ll10I1) v from APEX_APPLICATION_LOV_ENTRIES where application_id = '|| 
-        IIl1Il||' and list_of_values_name = '''||IIl1l1||''''; 
-      Il1lll := true; 
-    end if; 
-  elsif OIl1lI is not null then 
-    if substr(upper(trim(OIl1lI)),1,6) = 'SELECT' then 
-      Il1ll0 := OIl1lI; 
-    elsif substr(upper(trim(OIl1lI)),1,6) = 'STATIC'  
-          and instr(OIl1lI,';') > 0 
-          and instr(OIl1lI,':') > 0 
-    then 
-      Ol1ll1 := substr(OIl1lI, instr(OIl1lI,':')+1); 
-      Ol1ll1 := Ol1ll1||','; 
-      loop 
-        ll1llI := nvl(instr(Ol1ll1,','), 0); 
-        exit when ll1llI = 0; 
-        Il1ll1 := substr(Ol1ll1, 1, ll1llI-1); 
-        Ol1llI := nvl(instr(Il1ll1,';'),0); 
-        exit when Ol1llI = 0; 
-        if Il1ll0 is null then 
-          Il1ll0 := 'select '''||substr(Il1ll1,1,Ol1llI - 1)||''' Il1lII, '''|| 
-          substr(Il1ll1, Ol1llI + 1)||''' v from dual'; 
-        else 
-          Il1ll0 := Il1ll0||' union select '''|| 
-            substr(Il1ll1,1,Ol1llI - 1)||''' Il1lII, '''|| 
-            substr(Il1ll1, Ol1llI + 1)||''' v from dual'; 
-        end if; 
-        Ol1ll1 := substr(Ol1ll1, ll1llI+1);
-      end loop; 
-      Il1lll := true; 
-    end if; 
-  end if; 
-  if not Il1lll then 
-                       
-    Il1ll0 := ll1lI1(Il1ll0); 
-  end if; 
-  return Il1ll0; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'OIl1Il', p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-procedure ll1lll(                   
-      Il0I0l                 IN varchar2,     
-      Ol0I01                       IN varchar2,         
-      ll01ll                        IN Ol0110,      
-      l10I0OI0            IN integer,          
-      pio_group_by_col_list           IN OUT varchar2, 
-      Il11I1            IN OUT varchar2, 
-      ll11II             IN OUT varchar2,
-      pio_break_group_by_list       IN OUT varchar2,
-      OlI000                     IN OUT varchar2, 
-      Ol11II            IN OUT varchar2, 
-      IlI000                OUT varchar2,    
-      llI001           OUT varchar2,    
-      OlI001         OUT varchar2     
-)                                                
-as 
-IlI00I                varchar2(100); 
-llI00I  varchar2(100); 
-begin 
-  Il01ll( 
-    p_procedure         =>  'll1lll start', 
-    ll01ll              => ll01ll, 
-    Il0I0l       => Il0I0l, 
-    ll0I0I => pio_group_by_col_list, 
-    Ol0I00    => Il11I1, 
-    Il0I00   => ll11II,
-    Ol0I0l => pio_break_group_by_list,  
-    Ol0I01             => OlI000, 
-    ll0I01    => Ol11II, 
-    ll0I11       => IlI000, 
-    Ol0I1I  => llI001 
-  ); 
-  ll1lI0(Il0I0l, Ol0I01, l10I0OI0, pio_group_by_col_list, IlI00I, llI00I); 
-  
-  for ll01I1 in 1..ll01ll.count loop 
-    if ll01ll(ll01I1).lov_sql is not null then 
-      Il11I1 := regexp_replace(Il11I1, '(\W|^)("?)'||ll01ll(ll01I1).alias||'("?)(\W|$)', 
-                            '\1'||ll01ll(ll01I1).alias||'_LOV.Il1lII \2'||ll01ll(ll01I1).alias||'\3\4'); 
-      
-      if pio_group_by_col_list is not null then
-          pio_group_by_col_list := regexp_replace(pio_group_by_col_list, '(\W|^)("?)'||ll01ll(ll01I1).alias||'("?)(\W|$)',     
-                            '\1'||ll01ll(ll01I1).alias||'_LOV.Il1lII \2'||ll01ll(ll01I1).alias||'\3\4');                       
-      end if;                                              
-      
-      if nvl(instr(ll11II, 'null '||ll01ll(ll01I1).alias), 0) = 0 
-         and nvl(instr(ll11II, 'null "'||ll01ll(ll01I1).alias||'"'), 0) = 0    
-      then 
-          ll11II := regexp_replace(ll11II, '(\W|^)("?)'||ll01ll(ll01I1).alias||'("?)(\W|$)',     
-                            '\1'||ll01ll(ll01I1).alias||'_LOV.Il1lII \2'||ll01ll(ll01I1).alias||'\3\4');                       
-      end if;                                              
+    t_base_report_id := substr( t_pref, 1, instr( t_pref, '_' ) - 1 );
+
+    pak_xslt_log.WriteLog( 'User preference t_pref is NOT null t_base_report_id '||t_base_report_id,
+                            p_log_type => pak_xslt_log.g_error,
+                           p_procedure => 'Get_current_report_row');
+    pak_xslt_log.WriteLog( 'APEX_APPLICATION.G_FLOW_ID: '||APEX_APPLICATION.G_FLOW_ID||
+                            ' p_page_id: '||p_page_id||
+                            ' V(''APP_USER''): '||V('APP_USER')||
+                            ' V(''SESSION''): '||V('SESSION')||
+                            ' p_region_id: '||p_region_id,
+                            p_log_type => pak_xslt_log.g_error,
+                            p_procedure => 'Get_current_report_row');
                             
-      if pio_break_group_by_list is not null then
-          pio_break_group_by_list := replace(pio_break_group_by_list, ll01ll(ll01I1).alias, ll01ll(ll01I1).alias||'_LOV.Il1lII '); 
-      end if;
-      
-      if nvl(instr(Ol11II, 'null '||ll01ll(ll01I1).alias), 0) = 0 
-         and nvl(instr(Ol11II, 'null "'||ll01ll(ll01I1).alias||'"'), 0) = 0    
-      then 
-          Ol11II := regexp_replace(Ol11II, '(\W|^)("?)'||ll01ll(ll01I1).alias||'("?)(\W|$)', 
-                                '\1'||ll01ll(ll01I1).alias||'_LOV.Il1lII \2'||ll01ll(ll01I1).alias||'\3\4'); 
-      end if;
-      
-      
-      
-      if OlI000 is not null then 
-        OlI000 := regexp_replace(OlI000, '(\W|^)("?)'||ll01ll(ll01I1).alias||'("?)(\W|$)', 
-                              '\1\2'||ll01ll(ll01I1).alias||'_LOV\3.Il1lII\4 '); 
-      end if; 
-      if IlI000 is null then 
-        IlI000 := ll01ll(ll01I1).alias||'_LOV as ('||ll01ll(ll01I1).lov_sql||')'; 
-      else 
-        IlI000 := IlI000||query2report.g_crlf||','||ll01ll(ll01I1).alias||'_LOV as ('||ll01ll(ll01I1).lov_sql||')'; 
-      end if; 
-      OlI001 := OlI001||query2report.g_crlf||'left outer join '||ll01ll(ll01I1).alias||'_LOV on '|| 
-                             ll01ll(ll01I1).alias||'_LOV.v = '||llI00I||'.'||ll01ll(ll01I1).alias; 
- 
-      llI001 := llI001||query2report.g_crlf||'left outer join '||ll01ll(ll01I1).alias||'_LOV on '|| 
-                             ll01ll(ll01I1).alias||'_LOV.v = '||IlI00I||'.'||ll01ll(ll01I1).alias; 
-    else 
-      Il11I1 := regexp_replace(Il11I1, '(\W|^)("?)'||ll01ll(ll01I1).alias||'("?)(\W|$)', 
-                            '\1'||IlI00I||'.\2'||ll01ll(ll01I1).alias||'\3\4'); 
-      
-      
-      Il11I1 := replace(Il11I1, 
-                                    'to_char('||IlI00I||'.'||ll01ll(ll01I1).alias||') '||IlI00I||'.'||ll01ll(ll01I1).alias||',', 
-                                    'to_char('||IlI00I||'.'||ll01ll(ll01I1).alias||') '||ll01ll(ll01I1).alias||','); 
-    end if; 
-  end loop; 
- 
-  Il01ll( 
-    p_procedure         =>  'll1lll end', 
-    ll01ll              => ll01ll, 
-    Il0I0l       => Il0I0l, 
-    ll0I0I => pio_group_by_col_list, 
-    Ol0I00    => Il11I1, 
-    Il0I00   => ll11II,
-    Ol0I0l => pio_break_group_by_list,  
-    Ol0I01             => OlI000, 
-    ll0I01    => Ol11II, 
-    ll0I11       => IlI000, 
-    Ol0I1I  => llI001 
-  ); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'll1lll', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end ll1lll; 
- 
- 
-function OlI00l( 
-  IIl1I0 number, 
-  Ol01Il number, 
-  IlI00l varchar2, 
-  ll01ll Ol0110, 
-  OIl1I0 number, 
-  llI010 boolean default false, 
-  Ol1II0 boolean default false, 
-  OlI010 boolean default false, 
-  IlI011 out varchar2, 
-  llI011 out varchar2 
-) 
-return varchar2 
-as 
-OlI01I varchar2(32767); 
-IlI01I varchar2(32767); 
-Il1010 varchar2(32767); 
-begin 
+    select count(*) 
+    into l_exists
+    from apex_application_page_ir_rpt apr
+    where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+    and   apr.page_id = p_page_id
+    and   apr.APPLICATION_USER  = V('APP_USER')
+    and   apr.base_report_id = t_base_report_id
+$IF CCOMPILING.g_IG_exists $THEN
+    and   apr.region_id = p_region_id
+$END
+    ;                           
+
+    if l_exists = 1 then       
+        select *
+        into t_apr
+        from apex_application_page_ir_rpt apr
+        where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+        and   apr.page_id = p_page_id
+        and   apr.APPLICATION_USER  = V('APP_USER')
+        and   apr.base_report_id = t_base_report_id
+$IF CCOMPILING.g_IG_exists $THEN
+        and   apr.region_id = p_region_id
+$END     
+    ;--and   apr.session_id = V('SESSION');
+    elsif l_exists > 1 then
+		select *
+		into t_apr
+		from apex_application_page_ir_rpt apr
+		where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+		and   apr.page_id = p_page_id
+		and   apr.APPLICATION_USER  = V('APP_USER')
+		and   apr.base_report_id = t_base_report_id
+$IF CCOMPILING.g_IG_exists $THEN	 	
+		and   apr.region_id = p_region_id
+$END	
+		and   apr.session_id = V('SESSION');
+	else 
+		select *
+		into t_apr
+		from apex_application_page_ir_rpt apr
+		where apr.application_id = APEX_APPLICATION.G_FLOW_ID
+		and   apr.page_id = p_page_id
+		and   apr.APPLICATION_USER  = 'APXWS_DEFAULT'
+		--and   apr.base_report_id = t_base_report_id
+$IF CCOMPILING.g_IG_exists $THEN
+        and   apr.region_id = p_region_id
+$END     
+    ;--and   apr.session_id = V('SESSION');
+    end if;
+  end if;
+
+
+  --pak_xslt_log.WriteLog( 'Break on '||t_apr.break_on||' Break enabled on '||t_apr.break_enabled_on, p_procedure => 'Get_current_report_row');
+
+  return t_apr;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'Get_current_report_row', p_sqlerrm => sqlerrm );
+  raise;
+end Get_current_report_row;
+
+procedure LogComposeSelectAndAttr(
+  p_procedure           varchar2,
+  p_region_id           number default null,
+  p_use_filters_hidPK   number default null,
+  p_cols                tp_cols default null,
+  p_basic_col_list      varchar2 default null,
+  p_aggr_col_list       varchar2 default null,
+  p_break_col_list      varchar2 default null,
+  p_where               varchar2 default null,
+  p_group_by_list       varchar2 default null,
+  p_order_by_list       varchar2 default null,
+  p_aggr_order_by_list  varchar2 default null,
+  p_group_by_col_list   varchar2 default null,
+  p_break_group_by_list varchar2 default null,
+  p_break_group_by_list_alias varchar2 default null,
+  p_cc_col_list         varchar2 default null,
+  p_IRAttr              varchar2 default null,
+  p_breakAttr           varchar2 default null,
+  p_grpbyAttr           varchar2 default null,
+  p_LOV_selects         varchar2 default null,
+  p_join_LOV_selects    varchar2 default null,
+  p_grand_total_col_list varchar2 default null,
+  p_master_region_source varchar2 default null,
+  p_join_master_region   varchar2 default null,
+  p_master_select_list   varchar2 default null
+)
+as
+l_ret varchar(32000);
+begin
+  if p_region_id is not null then
+    l_ret := 'p_region_id: '||p_region_id;
+  end if;
+
+  if p_use_filters_hidPK is not null then
+    l_ret := l_ret||
+    case p_use_filters_hidPK
+      when g_no_filters then ' No filters '
+      when g_filters_hid_pk then ' Hidden PK '
+      when g_filters then ' Use filters '
+    end;
+  end if;
+  if p_cols is not null then
+    l_ret := l_ret ||' p_cols: '||tp_col2string(p_cols);
+  end if;
+  if p_basic_col_list is not null then
+    l_ret := l_ret ||' p_basic_col_list: '||p_basic_col_list;
+  end if;
+  if p_aggr_col_list is not null then
+    l_ret := l_ret ||' p_aggr_col_list: '||p_aggr_col_list;
+  end if;
+  if p_break_col_list is not null then
+    l_ret := l_ret ||' p_break_col_list: '||p_break_col_list;
+  end if;
+  if p_cc_col_list is not null then
+    l_ret := l_ret ||' p_cc_col_list: '||p_cc_col_list;
+  end if;
+  if p_where is not null then
+    l_ret := l_ret ||' p_where: '||p_where;
+  end if;
+  if p_group_by_list is not null then
+    l_ret := l_ret ||' p_group_by_list: '||p_group_by_list;
+  end if;
+  if p_break_group_by_list is not null then
+    l_ret := l_ret ||' p_break_group_by_list: '||p_break_group_by_list;
+  end if;
+  if p_break_group_by_list_alias is not null then
+    l_ret := l_ret ||' p_break_group_by_list_alias: '||p_break_group_by_list_alias;
+  end if;
+  if p_order_by_list is not null then
+    l_ret := l_ret ||' p_order_by_list: '||p_order_by_list;
+  end if;
+  if p_aggr_order_by_list is not null then
+    l_ret := l_ret ||' p_aggr_order_by_list: '||p_aggr_order_by_list;
+  end if;
+  if p_group_by_col_list is not null then
+    l_ret := l_ret ||' p_group_by_col_list: '||p_group_by_col_list;
+  end if;
+  if p_IRAttr is not null then
+    l_ret := l_ret ||' p_IRAttr: '||p_IRAttr;
+  end if;
+  if p_breakAttr is not null then
+    l_ret := l_ret ||' p_breakAttr: '||p_breakAttr;
+  end if;
+  if p_grpbyAttr is not null then
+    l_ret := l_ret ||' p_grpbyAttr: '||p_grpbyAttr;
+  end if;
+  if p_LOV_selects is not null then
+    l_ret := l_ret ||' p_LOV_selects: '||p_LOV_selects;
+  end if;
+  if p_join_LOV_selects is not null then
+    l_ret := l_ret ||' p_join_LOV_selects: '||p_join_LOV_selects;
+  end if;
+  if p_grand_total_col_list is not null then
+    l_ret := l_ret ||' p_grand_total_col_list: '||p_grand_total_col_list;
+  end if;
+  if p_master_region_source is not null then
+    l_ret := l_ret ||' p_master_region_source: '||p_master_region_source;
+  end if;
+  if p_join_master_region is not null then
+    l_ret := l_ret ||' p_join_master_region: '||p_join_master_region;
+  end if;
   
-  for cc in 1 .. ll01ll.count() loop 
-    OlI01I := OlI01I || 
-                  Il1I10( 
-                    ll01ll(cc), 
-                    OIl1I0, 
-                    IlI011, 
-                    llI011 
-                  ); 
-    IlI01I:= IlI01I||ll01ll( cc ).alias||'|'||ll01ll( cc ).ll0100||', '; 
-  end loop; 
- 
-  if OlI01I is not null then 
-    if llI010 then 
-      OlI01I := OlI01I||' BREAKROW,'; 
-    end if; 
-    if Ol1II0 then 
-      OlI01I := OlI01I||' REGION_AGGREGATES,'; 
-    end if; 
-    OlI01I := rtrim(OlI01I, ','); 
- 
-    if IlI00l = 'DYNAMIC_QUERY' and not OlI010 then 
-      Il1010 := Il1l01(IIl1I0, Ol01Il, Ol1II0); 
-      if Il1010 is not null then 
-        OlI01I := OlI01I||', '||query2report.g_crlf||Il1010||' REGION_HIGHLIGHTS'; 
-      end if; 
-    end if; 
-    
-    $if CCOMPILING.g_IG_exists $then        
-    if IlI00l = 'NATIVE_IG' then 
-      Il1010 := "l1IIl0lI".Il1l01(IIl1I0, Ol01Il, Ol1II0, ll01ll); 
-      if Il1010 is not null then 
-        OlI01I := OlI01I||', '||query2report.g_crlf||Il1010||' REGION_HIGHLIGHTS'; 
-      end if; 
-    end if; 
-    $end        
- 
-    if IlI011 is not null then 
-      IlI011 := IlI011||'"'; 
-    end if; 
-    if llI011 is not null then 
-      llI011 := llI011||'"'; 
-    end if; 
-  end if; 
-  pak_xslt_log.WriteLog( 'Ol01Il: '||Ol01Il||' OlI00l: '||OlI01I, 
-                          p_procedure => 'OlI00l'); 
- 
-  return OlI01I; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'OlI00l', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end OlI00l; 
- 
-function llI01l( 
-  OIl11I varchar2, 
-  ll0I10      varchar2, 
-  Ol0I10   varchar2, 
-  OlI01l  varchar2, 
-  IlI0I0 number, 
-  llI0I0 number, 
-  Ol1II0 boolean, 
-  OlI0I1 varchar2, 
-  IlI0I1 varchar2, 
-  llI0II    out number 
-) 
-return varchar2 
-as 
-OlI0II varchar2(4000); 
- 
-begin 
-  OlI0II := IIl1lI(OIl11I); 
-  OlI0II := 'name="'||htf.escape_sc(OlI0II)||'"'; 
+  if p_master_select_list is not null then
+    l_ret := l_ret ||' p_master_select_list: '||p_master_select_list;
+  end if;
   
-  if ll0I10 is not null then 
-    OlI0II := OlI0II||' '||ll0I10; 
-  end if; 
-  if Ol0I10 is not null then 
-    OlI0II := OlI0II||' '||Ol0I10; 
-  end if; 
-  if OlI01l is not null then 
-    OlI0II := OlI0II||' '||OlI01l; 
-  end if; 
-  if OlI0I1 is not null then 
-    OlI0II := OlI0II||' '||OlI0I1; 
-  end if; 
-  if IlI0I1 is not null then 
-    OlI0II := OlI0II||' '||IlI0I1; 
-  end if; 
-  
-  llI0II := nvl(IlI0I0, llI0I0); 
-  if Ol1II0 then 
-    if Ol0I10 is not null then 
-      llI0II := llI0II * 1.3; 
-    end if; 
-    llI0II := llI0II + 1; 
-  end if; 
-  return OlI0II; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'llI01l', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end llI01l; 
- 
-FUNCTION IlI0Il (llI0Il VARCHAR2, OlI0l0 VARCHAR2 default ',') RETURN ll011I 
-IS 
-  ll01I1       number :=0; 
-  IlI0l0     number :=0; 
-  llI0l1  varchar2(4000) := llI0Il; 
-  OlI0l1 ll011I; 
-   BEGIN 
-      
-      IlI0l0 := instr(llI0l1,OlI0l0,1,1); 
-      
-      WHILE ( IlI0l0 != 0) LOOP 
-         
-         ll01I1 := ll01I1 + 1; 
-         
-         OlI0l1(ll01I1) := trim(substr(llI0l1,1,IlI0l0-length(OlI0l0))); 
-         
-         llI0l1 := substr(llI0l1,IlI0l0+1,length(llI0l1)); 
-         
-         IlI0l0 := instr(llI0l1,OlI0l0,1,1); 
-         
-         IF IlI0l0 = 0 THEN 
-            OlI0l1(ll01I1+1) := trim(llI0l1); 
-         END IF; 
-      END LOOP; 
- 
-      
-      RETURN OlI0l1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'IlI0Il', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-END IlI0Il; 
- 
-function IIlI01( 
-  OIlI0I varchar2, 
-  IIlI0l varchar2,
-  p_IG boolean default false  
-) 
-return varchar2 
-as 
-Il01I1 varchar2(4000); 
-IlI0lI ll011I; 
-llI0lI ll011I; 
-OlI0ll ll011I; 
-IlI0ll varchar2(40); 
-Ol0l11 varchar2(40); 
-llI100 integer; 
-OlI100 integer := 0; 
-begin 
-  if p_IG then
-      Il01I1 := ltrim(rtrim(OIlI0I||','||IIlI0l,','),','); 
+  pak_xslt_log.WriteLog( l_ret, p_procedure => p_procedure);
+end;
+/** Returns Max Rows parameter of IR report
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @return Max Rows parameter of IR report.
+*/
+function IRMaxRows(
+   p_region_id            in number,
+   p_page_id              in number
+)
+return pls_integer
+as
+l_ret pls_integer;
+begin
+  select max_row_count into l_ret
+  from apex_application_page_ir
+  where page_id = p_page_id
+  and region_id = p_region_id;
+
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IRMaxRows', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/* 0-No HTML markup, 1-HTML markup, 2-image link */
+function Html_img_included(
+  p_display_as          varchar2
+  ,p_column_link_text   varchar2
+  ,p_format_mask        varchar2
+)
+return number
+as
+begin
+  if p_format_mask like 'IMAGE%' then
+    return 2;
+  end if;
+  if p_display_as in ('WITHOUT_MODIFICATION', 'NATIVE_HTML_EXPRESSION') then
+    if p_column_link_text like '%<img %' or p_format_mask like 'IMAGE%' then
+      return 2;
+    else
+      return 1;
+    end if;
+  end if;
+  return 0;
+end Html_img_included;
+
+/** Returns Array of columns in as they appear in IR report (order and quantity) with using filters where IR is not in GROUP BY mode.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_report_id current report ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* @param p_current_report_columns Visible IR columns separated with :.
+* @return Array of columns in as they appear in report (order and quantity) with hidden and PK columns at the start if p_hidPK is true.
+*/
+function CollectIRColumnsReport(
+   p_region_id            in number,
+   p_page_id              in number,
+   p_report_id            in number,
+   p_use_filters_hidPK    in number,
+   p_current_report_columns  in varchar2 default null
+)
+return tp_cols
+as
+t_cols tp_cols;
+l_report_id number;
+begin
+  pak_xslt_log.WriteLog( 'Start p_report_id '||p_report_id||' p_region_id '||p_region_id||
+                        ' p_use_filters_hidPK '||p_use_filters_hidPK||
+                        ' p_current_report_columns '||p_current_report_columns,
+                        p_procedure => 'CollectIRColumnsReport');
+
+  if p_use_filters_hidPK = 0 then
+    select report_label
+           , column_alias
+           , null as master_alias
+           , column_fullname
+           , column_type
+           , format_mask
+           , PRINT_COLUMN_WIDTH
+           , display_order
+           , null sum_total
+           , null query_id
+           , Html_img_included(display_text_as, column_linktext, format_mask) html_img_included
+           , GetLOVSelect(application_id, column_alias, named_LOV, null) LOV_SQL
+           , null as aggregation
+           , null as item_type
+    bulk collect into t_cols
+    from
+    (
+      select PrepareColumnHeader(report_label) report_label--ordinary columns
+           , RemoveLineBreak(report_label) column_fullname
+           , column_alias
+           , null as master_alias
+           , case when col.named_LOV is not null then 'VARCHAR2' else col.column_type end column_type
+           , format_mask
+           , null as PRINT_COLUMN_WIDTH
+           , display_order
+           , display_text_as
+           , column_linktext
+           , named_LOV
+           , application_id
+        from apex_application_page_ir_col col
+        where region_id = p_region_id
+        and   upper(col.column_alias) <> 'ROWID'
+
+        $IF CCOMPILING.g_views_granted $THEN
+        union
+
+        select --computed columns
+        PrepareColumnHeader(comp.computation_report_label) report_label,
+        RemoveLineBreak(comp.computation_report_label) column_fullname,
+        comp.computation_column_alias column_alias,
+        null as master_alias,
+        comp.computation_column_type column_type,
+        comp.computation_format_mask format_mask,
+        null as print_column_width,
+        999 display_order,
+        null display_text_as,
+        null column_link_test,
+         null named_LOV,
+         comp.application_id
+         from apex_application_page_regions apr
+         join apex_application_page_ir ir on apr.region_id = ir.region_id
+         join apex_application_page_ir_rpt rpt on rpt.interactive_report_id = ir.interactive_report_id
+         join apex_application_page_ir_comp comp on comp.report_id = rpt.report_id
+         where apr.region_id = p_region_id
+         and rpt.report_id = p_report_id
+         order by display_order, column_alias
+         $END
+     );
+  elsif p_current_report_columns is not null then
+    if  p_use_filters_hidPK = 1 then
+      select report_label
+           , column_fullname
+           , column_alias
+           , null as master_alias
+           , column_type
+           , format_mask
+           , PRINT_COLUMN_WIDTH
+           , so display_sequence
+           , null sum_total
+           , null query_id
+           , Html_img_included(display_text_as, column_linktext, format_mask) html_img_included
+           , GetLOVSelect(application_id, column_alias, named_LOV, null) LOV_SQL
+           , null as aggregation
+           , null as item_type
+      bulk collect into t_cols
+      from
+      (
+        select PrepareColumnHeader(col.report_label) report_label
+             , RemoveLineBreak(col.report_label) column_fullname
+             , col.column_alias
+             , case when col.named_LOV is not null then 'VARCHAR2' else col.column_type end column_type
+             , col.format_mask
+             , null as PRINT_COLUMN_WIDTH
+             , 0 so
+             , col.display_text_as
+             , col.column_linktext
+             , col.named_LOV
+             , col.application_id
+        from apex_application_page_ir_col col
+        where col.application_id = APEX_APPLICATION.G_FLOW_ID
+        and   col.page_id = p_page_id
+        and   col.region_id = p_region_id
+        --and   p_use_filters_hidPK = 1
+        and   col.display_text_as = 'HIDDEN' --('HIDDEN', 'WITHOUT_MODIFICATION')
+        and   upper(col.column_alias) <> 'ROWID'
+        and   (col.report_label , col.column_alias , col.format_mask) not in
+        --this protect us from getting the same column twice once with display_sequence 0 and second with display_sequence greater than 0
+        (
+           select col.report_label --ordinary columns
+               , col.column_alias
+               --, col.column_type
+               , col.format_mask
+          from apex_application_page_ir_col col
+             , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                      , level so
+                 from ( select p_current_report_columns cols
+                             , ':' sep from dual )
+                 connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+               ) fil --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+          where col.application_id = APEX_APPLICATION.G_FLOW_ID
+          and   col.page_id = p_page_id
+          and   col.region_id = p_region_id
+          and   col.column_alias = fil.col
+
+          $IF CCOMPILING.g_views_granted $THEN
+          union
+
+          select  --computed columns
+          PrepareColumnHeader(comp.computation_report_label) report_label,
+          RemoveLineBreak(comp.computation_column_alias) column_alias,
+          --comp.computation_column_type  column_type,
+          comp.computation_format_mask  format_mask--,
+          --fil.so
+          from apex_application_page_regions apr
+          , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                  , level so
+             from ( select p_current_report_columns cols
+                         , ':' sep from dual )
+             connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+           ) fil, --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+          apex_application_page_ir ir,
+          apex_application_page_ir_rpt rpt,
+          apex_application_page_ir_comp comp
+          where apr.region_id = p_region_id
+          and apr.region_id = ir.region_id
+          and rpt.interactive_report_id = ir.interactive_report_id
+          and rpt.report_id = p_report_id
+          and comp.computation_column_alias = fil.col
+          and comp.report_id = rpt.report_id
+          $END
+        ) --end of not in
+
+        union
+
+        select PrepareColumnHeader(col.report_label) report_label --ordinary columns
+             , RemoveLineBreak(col.report_label) column_fullname
+             , col.column_alias
+             , col.column_type
+             , col.format_mask
+             , NULL AS PRINT_COLUMN_WIDTH
+             , fil.so
+             , col.display_text_as
+             , col.column_linktext
+             , col.named_LOV
+             , col.application_id
+        from apex_application_page_ir_col col
+           , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                    , level so
+               from ( select p_current_report_columns cols
+                           , ':' sep from dual )
+               connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+             ) fil --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+        where col.application_id = APEX_APPLICATION.G_FLOW_ID
+        and   col.page_id = p_page_id
+        and   col.region_id = p_region_id
+        and   col.column_alias = fil.col
+        and   upper(col.column_alias) <> 'ROWID'
+
+        $IF CCOMPILING.g_views_granted $THEN
+        union
+
+        select --computed columns
+        PrepareColumnHeader(comp.computation_report_label) report_label,
+        RemoveLineBreak(comp.computation_report_label) column_fullname,
+        comp.computation_column_alias column_alias,
+        comp.computation_column_type  column_type,
+        comp.computation_format_mask format_mask,
+        null as_print_column_width,
+        fil.so,
+        null display_text_as,
+        null column_linktext,
+        null named_LOV,
+        comp.application_id
+        from apex_application_page_regions apr
+        , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                , level so
+           from ( select p_current_report_columns cols
+                       , ':' sep from dual )
+           connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+         ) fil, --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+        apex_application_page_ir ir,
+        apex_application_page_ir_rpt rpt,
+        apex_application_page_ir_comp comp
+        where apr.region_id = p_region_id
+        and apr.region_id = ir.region_id
+        and rpt.interactive_report_id = ir.interactive_report_id
+        and rpt.report_id = p_report_id
+        and comp.computation_column_alias = fil.col
+        and comp.report_id = rpt.report_id
+        $END
+      )
+      order by so;
+    elsif  p_use_filters_hidPK = 2 then
+      select report_label
+           , fullname
+           , column_alias
+           , null as master_alias
+           , column_type
+           , format_mask
+           , PRINT_COLUMN_WIDTH
+           , so display_sequence
+           , null sum_total
+           , null query_id
+           , Html_img_included(display_text_as, column_linktext, format_mask) html_img_included
+           , GetLOVSelect(application_id, column_alias, named_LOV, null) LOV_SQL
+           , null as aggregation
+           , null as item_type
+      bulk collect into t_cols
+      from
+      (
+        select PrepareColumnHeader(col.report_label) report_label --ordinary columns
+             , RemoveLineBreak(col.report_label) fullname
+             , col.column_alias
+             , case when col.named_LOV is not null then 'VARCHAR2' else col.column_type end column_type
+             , col.format_mask
+             , null as PRINT_COLUMN_WIDTH
+             , fil.so
+             , col.display_text_as
+             , col.column_linktext
+             , col.named_LOV
+             , col.application_id
+        from apex_application_page_ir_col col
+           , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                    , level so
+               from ( select p_current_report_columns cols
+                           , ':' sep from dual )
+               connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+             ) fil --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+        where col.application_id = APEX_APPLICATION.G_FLOW_ID
+        and   col.page_id = p_page_id
+        and   col.region_id = p_region_id
+        and   col.column_alias = fil.col
+        and   col.display_text_as <> 'HIDDEN' --not in ('HIDDEN', 'WITHOUT_MODIFICATION')
+        and   upper(col.column_alias) <> 'ROWID'
+
+        $IF CCOMPILING.g_views_granted $THEN
+        union
+
+        select --computed columns
+        PrepareColumnHeader(comp.computation_report_label) report_label,
+        RemoveLineBreak(comp.computation_report_label) fullname,
+        comp.computation_column_alias column_alias,
+        comp.computation_column_type column_type,
+        comp.computation_format_mask format_mask,
+        null as print_column_width,
+        fil.so,
+        null display_text_as,
+        null column_link_text,
+        null named_LOV,
+        comp.application_id
+        from apex_application_page_regions apr
+        , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                , level so
+           from ( select p_current_report_columns cols
+                       , ':' sep from dual )
+           connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+         ) fil, --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+        apex_application_page_ir ir,
+        apex_application_page_ir_rpt rpt,
+        apex_application_page_ir_comp comp
+        where apr.region_id = p_region_id
+        and apr.region_id = ir.region_id
+        and rpt.interactive_report_id = ir.interactive_report_id
+        and rpt.report_id = p_report_id
+        and comp.computation_column_alias = fil.col
+        and comp.report_id = rpt.report_id
+        $END
+      )
+      order by so;
+    end if;
+  end if;
+
+  return t_cols;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'CollectIRColumnsReport', p_sqlerrm => sqlerrm );
+  raise;
+end CollectIRColumnsReport;
+
+/**Returns column label for IR in group by mode. Tipically this function is called only if label is not defined by user
+*
+* @param p_aggr_function Aggregation function
+* @param p_function_column Column alias of column for aggregate
+* @return column label for IR in group by mode
+*/
+function GroupByLabel(
+  p_region_id         number,
+  p_page_id           number,
+  p_report_id         number,
+  p_aggr_function     varchar2,
+  p_function_column   varchar2
+)
+return varchar2
+as
+l_label varchar2(200);
+begin
+  pak_xslt_log.WriteLog( 'Start p_page_id '||p_page_id||' p_region_id '||p_region_id||
+                        ' p_function_column '||p_function_column,
+                        p_procedure => 'GroupByLabel');
+
+  select label into l_label from
+  (
+    select nvl(report_label, column_alias) label
+    from apex_application_page_ir_col
+    where page_id = p_page_id
+    and region_id = p_region_id
+    and column_alias = p_function_column
+
+    $IF CCOMPILING.g_views_granted $THEN
+    union
+    select comp.computation_column_alias label --computed cols can be part of group by or aggregation group by
+    from apex_application_page_regions apr
+    join apex_application_page_ir ir on apr.region_id = ir.region_id
+    join apex_application_page_ir_rpt rpt on rpt.interactive_report_id = ir.interactive_report_id
+    join apex_application_page_ir_comp comp on comp.report_id = rpt.report_id
+    where apr.region_id = p_region_id
+    and rpt.report_id = p_report_id
+    and comp.computation_column_alias = p_function_column
+    $END
+  );
+
+  l_label :=
+  case p_aggr_function
+    when 'AVG' then 'Average'
+    when 'MAX' then 'Maximum'
+    when 'MIN' then 'Minimum'
+    when 'RATIO_TO_REPORT_SUM' then 'Percent of Total Sum'
+    when 'RATIO_TO_REPORT_COUNT' then 'Percent of Total Count'
+    else initcap(lower(p_aggr_function))
+  end ||' '|| l_label;
+
+  return l_label;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'GroupByLabel', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+function GetGroupByView(
+  p_report_id  in  apex_application_page_ir_rpt.report_id%type,
+  po_grpby_row out apex_application_page_ir_grpby%rowtype
+)
+return boolean
+as
+  l_ret boolean default false;
+
+  cursor c_cur is
+  select * from apex_application_page_ir_grpby
+  where report_id = p_report_id;
+
+begin
+  open c_cur;
+  fetch c_cur into po_grpby_row;
+  l_ret := c_cur%found;
+  close c_cur;
+  if l_ret then
+    pak_xslt_log.WriteLog( 'Group by mode : '||to_char(p_report_id), p_procedure => 'GetGroupByView');
   else
-      if nvl(instr(OIlI0I, 'BREAKROW'),0) = 0 then 
-        Il01I1 := trim( both ',' from OIlI0I||','||IIlI0l); 
-      else 
-        IlI0lI := IlI0Il(trim( both ',' from OIlI0I)); 
-        llI0lI := IlI0Il(trim( both ',' from IIlI0l)); 
-        for ll01I1 in 1..llI0lI.count loop 
-          
-          IlI0ll := trim(replace(rtrim(rtrim(llI0lI(ll01I1),'DESC'),'ASC'),'"')); 
-          llI100 := 0; 
-          
-          for IlI101 in 1..IlI0lI.count loop 
-            if IlI0lI(IlI101) = IlI0ll then 
-              llI100 := IlI101; 
-              OlI100 := OlI100 +1; 
-              exit; 
-            end if; 
-          end loop; 
-          if llI100 > 0 then 
-            
-            OlI0ll(OlI100) :=  llI0lI(ll01I1); 
-            
-            IlI0lI(llI100) := 'ORDER BY'; 
-            llI0lI(ll01I1):='ORDER BY'; 
-          end if; 
-        end loop; 
-        
-        for ll01I1 in 1..OlI0ll.count loop 
-          Il01I1 := Il01I1||OlI0ll(ll01I1)||', '; 
-        end loop; 
-        for ll01I1 in 1..IlI0lI.count loop 
-          if IlI0lI(ll01I1) != 'ORDER BY' then 
-            Il01I1 := Il01I1||IlI0lI(ll01I1)||', '; 
-          end if; 
-        end loop; 
-        for ll01I1 in 1..llI0lI.count loop 
-          if llI0lI(ll01I1) != 'ORDER BY' then 
-            Il01I1 := Il01I1||llI0lI(ll01I1)||', '; 
-          end if; 
-        end loop; 
-        Il01I1 := rtrim(Il01I1,', '); 
+    pak_xslt_log.WriteLog( 'Report mode', p_procedure => 'GetGroupByView');
+  end if;
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'GetGroupByView', p_sqlerrm => sqlerrm );
+  raise;
+end GetGroupByView;
+
+
+
+/** Returns Array of columns in as they appear in IR report (order and quantity) when IR is in GROUP BY mode.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_rpt_row row of current report.
+* @param po_grpbyAttr Region arguments grpby_colX
+* @return Array of columns in as they appear in IR report (order and quantity) when IR is in GROUP BY mode.
+*/
+function CollectIRColumnsGroupBy(
+   p_region_id            in number,
+   p_page_id              in number,
+   p_rpt_row              apex_application_page_ir_rpt%rowtype,
+   po_grpbyAttr          out varchar2
+)
+return tp_cols
+as
+t_cols tp_cols;
+t_col tp_col;
+l_grpby_row apex_application_page_ir_grpby%rowtype;
+begin
+    select report_label --ordinary columns
+         , fullname
+         , column_alias
+         , null as master_alias
+         , column_type
+         , format_mask
+         , PRINT_COLUMN_WIDTH
+         , so
+         , null sum_total
+         , null query_id
+         , Html_img_included(display_text_as, column_linktext, format_mask) html_img_included
+         , GetLOVSelect(application_id, column_alias, named_LOV, null) LOV_SQL
+         , null as aggregation
+         , null as item_type
+         bulk collect into t_cols
+    from
+    (
+      select PrepareColumnHeader(col.report_label) report_label --ordinary columns
+           , RemoveLineBreak(col.report_label) fullname
+           , col.column_alias
+           , case when col.named_LOV is not null then 'VARCHAR2' else col.column_type end column_type
+           , col.format_mask
+           , null as PRINT_COLUMN_WIDTH
+           , fil.so
+           , col.display_text_as
+           , col.column_linktext
+           , col.named_LOV
+           , col.application_id
+      from apex_application_page_ir_col col
+         , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+                  , level so
+             from ( select group_by_columns cols, ':' sep from apex_application_page_ir_grpby cols
+                    where application_id = APEX_APPLICATION.G_FLOW_ID and page_id = p_page_id and report_id = p_rpt_row.report_id
+                  )
+             connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+           ) fil --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+      where col.application_id = APEX_APPLICATION.G_FLOW_ID
+      and   col.page_id = p_page_id
+      and   col.region_id = p_region_id
+      and   col.column_alias = fil.col
+
+      $IF CCOMPILING.g_views_granted $THEN
+      union
+
+      select --computed columns
+      PrepareColumnHeader(comp.computation_report_label) report_label,
+      RemoveLineBreak(comp.computation_report_label) fullname,
+      comp.computation_column_alias column_alias,
+      comp.computation_column_type column_type,
+      comp.computation_format_mask format_mask,
+      null as PRINT_COLUMN_WIDTH,
+      fil.so,
+      null display_text_as,
+      null column_link_text,
+      null named_LOV,
+      comp.application_id
+      from apex_application_page_regions apr
+      , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+              , level so
+         from ( select group_by_columns cols, ':' sep from apex_application_page_ir_grpby cols
+                    where application_id = APEX_APPLICATION.G_FLOW_ID and page_id = p_page_id and report_id = p_rpt_row.report_id )
+         connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+       ) fil, --Upper select converts columns in p_current_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+      apex_application_page_ir ir,
+      apex_application_page_ir_rpt rpt,
+      apex_application_page_ir_comp comp
+      where apr.region_id = p_region_id
+      and apr.region_id = ir.region_id
+      and rpt.interactive_report_id = ir.interactive_report_id
+      and rpt.report_id = p_rpt_row.report_id
+      and comp.computation_column_alias = fil.col
+      and comp.report_id = rpt.report_id
+      $END
+    )
+    order by so;
+
+    --prepare Region attributes
+    for i in 1..t_cols.count loop
+      po_grpbyAttr := po_grpbyAttr||' grpby_col'||to_char(i)||'="'||Query2Report.ConvertColName2XmlName(t_cols(i).label)||'"';
+    end loop;
+
+    select * into l_grpby_row
+    from apex_application_page_ir_grpby cols
+    where application_id = APEX_APPLICATION.G_FLOW_ID
+    and page_id = p_page_id
+    and report_id = p_rpt_row.report_id;
+
+    if l_grpby_row.function_01 is not null then
+      t_col.label := PrepareColumnHeader(nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_01, l_grpby_row.function_column_01)));
+      t_col.fullname := nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_01, l_grpby_row.function_column_01));
+      t_col.fullname := RemoveLineBreak(t_col.fullname); 
+      t_col.col_type := 'NUMBER';
+      t_col.alias := l_grpby_row.function_db_column_name_01;
+      t_col.format_mask := l_grpby_row.function_format_mask_01;
+      t_col.display_sequence := 991;
+      t_col.sum_total := l_grpby_row.function_sum_01;
+      t_cols.extend;
+      t_cols(t_cols.count) := t_col;
+    end if;
+
+     if l_grpby_row.function_02 is not null then
+      t_col.label := PrepareColumnHeader(nvl(l_grpby_row.function_label_02,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_02, l_grpby_row.function_column_02)));
+      t_col.fullname := nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_02, l_grpby_row.function_column_02));
+      t_col.fullname := RemoveLineBreak(t_col.fullname);
+      t_col.col_type := 'NUMBER';
+      t_col.alias := l_grpby_row.function_db_column_name_02;
+      t_col.format_mask := l_grpby_row.function_format_mask_02;
+      t_col.display_sequence := 992;
+      t_col.sum_total := l_grpby_row.function_sum_02;
+      t_cols.extend;
+      t_cols(t_cols.count) := t_col;
+    end if;
+
+    if l_grpby_row.function_03 is not null then
+      t_col.label := PrepareColumnHeader(nvl(l_grpby_row.function_label_03,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_03, l_grpby_row.function_column_03)));
+      t_col.fullname := nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_03, l_grpby_row.function_column_03));
+      t_col.fullname := RemoveLineBreak(t_col.fullname);
+      t_col.col_type := 'NUMBER';
+      t_col.alias := l_grpby_row.function_db_column_name_03;
+      t_col.format_mask := l_grpby_row.function_format_mask_03;
+      t_col.display_sequence := 993;
+      t_col.sum_total := l_grpby_row.function_sum_03;
+      t_cols.extend;
+      t_cols(t_cols.count) := t_col;
+    end if;
+
+    if l_grpby_row.function_04 is not null then
+      t_col.label := PrepareColumnHeader(nvl(l_grpby_row.function_label_04,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_04, l_grpby_row.function_column_04)));
+      t_col.fullname := nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_04, l_grpby_row.function_column_04));
+      t_col.fullname := RemoveLineBreak(t_col.fullname);
+      t_col.col_type := 'NUMBER';
+      t_col.alias := l_grpby_row.function_db_column_name_04;
+      t_col.format_mask := l_grpby_row.function_format_mask_04;
+      t_col.display_sequence := 994;
+      t_col.sum_total := l_grpby_row.function_sum_04;
+      t_cols.extend;
+      t_cols(t_cols.count) := t_col;
+    end if;
+
+    if l_grpby_row.function_05 is not null then
+      t_col.label := PrepareColumnHeader(nvl(l_grpby_row.function_label_05,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_05, l_grpby_row.function_column_05)));
+      t_col.fullname := nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_05, l_grpby_row.function_column_05));
+      t_col.fullname := RemoveLineBreak(t_col.fullname);
+      t_col.col_type := 'NUMBER';
+      t_col.alias := l_grpby_row.function_db_column_name_05;
+      t_col.format_mask := l_grpby_row.function_format_mask_05;
+      t_col.display_sequence := 995;
+      t_col.sum_total := l_grpby_row.function_sum_05;
+      t_cols.extend;
+      t_cols(t_cols.count) := t_col;
+    end if;
+
+    if l_grpby_row.function_06 is not null then
+      t_col.label := PrepareColumnHeader(nvl(l_grpby_row.function_label_06,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_06, l_grpby_row.function_column_06)));
+      t_col.fullname := nvl(l_grpby_row.function_label_01,
+        GroupByLabel(p_region_id, p_page_id, p_rpt_row.report_id, l_grpby_row.function_06, l_grpby_row.function_column_06));
+      t_col.fullname := RemoveLineBreak(t_col.fullname);
+      t_col.col_type := 'NUMBER';
+      t_col.alias := l_grpby_row.function_db_column_name_06;
+      t_col.format_mask := l_grpby_row.function_format_mask_06;
+      t_col.display_sequence := 996;
+      t_col.sum_total := l_grpby_row.function_sum_06;
+      t_cols.extend;
+      t_cols(t_cols.count) := t_col;
+    end if;
+return t_cols;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'CollectIRColumnsGroupBy', p_sqlerrm => sqlerrm );
+  raise;
+end CollectIRColumnsGroupBy;
+
+/** Returns Array of columns in as they appear in IR report (order and quantity) with using filters.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* @param p_current_report_columns Visible IR columns separated with :.
+* @param po_grpby_arg Region attributes grpby_colX.
+* @return Array of columns in as they appear in report (order and quantity) with hidden and PK columns at the start if p_hidPK is true.
+*/
+function CollectIRColumns(
+   p_region_id            in number,
+   p_page_id              in number,
+   p_use_filters_hidPK    in number,
+   p_current_report_columns  in varchar2 default null,
+   po_IR_Attr             out varchar2,
+   po_grpby_arg           out varchar2
+)
+return tp_cols
+as
+l_rpt_row apex_application_page_ir_rpt%rowtype;
+begin
+  po_grpby_arg := null;
+  po_IR_Attr := null;
+  l_rpt_row := Get_current_report_row(p_region_id, p_page_id);
+  if l_rpt_row.report_name is not null then
+    po_IR_Attr := 'IR_name="'||l_rpt_row.report_name||'"';
+  end if;
+  if l_rpt_row.report_description is not null then
+    po_IR_Attr := po_IR_Attr||' IR_description="'||l_rpt_row.report_description||'"';
+  end if;
+
+  pak_xslt_log.WriteLog( 'po_IR_Attr: '||po_IR_Attr, p_log_type => pak_xslt_log.g_information, p_procedure => 'CollectIRColumns');
+
+  if l_rpt_row.report_view_mode = 'GROUP_BY' then
+    return CollectIRColumnsGroupBy(p_region_id, p_page_id, l_rpt_row, po_grpby_arg);
+  else
+    return CollectIRColumnsReport(
+       p_region_id,
+       p_page_id,
+       l_rpt_row.report_id,
+       p_use_filters_hidPK,
+       p_current_report_columns
+    );
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'CollectIRColumns', p_sqlerrm => sqlerrm );
+  raise;
+end CollectIRColumns;
+
+/** Guess column type from format mask for non IR reports.
+*
+* @param p_format_mask Format mask.
+* @return column type STRING, NUMBER or DATE
+*/
+function ColumnType(
+  p_format_mask varchar2
+)
+return varchar2
+as
+  function DateFormatMask(p_format_mask varchar2)
+  return boolean
+  as
+  l_temp varchar2(200);
+  begin
+    l_temp := to_char(sysdate, p_format_mask);
+    return true;
+  exception
+    when others then
+    return false;
+  end;
+
+  function NumberFormatMask(p_format_mask varchar2)
+  return boolean
+  as
+  l_temp varchar2(200);
+  begin
+    l_temp := to_char(12345.45, p_format_mask);
+    return true;
+  exception
+    when others then
+    return false;
+  end;
+begin
+  if p_format_mask is null then
+    return 'VARCHAR2';
+  elsif NumberFormatMask(p_format_mask) then
+    return 'NUMBER';
+  elsif DateFormatMask(p_format_mask) then
+    return 'DATE';
+  else
+    return 'VARCHAR2';
+  end if;
+end;
+
+function  ReportTypesElementTab(p_region_id in number)
+return t_coltype_table
+as
+l_region_source  varchar2(32000);
+l_ret            t_coltype_table;
+begin
+  select region_source
+  into l_region_source
+  from apex_application_page_regions
+  where region_id = p_region_id;
+
+  return Query2Report.ReportTypesElementTab(l_region_source);
+end;
+
+/** Returns Array of columns in as they appear in report (order and quantity) for non IR reports.
+*
+* @param p_region_id Region ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* @return Array of columns in as they appear in report (order and quantity)
+*/
+function CollectReportColumns(
+   p_region_id in number,
+   p_use_filters_hidPK number
+)
+return tp_cols
+as
+t_cols tp_cols;
+l_region_source   varchar2(32000);
+l_use_filters     number default 1;
+l_coltypes        t_coltype_table;
+begin
+  pak_xslt_log.WriteLog( 'p_region_id: '||to_char(p_region_id)||
+                         ' p_use_filters_hidPK: '||to_char(p_use_filters_hidPK),
+                          p_procedure => 'CollectReportColumns');
+
+  l_coltypes := ReportTypesElementTab(p_region_id);
+
+  if p_use_filters_hidPK = 0 then
+    select PrepareColumnHeader(nvl(a.heading, a.column_alias)) heading
+         , RemoveLineBreak(nvl(a.heading, a.column_alias)) fullname
+         , a.column_alias
+         , null as master_alias
+         --, ColumnType(l_report_types, a.column_alias, a.format_mask) column_type
+         , case when nvl(a.format_mask, nvl(a.named_list_of_values, a.inline_list_of_values)) is not null then ColumnType(a.format_mask) else t.coltype end column_type
+         , a.format_mask
+         , a.PRINT_COLUMN_WIDTH
+         , a.display_sequence
+         , substr(a.sum_column,1,1) sum_total
+
+         $IF CCOMPILING.g_views_granted $THEN
+         , q.query_column_id query_id
+         $ELSE
+         , null query_id
+         $END
+
+         , Html_img_included(a.display_as_code, a.column_link_text, a.format_mask) html_img_included
+         , GetLOVSelect(a.application_id, a.column_alias, a.named_list_of_values, a.inline_list_of_values) LOV_SQL
+         , null as aggregation
+         , null as item_type
+    bulk collect into t_cols
+    from apex_application_page_rpt_cols a
+    join table(l_coltypes) t on a.column_alias = t.colname
+
+    $IF CCOMPILING.g_views_granted $THEN
+    join APEX_RPT_COLS_QUERY_ID q on a.region_report_column_id = q.region_report_column_id
+    $END
+
+    where a.region_id = p_region_id
+    --and a.display_as_code <> 'CHECKBOX'
+    and a.column_alias not like 'CHECK$__'
+    and a.column_alias not like 'DERIVED$__'
+    and   upper(a.column_alias) <> 'ROWID'
+    order by a.display_sequence;
+  elsif p_use_filters_hidPK = 2 then
+    select PrepareColumnHeader(nvl(a.heading, a.column_alias)) heading
+     , RemoveLineBreak(nvl(a.heading, a.column_alias)) fullname
+     , a.column_alias
+     , null as master_alias
+     , case when nvl(a.format_mask, nvl(a.named_list_of_values, a.inline_list_of_values)) is not null then ColumnType(a.format_mask) else t.coltype end column_type
+     , a.format_mask
+     , a.PRINT_COLUMN_WIDTH
+     , a.display_sequence
+     , substr(a.sum_column,1,1) sum_total
+
+     $IF CCOMPILING.g_views_granted $THEN
+     , q.query_column_id query_id
+     $ELSE
+     , null query_id
+     $END
+
+     , Html_img_included(a.display_as_code, a.column_link_text, a.format_mask) html_img_included
+     , GetLOVSelect(a.application_id, a.column_alias, a.named_list_of_values, a.inline_list_of_values) LOV_SQL
+     , null as aggregation
+     , null as item_type
+    bulk collect into t_cols
+    from apex_application_page_rpt_cols a
+    join table(l_coltypes) t on a.column_alias = t.colname
+
+    $IF CCOMPILING.g_views_granted $THEN
+    join APEX_RPT_COLS_QUERY_ID q on a.region_report_column_id = q.region_report_column_id
+    $END
+
+    where a.region_id = p_region_id
+    and   nvl( a.include_in_export, 'Yes') = 'Yes'
+    and   a.COLUMN_IS_HIDDEN <>'Yes'
+    --and   nvl(a.Primary_key_column_source_type, 'N') <> 'T'
+    and   a.display_as_code <> 'HIDDEN' --not in ('HIDDEN', 'CHECKBOX')--,'WITHOUT_MODIFICATION')
+    and   a.column_alias not like 'CHECK$__'
+    and   a.column_alias not like 'DERIVED$__'
+    and   upper(a.column_alias) <> 'ROWID'
+    --and   nvl(a.column_link_text,' ') not like '<img %'
+    order by a.display_sequence;
+  elsif p_use_filters_hidPK = 1 then
+    select PrepareColumnHeader(nvl(a.heading, a.column_alias)) heading
+         , RemoveLineBreak(nvl(a.heading, a.column_alias)) fullname
+         , a.column_alias
+         , null as master_alias
+         , case when nvl(a.format_mask, nvl(a.named_list_of_values, a.inline_list_of_values)) is not null then ColumnType(a.format_mask) else t.coltype end column_type
+         , a.format_mask
+         , a.PRINT_COLUMN_WIDTH
+         , a.display_sequence
+         , substr(a.sum_column,1,1) sum_total
+
+         $IF CCOMPILING.g_views_granted $THEN
+         , q.query_column_id query_id
+         $ELSE
+         , null query_id
+         $END
+
+         , Html_img_included(a.display_as_code, a.column_link_text, a.format_mask) html_img_included
+         , GetLOVSelect(a.application_id, a.column_alias, a.named_list_of_values, a.inline_list_of_values) LOV_SQL
+         , null as aggregation
+         , null as item_type
+    bulk collect into t_cols
+    from apex_application_page_rpt_cols a
+    join table(l_coltypes) t on a.column_alias = t.colname
+
+    $IF CCOMPILING.g_views_granted $THEN
+    join APEX_RPT_COLS_QUERY_ID q on a.region_report_column_id = q.region_report_column_id
+    $END
+
+    where a.region_id = p_region_id
+    and   nvl( a.include_in_export, 'Yes') = 'Yes'
+    and   a.column_alias not like 'CHECK$__'
+    and   a.column_alias not like 'DERIVED$__'
+    and   upper(a.column_alias) <> 'ROWID'
+    --and a.display_as_code <> 'CHECKBOX'
+    --and nvl(a.column_link_text,' ') not like '<img %'
+    order by a.display_sequence;
+  end if;
+  return t_cols;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'CollectReportColumns', p_sqlerrm => sqlerrm );
+  raise;
+end CollectReportColumns;
+
+
+/**Binds one or two letter computed column expression variables with real column names
+* e.g. substr(AA,1,200) change to substr(message,1,200) where AA is variable and message is column name
+*
+* @param p_comp_expr computed column expression with one or two letter variables
+* @param t_cols hash table of real column names. Index is one or two letter variable
+* @return computed column expression with real column names
+*/
+function BindExpression(
+  p_comp_expr varchar2,
+  t_cols tp_idcols
+) return varchar2
+as
+l_ret varchar2(1000);
+t_colstrids tp_strtbl := tp_strtbl();
+l_colstrid varchar2(20);
+begin
+  l_ret := p_comp_expr;
+  pak_xslt_log.WriteLog( 'p_comp_expr '||p_comp_expr,
+   p_procedure => 'BindExpression');
+  for i in 1..length(p_comp_expr) loop
+    if substr(p_comp_expr,i,1) between 'A' and 'Z' then
+      l_colstrid := l_colstrid || substr(p_comp_expr,i,1);
+      --pak_xslt_log.WriteLog( 'l_colstrid '||l_colstrid,
+      --p_procedure => 'BindExpression');
+    else
+      if length(l_colstrid) in (1,2) and t_cols.exists(l_colstrid) then --TODO if exists
+        --Add to table
+        t_colstrids.extend;
+        t_colstrids(t_colstrids.count) := l_colstrid;
+        pak_xslt_log.WriteLog( 'Added to table at '|| t_colstrids.count||' l_colstrid '||l_colstrid,
+        p_procedure => 'BindExpression');
+      end if;
+      l_colstrid := '';
+    end if;
+  end loop;
+  --We put all but last column identifiers in t_colstrids now
+
+  pak_xslt_log.WriteLog( 'end loop p_comp_expr l_colstrid '||l_colstrid,
+    p_procedure => 'BindExpression');
+
+  if length(l_colstrid) in (1,2) then
+    --Add to table
+    t_colstrids.extend;
+    t_colstrids(t_colstrids.count) := l_colstrid;
+    pak_xslt_log.WriteLog( 'Added to table at '|| t_colstrids.count||' l_colstrid '||l_colstrid,
+    p_procedure => 'BindExpression');
+  end if;
+
+  --We put last column identifier in t_colstrids now
+
+  for i in 1..t_colstrids.count loop
+    --l_ret := replace(l_ret, t_colstrids(i), t_cols(t_colstrids(i)));'(^|\W)O(\W|$)'  '(^|\W)(O)(\W|$)', '\1yeba\3'
+    pak_xslt_log.WriteLog( 'Before regexp_replace i '||i|| ' t_cols(t_colstrids(i)) '||t_cols(t_colstrids(i))||
+                          ' t_colstrids(i) '||t_colstrids(i),
+                            p_procedure => 'BindExpression');
+
+    l_ret := regexp_replace(l_ret, '(^|\W)('||t_colstrids(i)||')(\W|$)', '\1'||t_cols(t_colstrids(i))||'\3');
+    --regexp_replace(r_apr.region_source, ':([a-zA-Z0-9_]*)','v(''\1'')'); --bind session state values
+    pak_xslt_log.WriteLog( 'After regexp_replace l_ret '||l_ret, p_procedure => 'BindExpression');
+  end loop;
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'BindExpression', p_sqlerrm => sqlerrm );
+  raise;
+end BindExpression;
+
+/**Binds (compose) condition for use in where sentence
+*
+* @param p_condition_sql SQL condition in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_expression first condition expression in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_expression2 second condition expression in apex dictionary view apex_application_page_ir_cond format
+* @return complete part of where sentence
+*/
+function BindCondition(
+  p_condition_sql varchar2,
+  p_condition_expression varchar2,
+  p_condition_expression2 varchar2
+)
+return varchar2
+as
+  t_val_ind pls_integer;
+  t_start pls_integer;
+  t_end pls_integer;
+  t_val varchar2(32767);
+  l_condition_sql varchar2(32767);
+
+begin
+  l_condition_sql := p_condition_sql;
+  if instr( l_condition_sql, '#APXWS_EXPR#' ) > 0 --#APXWS_CC_EXPR#
+  then
+    l_condition_sql := replace( l_condition_sql, '#APXWS_EXPR#', '''' || replace( p_condition_expression, '''', '''''' ) || '''' );
+  end if;
+  if instr( l_condition_sql, '#APXWS_EXPR2#' ) > 0
+  then
+    l_condition_sql := replace( l_condition_sql, '#APXWS_EXPR2#', '''' || replace( p_condition_expression2, '''', '''''' ) || '''' );
+  end if;
+  --
+  t_start := 1;
+  t_val_ind := 1;
+  while instr( l_condition_sql, '#APXWS_EXPR_VAL' || t_val_ind || '#' ) > 0
+  loop
+    t_end := instr( p_condition_expression || ',', ',', t_start );
+    t_val := trim( substr( p_condition_expression, t_start, t_end - t_start ) );
+    if t_val is null
+    then
+      l_condition_sql := replace( l_condition_sql, ', #APXWS_EXPR_VAL' || t_val_ind || '#' );
+      l_condition_sql := replace( l_condition_sql, '#APXWS_EXPR_VAL' || t_val_ind || '# ,' );
+    else
+      l_condition_sql := replace( l_condition_sql, '#APXWS_EXPR_VAL' || t_val_ind || '#', '''' || replace( t_val, '''', '''''' ) || '''' );
+    end if;
+    t_val_ind := t_val_ind + 1;
+    t_start := t_end + 1;
+  end loop;
+  return l_condition_sql;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'BindCondition', p_sqlerrm => sqlerrm );
+  raise;
+end BindCondition;
+
+
+
+/**Binds (compose) case sentence to get higlighted rows in source select
+*
+* @param p_condition_sql SQL condition in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_expression first condition expression in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_expression2 second condition expression in apex dictionary view apex_application_page_ir_cond format
+* @param p_condition_name second condition name like appears in apex dictionary view apex_application_page_ir_cond
+* @param p_highlight_cell_color highlight cell color in apex dictionary view apex_application_page_ir_cond format
+* @param p_highlight_cell_font_color highlight cell font color in apex dictionary view apex_application_page_ir_cond format
+* @param p_highlight_row_color highlight row color in apex dictionary view apex_application_page_ir_cond format
+* @param p_highlight_row_font_color highlight row font color in apex dictionary view apex_application_page_ir_cond format
+* @param p_col_label column label
+* @return complete case sentence to get higlighted rows in source select
+*/
+function GetHighlightCase(
+  p_condition_sql varchar2,
+  p_condition_expression varchar2,
+  p_condition_expression2 varchar2,
+  p_condition_name varchar2,
+  p_highlight_cell_color varchar2,
+  p_highlight_cell_font_color varchar2,
+  p_highlight_row_color varchar2,
+  p_highlight_row_font_color varchar2,
+  p_col_label varchar2
+)
+return varchar2
+as
+begin
+  return
+  replace(apexrep2report.BindCondition(p_condition_sql, p_condition_expression, p_condition_expression2), '#APXWS_HL_ID#',
+  '''highlight_name="'||p_condition_name||'" '||
+  'highlight_col="'||Query2Report.ConvertColName2XmlName(p_col_label)||'" '||
+  'highlight_cell="'||
+  case when nvl(p_highlight_cell_color, p_highlight_cell_font_color)  is not null then 'true' else 'false' end||'" '||
+  'highlight_bkg_color="'||nvl(p_highlight_row_color, p_highlight_cell_color)||'" '||
+  'highlight_font_color="'||nvl(p_highlight_row_font_color, p_highlight_cell_font_color)||'"''');
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'GetHighlightCase', p_sqlerrm => sqlerrm );
+  raise;
+end GetHighlightCase;
+
+/** Procedure adds Computed columns and highlights column at region source (IR)
+*
+* @param p_region_id Region ID of IR
+* @param p_page_id Page ID of IR
+* @param pio_region_source Region source of IR
+*/
+
+$IF CCOMPILING.g_views_granted $THEN
+function AddComputedColumns(
+    p_page_id number,
+    p_region_id number
+)
+return varchar2
+as
+l_report_id number;
+l_cc_cols_list varchar2(32767);
+l_highlight_case varchar2(4000);
+t_cols tp_idcols;
+
+cursor c_cols is
+  select c.column_alias
+        , c.display_order
+        , cid.column_identifier
+    from apex_application_page_ir_col c
+    join apex_application_page_ir_colid cid on c.column_id = cid.column_id
+    where c.region_id = p_region_id;
+
+cursor c_comps(c_report_id number) is
+ select
+    comp.computation_column_alias column_alias,
+    comp.COMPUTATION_EXPRESSION comp_expr
+   from apex_application_page_regions apr
+   join apex_application_page_ir ir on apr.region_id = ir.region_id
+   join apex_application_page_ir_rpt rpt on rpt.interactive_report_id = ir.interactive_report_id
+   join apex_application_page_ir_comp comp on comp.report_id = rpt.report_id
+   where apr.region_id = p_region_id
+   and rpt.report_id = c_report_id
+   order by column_alias;
+
+begin
+  for r_cols in c_cols loop
+    t_cols(r_cols.column_identifier) := r_cols.column_alias;
+  end loop;
+
+  l_report_id := Get_current_report_row(p_region_id, p_page_id).report_id;
+  for r_comp in c_comps(l_report_id) loop
+    l_cc_cols_list := l_cc_cols_list||', '||BindExpression(r_comp.comp_expr, t_cols)||
+                      ' "'||r_comp.column_alias||'"';
+
+  end loop;
+
+  pak_xslt_log.WriteLog( ' p_region_id '||p_region_id|| ' l_cc_cols_list: '||l_cc_cols_list,
+                          p_procedure => 'AddComputedColumns'
+                        );
+
+  --we added computed cols expressions after first select
+  /*
+  l_insert_point := instr(lower(pio_region_source), ' from ');
+  pio_region_source := substr(pio_region_source, 1, l_insert_point)||' '||
+                       l_cc_cols_list||' '||substr(pio_region_source, l_insert_point + 1);
+   */
+   return l_cc_cols_list;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_page_id '||p_page_id||' p_region_id '||p_region_id,
+                          p_log_type => pak_xslt_log.g_error,
+                          p_procedure => 'AddComputedColumns',
+                          p_sqlerrm => sqlerrm
+                        );
+  raise;
+end;
+$END
+/**Split separated cols used in apex_application_page_ir_* views. Also exclude 0 (used in apex_application_page_ir_rpt.break_enabled_on)
+*
+* @param str String with ':' separated columns
+* @return string array table of columns
+*/
+function split_cols(str in varchar2)
+return tp_strtbl
+AS
+return_value         tp_strtbl := tp_strtbl();
+split_str            VARCHAR2(4000) default str || ':';
+i                    number;
+l_break_col          varchar2(30);
+begin
+loop
+i := instr(split_str, ':');
+exit when nvl(i,0) = 0;
+l_break_col := trim(substr(split_str, 1, i-1));
+if l_break_col <>'0' then
+  return_value.extend;
+  return_value(return_value.count) := trim(substr(split_str, 1, i-1));
+END IF;
+split_str := substr(split_str, i + length(':'));
+end loop;
+return return_value;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'split_cols', p_sqlerrm => sqlerrm );
+  raise;
+end split_cols;
+
+/** Bind (compose) sort statement for use in ORDER BY statement in IR suorce in ordinary (non GOUP BY) mode
+*
+* @param p_apr row of current report in apex_application_page_ir_rpt view
+* @param p_already_order_by true if ORDER BY already exists
+*/
+function BindSort(
+  p_apr apex_application_page_ir_rpt%rowtype
+)
+return varchar2
+as
+l_sort varchar2(4000);
+begin
+--add sorting in source
+  if nvl(p_apr.sort_column_1, '0') <> '0'
+  then
+    l_sort := ' "' || p_apr.sort_column_1 || '" ' || p_apr.sort_direction_1;
+    if nvl(p_apr.sort_column_2, '0') <> '0'
+    then
+      l_sort := l_sort || ', "' || p_apr.sort_column_2 || '" ' || p_apr.sort_direction_2;
+    end if;
+    if nvl(p_apr.sort_column_3, '0') <> '0'
+    then
+      l_sort := l_sort || ', "' || p_apr.sort_column_3 || '" ' || p_apr.sort_direction_3;
+    end if;
+    if nvl(p_apr.sort_column_4, '0') <> '0'
+    then
+      l_sort := l_sort || ', "' || p_apr.sort_column_4 || '" ' || p_apr.sort_direction_4;
+    end if;
+    if nvl(p_apr.sort_column_5, '0') <> '0'
+    then
+      l_sort := l_sort || ', "' || p_apr.sort_column_5 || '" ' || p_apr.sort_direction_5;
+    end if;
+    if nvl(p_apr.sort_column_6, '0') <> '0'
+    then
+      l_sort := l_sort || ', "' || p_apr.sort_column_6 || '" ' || p_apr.sort_direction_6;
+    end if;
+  end if;
+  pak_xslt_log.WriteLog( 'return '||l_sort, p_procedure => 'BindSort' );
+  return l_sort;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'BindSort', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/** Bind (compose) sort statement for use in ORDER BY statement in IR suorce in GROUP BY mode
+*
+* @param p_apr row of current report in apex_application_page_ir_rpt view
+* @param p_already_order_by true if ORDER BY already exists
+*/
+function BindSort(
+  p_apr apex_application_page_ir_grpby%rowtype,
+  p_simple_col_list varchar2 --group by columns separated with :
+)
+return varchar2
+as
+l_sort varchar2(4000);
+begin
+--add sorting in source
+  if nvl(p_apr.sort_column_01, '0') <> '0' and regexp_instr(p_simple_col_list,'(:|^)'||p_apr.sort_column_01||'(:|$)') > 0
+  then
+    l_sort := ' ' || p_apr.sort_column_01 || ' ' || p_apr.sort_direction_01;
+
+    if nvl(p_apr.sort_column_02, '0') <> '0' and regexp_instr(p_simple_col_list,'(:|^)'||p_apr.sort_column_02||'(:|$)') > 0
+    then
+      l_sort := l_sort || ', ' || p_apr.sort_column_02 || ' ' || p_apr.sort_direction_02;
+    end if;
+    if nvl(p_apr.sort_column_03, '0') <> '0' and regexp_instr(p_simple_col_list,'(:|^)'||p_apr.sort_column_03||'(:|$)') > 0
+    then
+      l_sort := l_sort || ', ' || p_apr.sort_column_03 || ' ' || p_apr.sort_direction_03;
+    end if;
+    if nvl(p_apr.sort_column_04, '0') <> '0' and regexp_instr(p_simple_col_list,'(:|^)'||p_apr.sort_column_04||'(:|$)') > 0
+    then
+      l_sort := l_sort || ', ' || p_apr.sort_column_04 || ' ' || p_apr.sort_direction_04;
+    end if;
+  end if;
+  pak_xslt_log.WriteLog( 'return '||l_sort, p_procedure => 'BindSort(group_by)' );
+  return l_sort;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error,
+  p_procedure => 'BindSort', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/** Return Source Query of region with Interactive report and array of columns. Filters are in included in where sentence of suorce query
+* 'DYNAMIC_QUERY'
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_apr row of current report in apex_application_page_ir_rpt view.
+* @param pio_region_source Source query of region.
+*/
+procedure IRUseFilters(
+    p_region_id number,
+    p_page_id number,
+    p_apr apex_application_page_ir_rpt%rowtype,
+    po_order_by_list out varchar2,
+    po_where out varchar2
+)
+as
+  t_base_report_id number;
+  t_pref varchar2(32767);
+  --po_where varchar2(32767);
+  t_search varchar2(32767);
+  --t_break_cols tp_strtbl;
+
+  --different report versions: primary, alternative, public versions
+  --filters or searches (conditions) for this versions are in apex_application_page_ir_cond view
+  cursor c_con is
+  select replace(con.condition_sql, '#APXWS_CC_EXPR#',con.condition_column_name) condition_sql
+        , con.condition_type
+        , con.condition_expr_type
+        , con.condition_expression
+        , con.condition_expression2
+   from apex_application_page_ir_cond con
+   where con.application_id = APEX_APPLICATION.G_FLOW_ID
+   and   con.page_id = p_page_id
+   and   con.report_id = p_apr.report_id
+   and   con.condition_enabled = 'Yes'
+   and   con.condition_type in ( 'Filter', 'Search' );
+
+
+   cursor c_search(c_report_columns varchar2) is
+   select col.column_alias
+   from apex_application_page_ir_col col
+      , ( select substr( cols, instr( sep || cols, sep, 1, level ), instr( cols || sep, sep, 1, level ) - instr( sep || cols, sep, 1, level ) ) col
+               , level so
+         from ( select c_report_columns cols
+                     , ':' sep from dual )
+         connect by level <= length( cols ) - nvl( length( replace( cols, sep ) ), 0 ) + 1
+        ) fil --Upper select converts columns in c_report_columns string separated with ':' to table fil of column names. Each column name has its own row.
+  where col.application_id = APEX_APPLICATION.G_FLOW_ID
+  and   col.page_id = p_page_id
+  and   col.region_id = p_region_id
+  and   col.column_alias = fil.col
+  and   col.allow_filtering = 'Yes'
+  and   col.column_type in ( 'VARCHAR2', 'NUMBER', 'CLOB' );
+
+begin
+  --build where sentence from Filter and Search--
+  po_where := '';
+  po_order_by_list := '';
+  for r_con in c_con
+  loop
+    if (   r_con.condition_type = 'Filter'
+       and r_con.condition_sql is not null
+       )
+    then --build where sentence from Filter--
+      if r_con.condition_expr_type = 'ROW'
+      then --ROW filter
+        if po_where is null then
+          po_where := '(' || r_con.condition_sql || ')';
+        else
+          po_where := po_where ||' and (' || r_con.condition_sql || ')';
+        end if;
+      else --column filter
+        if po_where is null then
+          po_where := BindCondition(r_con.condition_sql, r_con.condition_expression, r_con.condition_expression2);
+        else
+          po_where := po_where ||' and '|| BindCondition(r_con.condition_sql, r_con.condition_expression, r_con.condition_expression2);
+        end if;
+      end if;
+    end if; --End of filter
+--
+    if r_con.condition_type = 'Search'
+    then --build where sentence from Search--
+      for r_sea in c_search(p_apr.report_columns)
+      loop
+        t_search := t_search || 'or instr( upper( "' || r_sea.column_alias || '" ), upper( ''' || replace( r_con.condition_expression, '''', '''''' ) || ''' ) ) > 0 ';
+      end loop;
+      if t_search is not null
+      then
+        if length(trim(po_where)) > 0 then
+          po_where := po_where||' and ( ' || ltrim( t_search, 'or' ) || ' )';
+        else
+          po_where := po_where||' ( ' || ltrim( t_search, 'or' ) || ' )';
+        end if;
+      end if;
+    end if; --End of search
+  end loop;
+--
+  /*
+  if po_where is not null
+  then --add where sentence to source
+    pio_region_source := 'select * from ( ' || pio_region_source || ' ) where ' ||
+                           ltrim( t_where, query2report.g_crlf || 'and'  );
+  end if;
+  */
+
+  po_order_by_list := BindSort(p_apr);
+  /*
+  pio_region_source := pio_region_source ||
+            BindSort(p_apr, false);
+  */
+
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IRUseFilters', p_sqlerrm => sqlerrm );
+  raise;
+end IRUseFilters; --end of block Use of filters in select
+
+function AggregateFunction(
+  p_function varchar2,
+  p_function_column varchar2 --,
+  --po_ratio_group_by out boolean
+)
+return varchar2
+as
+l_function varchar2(30);
+begin
+  pak_xslt_log.WriteLog( 'Starting p_function '||p_function||' p_function_column '||p_function_column,
+                        p_procedure => 'AggregateFunction');
+  --po_ratio_group_by := false;
+  if p_function like 'RATIO_TO_REPORT_%' then
+    l_function := substr(p_function, instr(p_function, '_', -1) + 1);
+    --po_ratio_group_by := true;
+    return '100 * RATIO_TO_REPORT('||l_function||'('||p_function_column||')) OVER() ';
+  elsif p_function = 'COUNT_DISTINCT' then
+    return 'COUNT(DISTINCT '||p_function_column||') ';
+  else
+    return p_function||'('||p_function_column||') ';
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'AggregateFunction', p_sqlerrm => sqlerrm );
+  raise;
+end AggregateFunction;
+
+/** Helper function of IRUseGroupBy. Extends column list and group_by for one aggregate column
+*
+* @param pio_column_list Column list string
+* @param pio_group_by_columns Group by string
+* @param p_function Aggregation function
+* @param p_function_column Aggregation column alias
+* @param p_function_db_column_name Apex column alias
+
+*/
+procedure IRUseGroupByFunction(
+  pio_column_list         in out varchar2,
+  pio_simple_column_list  in out varchar2,
+--  pio_group_by_columns in out varchar2,
+  p_function varchar2,
+  p_function_column varchar2,
+  p_function_db_column_name varchar2
+)
+as
+--l_ratio_group_by boolean default false;
+
+begin
+  if p_function is not null then
+    pio_column_list := pio_column_list || ', ' ||
+    AggregateFunction(p_function, p_function_column) ||
+    p_function_db_column_name;
+    pio_simple_column_list := pio_simple_column_list|| ':' ||p_function_column;
+    --if l_ratio_group_by then pio_group_by_columns := pio_group_by_columns||':'||p_function_column; end if;
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IRUseGroupByFunction', p_sqlerrm => sqlerrm );
+  raise;
+end IRUseGroupByFunction;
+
+/** Return Source Query of region with Interactive report in group by mode
+*
+* @param p_page_id APEX Page ID.
+* @param p_apr row of current report in apex_application_page_ir_rpt view.
+* @param pio_region_source Source query of region.
+*/
+procedure IRUseGroupBy(
+    p_page_id number,
+    p_apr apex_application_page_ir_rpt%rowtype,
+    po_group_by_list     out varchar2,
+    po_group_by_col_list  out varchar2,
+    po_order_by_list      out varchar2
+)
+as
+l_grpby apex_application_page_ir_grpby%rowtype;
+l_simple_col_list varchar2(4000);
+
+begin
+  select * into l_grpby
+  from apex_application_page_ir_grpby
+  where  page_id=p_page_id and report_id = p_apr.report_id;
+  po_group_by_col_list := replace(l_grpby.group_by_columns,':',', ');--label--, format
+  l_simple_col_list := l_grpby.group_by_columns;
+      IRUseGroupByFunction(
+        po_group_by_col_list,
+        l_simple_col_list,
+        l_grpby.function_01,
+        l_grpby.function_column_01,
+        l_grpby.function_db_column_name_01
+      );
+      IRUseGroupByFunction(
+        po_group_by_col_list,
+        l_simple_col_list,
+        l_grpby.function_02,
+        l_grpby.function_column_02,
+        l_grpby.function_db_column_name_02
+      );
+      IRUseGroupByFunction(
+        po_group_by_col_list,
+        l_simple_col_list,
+        l_grpby.function_03,
+        l_grpby.function_column_03,
+        l_grpby.function_db_column_name_03
+      );
+      IRUseGroupByFunction(
+        po_group_by_col_list,
+        l_simple_col_list,
+        l_grpby.function_04,
+        l_grpby.function_column_04,
+        l_grpby.function_db_column_name_04
+      );
+      IRUseGroupByFunction(
+        po_group_by_col_list,
+        l_simple_col_list,
+        l_grpby.function_05,
+        l_grpby.function_column_05,
+        l_grpby.function_db_column_name_05
+      );
+      IRUseGroupByFunction(
+        po_group_by_col_list,
+        l_simple_col_list,
+        l_grpby.function_06,
+        l_grpby.function_column_06,
+        l_grpby.function_db_column_name_06
+      );
+
+      /*
+      pio_region_source := l_column_list||' from ('||pio_region_source||') '||
+      ' group by '||replace(l_grpby.group_by_columns,':',', ');
+      */
+      po_group_by_list := replace(l_grpby.group_by_columns,':',', ');
+      po_order_by_list := BindSort(l_grpby, l_simple_col_list);
+      LogComposeSelectAndAttr(
+        'IRUseGroupBy',
+        p_group_by_list => po_group_by_list,
+        p_order_by_list => po_order_by_list,
+        p_group_by_col_list => po_group_by_col_list
+      );
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IRUseGroupBy', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/** Return Source Query of region with Interactive report and array of columns. Filters are in included in where sentence of suorce query if IR is not in GROUP BY mode
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* You want to use 1 for cross reference by hidden or PK columns inside complex XML build from multiple queries.
+* @param po_basic_col_list Columns separated with :
+* @param pio_region_source Source query of region.
+*/
+procedure IRUseFiltersOrGroupBy(
+    p_region_id number,
+    p_page_id number,
+    p_use_filters_hidPK number, --can be 1 or 2
+    po_basic_col_list out varchar2,
+    po_group_by_list out varchar2,
+    po_order_by_list out varchar2,
+    po_where out varchar2,
+    po_group_by_col_list out varchar2
+)
+as
+t_apr apex_application_page_ir_rpt%rowtype;
+
+begin
+  po_order_by_list := null;
+  t_apr := Get_current_report_row(p_region_id, p_page_id);
+
+  if p_use_filters_hidPK > 0 then
+    IRUseFilters(
+      p_region_id,
+      p_page_id,
+      t_apr,
+      po_order_by_list => po_order_by_list,
+      po_where => po_where
+    );
+  end if;
+
+  if t_apr.report_view_mode = 'GROUP_BY' then
+    IRUseGroupBy(
+        p_page_id,
+        t_apr,
+        po_group_by_list => po_group_by_list,
+        po_group_by_col_list => po_group_by_col_list,
+        po_order_by_list => po_order_by_list
+    );
+  else
+    --po_basic_col_list := '"'||replace(t_apr.report_columns,':','":"')||'"';
+    po_basic_col_list :=t_apr.report_columns;
+  end if;
+  LogComposeSelectAndAttr(
+    'IRUseFiltersOrGroupBy',
+    p_region_id,
+    p_use_filters_hidPK,
+    p_basic_col_list => po_basic_col_list,
+    p_group_by_list => po_group_by_list,
+    p_group_by_col_list => po_group_by_col_list,
+    p_order_by_list => po_order_by_list,
+    p_where => po_where
+  );
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'IRUseFiltersOrGroupBy', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/** Compose source select with aggregation like union of ordinary IR source select and aggregation select
+* sorting is the same like in IR (aggregation row is at the end of break group)
+*
+* @param pio_basic_col_list basic column list
+* @param pio_aggr_col_list aggregation column list
+* @param p_column_list column list of aggregate part of select
+* @param pio_break_col_list break column list
+* @param p_region_aggregates aggregates in format for row: aggr function, column,.. (eg: SUM, COL1, AVG, COL2)
+* @param p_break_in_grand_total break and grand total applied on IG
+*/
+procedure AddAggregateColumns(
+  --pio_region_source in out nocopy clob,
+  pio_basic_col_list  in out varchar2,
+  pio_aggr_col_list   in out varchar2,
+  pio_break_col_list  in out varchar2,
+  pio_grand_total_col_list in out varchar2,
+  p_region_aggregates in varchar2 default null,
+  p_grand_total_aggregates in varchar2 default null,
+  p_break_in_grand_total in boolean default false  --TODO use of parameter in procedure
+)
+as
+/*
+l_aggr_col_list varchar2(4000);
+l_basic_col_list varchar2(4000);
+l_break_col_list varchar2(4000);
+l_aggr_source clob;
+*/
+begin
+  pio_basic_col_list := pio_basic_col_list||
+    case when pio_break_col_list is not null then ', null BREAKROW ' else '' end||
+    case when pio_aggr_col_list is not null then ', null REGION_AGGREGATES ' else '' end;
+
+  if pio_aggr_col_list is not null then
+    pio_aggr_col_list := pio_aggr_col_list||
+    case when pio_break_col_list is not null then ', null BREAKROW ' else '' end||
+    ', '''||p_region_aggregates||''' REGION_AGGREGATES ';
+  end if;
+
+  if pio_break_col_list is not null then
+    pio_break_col_list := pio_break_col_list||', 1 BREAKROW '||
+    case when pio_aggr_col_list is not null then ', null REGION_AGGREGATES ' else '' end;
+  end if;
+
+  if pio_grand_total_col_list is not null then
+    pio_grand_total_col_list := pio_grand_total_col_list||', 2 BREAKROW '||
+    case when pio_grand_total_col_list is not null then ', '''||p_grand_total_aggregates||''' REGION_AGGREGATES ' else '' end;
+  end if;
+
+  /*
+  dbms_lob.createtemporary(l_aggr_source, false);
+  writeappendAllString(l_aggr_source, l_basic_col_list|| ' from (');
+  dbms_lob.append(l_aggr_source, pio_region_source);
+  writeappendAllString(l_aggr_source,')');
+  if p_aggr_col_list is not null then
+    writeappendAllString(l_aggr_source,
+                         query2report.g_crlf||
+                         ' union ('
+                         ||query2report.g_crlf||
+                         l_aggr_col_list||' from (');
+    dbms_lob.append(l_aggr_source, pio_region_source);
+    writeappendAllString(l_aggr_source,') '||p_group_by||' ) ');--||p_order_by);
+
+
+    end if;
+
+    if p_break_col_list is not null then
+      writeappendAllString(l_aggr_source,
+                           query2report.g_crlf||
+                           ' union '
+                           ||query2report.g_crlf||
+                           l_break_col_list||' from (');
+      dbms_lob.append(l_aggr_source, pio_region_source);
+      writeappendAllString(l_aggr_source,') ');--||p_order_by);
+
+
+    end if;
+    dbms_lob.copy(pio_region_source, l_aggr_source, dbms_lob.LOBMAXSIZE);
+    dbms_lob.freetemporary(l_aggr_source);
+    --pak_xslt_log.WriteLog( 'Here Iam2 ', p_procedure => 'AggregateSelectReport');
+    */
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'AddAggregateColumns', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+
+/** Function Check p_cols array for any SUM total and compose select statement.
+* Used for IR in GROUP BY mode and for classic report with SUM column
+*
+* @param @param pio_region_source IR source select
+* @param p_cols table of columns (also aggregation function is there)
+*/
+function SumTotalSelect(
+  --pio_region_source in out nocopy clob,
+  p_cols            tp_cols,
+  po_basic_col_list out varchar2,
+  po_aggr_col_list  out varchar2
+)
+return boolean
+as
+ l_region_aggregates varchar2(4000);
+ l_aggregate boolean default false;
+ l_break_col_list varchar2(4000) default null;
+ l_grand_total_col_list varchar2(4000) default null;
+ begin
+  for i in 1..p_cols.count loop
+    if i = 1 then
+      if p_cols(i).sum_total = 'Y' then
+        po_aggr_col_list := 'SUM("'||p_cols(i).alias||'") ';
+        if p_cols(i).lov_sql is not null then
+          po_aggr_col_list := 'to_char('||po_aggr_col_list||') ';
+        end if;
+        l_region_aggregates := l_region_aggregates || 'SUM,'||Query2Report.ConvertColName2XmlName(p_cols(i).label)||',';
+        l_aggregate := true;
+      else
+        po_aggr_col_list := 'null "'||p_cols(i).alias||'" ';
+      end if;
+      po_basic_col_list := ' "'||p_cols(i).alias||'" ';
+    else
+      if p_cols(i).sum_total = 'Y' then
+        if p_cols(i).lov_sql is not null then
+          po_aggr_col_list := po_aggr_col_list||', to_char(SUM("'||p_cols(i).alias||'")) ';
+        else
+          po_aggr_col_list := po_aggr_col_list||', SUM("'||p_cols(i).alias||'") ';
+        end if;
+        l_region_aggregates := l_region_aggregates || 'SUM,'||Query2Report.ConvertColName2XmlName(p_cols(i).label)||',';
+        l_aggregate := true;
+      else
+        po_aggr_col_list := po_aggr_col_list||',null "'||p_cols(i).alias||'"';
+      end if;
+      po_basic_col_list := po_basic_col_list||', "'||p_cols(i).alias||'" ';
+    end if;
+  end loop;
+
+  if l_aggregate then
+    AddAggregateColumns(
+      pio_basic_col_list => po_basic_col_list,
+      pio_aggr_col_list => po_aggr_col_list,
+      pio_break_col_list => l_break_col_list, --dummy, always null
+      pio_grand_total_col_list => l_grand_total_col_list, --dummy, always null
+      p_region_aggregates => l_region_aggregates
+    );
+  else
+    po_aggr_col_list := null;
+  end if;
+
+  LogComposeSelectAndAttr(
+    'SumTotalSelect',
+    null,
+    null,
+    p_basic_col_list => po_basic_col_list,
+    p_aggr_col_list => po_aggr_col_list
+  );
+
+  return l_aggregate;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'SumTotalSelect', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+function OrderNum2ColLabel(
+  t_cols tp_cols,
+  p_col_order varchar2
+)
+return varchar2
+as
+l_col_order number;
+begin
+  pak_xslt_log.WriteLog( 'p_col_order '||p_col_order||' t_cols: '||tp_col2string(t_cols), p_procedure => 'OrderNum2ColLabel');
+  l_col_order := to_number(p_col_order);
+  for i in 1..t_cols.count loop
+    if t_cols(i).query_id = l_col_order then
+      return t_cols(i).alias;
+    end if;
+  end loop;
+  return p_col_order;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'OrderNum2ColLabel', p_sqlerrm => sqlerrm );
+  return p_col_order;
+end;
+
+
+/** Procedure outputs parts of select statement for region with Standard Report (not IR)
+* NOT 'DYNAMIC_QUERY' ==> 'SQL_QUERY' or 'STRUCTURED_QUERY'
+*
+* With region_src as (region_select)
+* Select formated_labeled_col_list from
+* (
+*      Select basic_col_list, null REGION_AGGR from region_src
+*   [Union
+*      Select aggr_col_list, aggr. col. list REGION_AGGR from region_src]
+* )
+* Order by [aggr_order_by_list,] order_by_list;
+*
+* SQL in [] applied only if final SUM is applied on Standard report.
+*
+* @param p_region_id Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* @param po_cols Array of columns as they appear in report.
+* @param po_basic_col_list list of columns in select
+* @param po_aggr_col_list Only SUM function is possible, columns with no aggregation have null values
+* @param po_order_by_list order by part of select statement
+*/
+procedure NotDynamicQuery(
+    p_region_id number,
+    p_page_id number,
+    p_use_filters_hidPK number,
+    po_cols out tp_cols,
+    po_basic_col_list out varchar2,
+    po_aggr_col_list out varchar2,
+    po_order_by_list out varchar2 --,
+    --po_aggregation out boolean
+    --pio_region_source in out varchar2
+)
+as
+  --t_use_filters varchar2(1);
+  t_pref varchar2(32767);
+  l_aggregation boolean default false;
+  --t_sort varchar2(32767);
+begin
+
+  po_cols :=  CollectReportColumns(p_region_id, p_use_filters_hidPK => p_use_filters_hidPK);
+  pak_xslt_log.WriteLog( 'CollectReportColumns: '||tp_col2string(po_cols), p_procedure => 'NotDynamicQuery');
+
+  if p_use_filters_hidPK > 0 --Source need to be changed only if we using filters
+  then
+    t_pref := apex_util.get_preference( 'FSP' || to_char(APEX_APPLICATION.G_FLOW_ID) || '_P' || p_page_id || '_R' || p_region_id || '_SORT', v('APP_USER'));
+    if instr( t_pref, 'fsp_sort_' ) = 1
+    then
+      po_order_by_list := substr( t_pref, 10 );
+      pak_xslt_log.WriteLog( 'po_order_by_list(1): '||po_order_by_list, p_procedure => 'NotDynamicQuery');
+      if instr( po_order_by_list, 'desc' ) > 0
+      then
+        po_order_by_list := substr( po_order_by_list, 1, instr( po_order_by_list, '_' ) - 1 );
+        po_order_by_list := OrderNum2ColLabel(po_cols, po_order_by_list) || ' asc'; -- bug in APEX????
+
+      else
+        po_order_by_list := OrderNum2ColLabel(po_cols, po_order_by_list) || ' desc';
+      end if;
+      pak_xslt_log.WriteLog( 'po_order_by_list(2): '||po_order_by_list, p_procedure => 'NotDynamicQuery');
+    end if;
+    if po_order_by_list is null
+    then
+      po_order_by_list := replace( substr( t_pref, 10 ), '_', ' ' );
+      pak_xslt_log.WriteLog( 'po_order_by_list(3): '||po_order_by_list, p_procedure => 'NotDynamicQuery');
+      po_order_by_list := OrderNum2ColLabel(po_cols, po_order_by_list); --test daj nazaj
+      pak_xslt_log.WriteLog( 'po_order_by_list(4): '||po_order_by_list, p_procedure => 'NotDynamicQuery');
+    end if;
+  end if;
+
+  l_aggregation := SumTotalSelect(
+    po_cols,
+    po_basic_col_list => po_basic_col_list,
+    po_aggr_col_list => po_aggr_col_list
+  );
+
+  if l_aggregation then
+    if po_order_by_list is null then
+      po_order_by_list := 'REGION_AGGREGATES desc ';
+    else
+      $IF CCOMPILING.g_views_granted $THEN
+        po_order_by_list := 'REGION_AGGREGATES desc, '||po_order_by_list;
+      $ELSE
+        po_order_by_list := 'REGION_AGGREGATES desc ';
+      $END
+
+    end if;
+  end if;
+
+  LogComposeSelectAndAttr(
+    'NotDynamicQuery',
+    p_region_id,
+    p_use_filters_hidPK,
+    p_basic_col_list => po_basic_col_list,
+    p_aggr_col_list => po_aggr_col_list,
+    p_order_by_list => po_order_by_list
+  );
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'NotDynamicQuery', p_sqlerrm => sqlerrm );
+  raise;
+end NotDynamicQuery;
+
+function tab_string2Clob(
+  p_queries query2report.tab_string
+)
+return CLOB
+as
+i number default 1;
+l_ret CLOB;
+begin
+  dbms_lob.CreateTemporary(l_ret, false);
+  for i in 1..p_queries.count() loop
+    dbms_lob.writeappend(l_ret, length(p_queries(i)), p_queries(i));
+    if i < p_queries.count() then
+      dbms_lob.writeappend(l_ret, 3, ';'||query2report.g_crlf);
+    else
+      dbms_lob.writeappend(l_ret, 1, ';');
+    end if;
+  end loop;
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'tab_string2Clob', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+function FormatMaskIsValid(p_format_mask varchar2, p_column_type varchar2)
+return boolean
+as
+l_date    varchar2(50);
+l_number  varchar2(50);
+begin
+  if p_column_type = 'VARCHAR2' then
+    return FormatMaskIsValid(p_format_mask, 'DATE') or FormatMaskIsValid(p_format_mask, 'NUMBER');
+  elsif p_column_type = 'DATE' then
+    l_date := to_char(sysdate, p_format_mask);
+  elsif p_column_type = 'NUMBER' then
+    l_number := to_char(9999999.99, p_format_mask);
+  end if;
+  RETURN TRUE;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN FALSE;
+end FormatMaskIsValid;
+
+/** Return one column part of super select with column aliases and to_char formating
+* if there is format mask in report
+*
+* @param p_col Column record with label, alias, format mask, display sequence
+* @param p_html_cols Columns with HTML markup in temporary XML. 0 - Convert to text, exclude columns with image links, 1 - Exlude columns with HTML markup,
+* 2 - Exclude columns with image links, preserve rest of columns with HTML markup, 3 - Preserve HTML markup, 4 - Convert to text. Default 0.
+* @param pio_html_cols_attr If p_col is html column column name is added to Region attribute html_cols. Syntax: html_cols="col1,col2,colN"
+* @param pio_img_cols_attr If p_col is html column with image link column name is added to Region attribute img_cols. Syntax: html_cols_attr="col1,col2,colN"
+* @return one column part of super select
+*/
+function SuperSelectColumn(
+  p_col tp_col,
+  p_html_cols number,
+  pio_html_cols_attr in out varchar2,
+  pio_img_cols_attr in out varchar2
+)
+return varchar2
+as
+l_ret varchar2(256);
+l_label varchar2(256);
+l_formated_value varchar2(256);
+begin
+  if (p_col.html_img_included > 0 and p_html_cols = 1)
+  or (p_col.html_img_included = 2 and p_html_cols in (0,2))
+  then
+    return null;
+  end if;
+  if p_col.label is null or length(p_col.label) = 0 then --hidden or link column or without label
+    l_label := '"'||p_col.alias||'"';
+  else
+    l_label := '"'||Query2Report.ConvertColName2XmlName(p_col.label)||'"';
+  end if;
+  if (p_col.format_mask is not null and FormatMaskIsValid(p_col.format_mask, p_col.col_type))
+      or p_col.item_type = 'NATIVE_YES_NO'
+  then
+    --add formating if defined format mask of column
+    if p_col.item_type = 'NATIVE_YES_NO' then
+       l_formated_value  := ' decode("'||p_col.alias||'", ''Y'', ''Yes'', ''N'', ''No'')';
+    else
+        if p_col.col_type = 'NUMBER' then
+          l_formated_value := ' trim(to_char("'||p_col.alias||'", '''||p_col.format_mask||'''))';
+        else
+          l_formated_value := ' to_char("'||p_col.alias||'", '''||p_col.format_mask||''')';
+        end if;
+    end if;
+  else
+    l_formated_value := ' "'||p_col.alias||'" ';
+  end if;
+  if (p_col.html_img_included > 0 and p_html_cols in (0,4)) then --convert HTML to TEXT
+    l_formated_value := ' query2report.html2str('||l_formated_value||')';
+  end if;
+  l_ret := l_formated_value||' '||l_label||',';
+
+  l_label := trim('"' from l_label); --remove "
+
+  if (p_col.html_img_included = 1 and p_html_cols in (2,3)) then --column added to html_cols Region attribute
+    if pio_html_cols_attr is null then
+      pio_html_cols_attr := 'html_cols="'||l_label ;
+    else
+      pio_html_cols_attr := pio_html_cols_attr||','||l_label ;
+    end if;
+  end if;
+
+  if (p_col.html_img_included = 2 and p_html_cols = 3) then --column added to html_cols Region attribute
+    if pio_img_cols_attr is null then
+      pio_img_cols_attr := 'img_cols="'||l_label ;
+    else
+      pio_img_cols_attr := pio_img_cols_attr||','||l_label ;
+    end if;
+  end if;
+
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'SuperSelectColumn', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/**Procedure adds columns with same aggregation function (SUM, AVG...) to the table of aggregation columns
+* for later use
+*
+* @param pio_t_cols_aggr table of of aggregation columns
+* @param p_aggr_cols Aggregation columns separated with :
+* @param p_aggregation Aggregation function (SUM, AVG...)
+*/
+procedure FillAggrColsTable
+(
+  pio_t_cols_aggr in out tp_cols_aggr
+  ,p_aggr_cols in varchar2
+  ,p_aggregation in varchar2
+)
+as
+t_strtbl tp_strtbl := tp_strtbl();
+begin
+  if p_aggr_cols is not null then
+    t_strtbl:=split_cols(p_aggr_cols);
+    for i in 1..t_strtbl.count loop
+      pio_t_cols_aggr.extend;
+      pio_t_cols_aggr(pio_t_cols_aggr.count).column_alias := t_strtbl(i);
+      pio_t_cols_aggr(pio_t_cols_aggr.count).aggregation := p_aggregation;
+    end loop;
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'FillAggrColsTable', p_sqlerrm => sqlerrm );
+  raise;
+end FillAggrColsTable;
+
+/** Function Check apex_application_page_ir_grpby view for any aggregation and outputs parts of select statement if IR is in GROUP BY mode
+*
+*  Source (ComposeRegionQuery l_source variable) is region_src or region_src_cc or region_src_filtered or region_src_grpby.
+*
+*  With region_src as (region_select)
+*           ,region_src_cc as (select region_src.*,cc_cols_list from region_src)
+*           ,region_src_filtered as (select region_src_cc.* from region_src_cc where p_where)
+*           ,region_src_grpby as (select group_by_col_list from region_src_filtered group by group_by_list)
+*  Select formated_labeled_col_list from
+*  (
+*    Select po_basic_col_list[, null REGION_AGGR] from source
+*    [Union
+*    Select po_aggr_col_list, (aggr. cols) REGION_AGGR from source]
+*  )
+*  Order by [po_aggr_order_by_list,] order_by_list;
+*
+*  SQL in [] applied only if final SUM is applied on group by IR
+*
+* @param p_page_id APEX Page ID.
+* @param p_rpt_row Row of current IR in apex_application_page_ir_rpt view
+* @param p_cols table of columns (also aggregation function is there)
+* @param po_basic_col_list list of columns in select
+* @param po_aggr_col_list Only SUM function is possible, columns with no aggregation have null values
+* @param po_aggr_order_by_list if final SUM applied this is first part of order by column list (REGION_AGGREGATES desc)
+*/
+function AggregateSelectGroupBy(
+  p_page_id         number,
+  p_rpt_row         apex_application_page_ir_rpt%rowtype,
+  p_cols            tp_cols,
+  po_basic_col_list out varchar2,
+  po_aggr_col_list  out varchar2,
+  po_aggr_order_by_list  out varchar2
+)
+return boolean
+as
+ --l_grpby_row apex_application_page_ir_grpby%rowtype;
+ l_aggregate boolean default false;
+ l_basic_col_list varchar2(32000);
+begin
+  l_aggregate := SumTotalSelect(
+    p_cols,
+    po_basic_col_list => po_basic_col_list,
+    po_aggr_col_list => po_aggr_col_list
+  );
+  if l_aggregate then
+    /*
+    select * into l_grpby_row
+    from apex_application_page_ir_grpby cols
+    where application_id = APEX_APPLICATION.G_FLOW_ID
+    and page_id = p_page_id
+    and report_id = p_rpt_row.report_id;
+    */
+    po_aggr_order_by_list := 'REGION_AGGREGATES desc ';
+  end if;
+
+  return l_aggregate;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'AggregateSelectGroupBy', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+/** Function Check apex_application_page_ir_rpt, apex_application_page_ir_comp and other views for any aggregation and outputs parts of select statement if IR is not in GROUP BY mode
+*
+*   Source (l_source variable) is region_src or region_src_cc or region_src_filtered or region_src_grpby.
+*
+*   With region_src as (region_select)
+*        ,region_src_cc as (select region_src.*,cc_cols_list from region_src)
+*        ,region_src_filtered as (select from region_src_cc where p_where)
+*   Select formated_labeled_col_list from
+*   (
+*       Select po_basic_col_list{, null BREAKROW}[, null REGION_AGGR] from Source
+*     [Union
+*        Select po_aggr_col_list{, null BREAKROW}, aggr. col. list REGION_AGGR from Source
+*        {Group by po_break_group_by_list}]
+*        {Union
+*        Select po_break_col_list, 1 BREAKROW[, null REGION_AGGR] from Source}
+*   )
+*   Order by [{po_aggr_order_by_list,}] order_by_list;
+*
+* SQL in [] applied only if aggregation is applied on IR.
+* SQL in {} applied only if control break is applied on IR.
+*
+*
+* @param p_region_id APEX Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_rpt_row Row of current IR in apex_application_page_ir_rpt view
+* @param po_breakAttr attribute for Region element of temporary XML
+* @param po_basic_col_list list of columns in select
+* @param po_aggr_col_list columns with which have aggregations defined (SUM, AVG, COUNT..), columns with no aggregation have null values
+* @param po_break_col_list columns in IR break, columns with no break have null values
+* @param po_aggr_order_by_list if aggregation applied this is first part of order by column list (BREAKROW, REGION_AGGREGATES desc)
+* @param po_break_group_by_list if break and aggregation applied
+*/
+function AggregateSelectReport(
+  p_region_id in number,
+  p_page_id in number,
+  p_rpt_row apex_application_page_ir_rpt%rowtype,
+  po_breakAttr out varchar2,
+  po_basic_col_list out varchar2,
+  po_aggr_col_list out varchar2,
+  po_break_col_list out varchar2,
+  po_aggr_order_by_list out varchar2,
+  po_break_group_by_list out varchar2
+)
+return boolean
+as
+l_aggregated_col varchar2(50);
+l_found boolean;
+l_count boolean;
+l_aggregation boolean default false;
+l_break_enabled boolean default false;
+l_break_count number default 0;
+l_region_aggregates varchar2(4000);
+l_grand_total_col_list varchar2(4000) default null;  --dummy, always null
+t_cols_aggr tp_cols_aggr := tp_cols_aggr();
+
+
+cursor c_cols(c_report_id number) is
+  select column_alias
+       , display_order
+       , column_type
+       , report_label
+    from apex_application_page_ir_col col
+    where page_id = p_page_id
+    and region_id = p_region_id
+     --commented out 14.2.2013
+    $IF CCOMPILING.g_views_granted $THEN
+    union
+
+    select --computed columns
+    comp.computation_column_alias column_alias,
+    999 display_order,
+    comp.computation_column_type column_type,
+    comp.computation_report_label report_label
+   from apex_application_page_regions apr
+   join apex_application_page_ir ir on apr.region_id = ir.region_id
+   join apex_application_page_ir_rpt rpt on rpt.interactive_report_id = ir.interactive_report_id
+   join apex_application_page_ir_comp comp on comp.report_id = rpt.report_id
+   where apr.region_id = p_region_id
+   and rpt.report_id = c_report_id
+   $END
+
+   order by display_order, column_alias;
+
+begin
+  --l_rpt_row := Get_current_report_row(p_region_id, p_page_id);
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.SUM_COLUMNS_ON_BREAK, 'SUM');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.AVG_COLUMNS_ON_BREAK, 'AVG');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.MAX_COLUMNS_ON_BREAK, 'MAX');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.MIN_COLUMNS_ON_BREAK, 'MIN');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.MEDIAN_COLUMNS_ON_BREAK, 'MEDIAN');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.COUNT_COLUMNS_ON_BREAK, 'COUNT');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.COUNT_DISTNT_COL_ON_BREAK, 'COUNT_DISTINCT');
+  FillAggrColsTable(t_cols_aggr, p_rpt_row.BREAK_ENABLED_ON, 'GROUP BY');
+
+  for r_col in c_cols(p_rpt_row.report_id) loop
+    l_found := false;
+    l_count := false;
+    for i in 1..t_cols_aggr.count loop
+      if r_col.column_alias = t_cols_aggr(i).column_alias then
+        l_found := true;
+        if t_cols_aggr(i).aggregation = 'GROUP BY' then
+          l_break_enabled := true;
+          if po_aggr_col_list is null then
+            po_aggr_col_list := ' '||r_col.column_alias;
+          else
+            po_aggr_col_list := po_aggr_col_list||', '||r_col.column_alias;
+          end if;
+
+          if po_break_col_list is null then
+            po_break_col_list := ' distinct '||r_col.column_alias;
+          else
+            po_break_col_list := po_break_col_list||', '||r_col.column_alias;
+          end if;
+
+          if po_break_group_by_list is null then
+            po_break_group_by_list := t_cols_aggr(i).column_alias;
+          else
+            po_break_group_by_list := po_break_group_by_list||', '||t_cols_aggr(i).column_alias;
+          end if;
+          l_break_count := l_break_count + 1;
+          po_breakAttr := po_breakAttr||'break_on_col'||to_char(l_break_count)||
+                        '="'||Query2Report.ConvertColName2XmlName(r_col.report_label)||'" ';
+
+
+        else --not group by
+          l_aggregation := true;
+          if t_cols_aggr(i).aggregation = 'COUNT_DISTINCT' then
+            l_aggregated_col := 'round(COUNT(DISTINCT '||t_cols_aggr(i).column_alias||'),3)';
+          else
+            l_aggregated_col := 'round('||t_cols_aggr(i).aggregation||'('||t_cols_aggr(i).column_alias||'),3)';
+          end if;
+          l_region_aggregates := l_region_aggregates || t_cols_aggr(i).aggregation||','||Query2Report.ConvertColName2XmlName(r_col.report_label)||',';
+          if t_cols_aggr(i).aggregation like 'COUNT%'
+            --and r_col.column_type <> 'NUMBER'
+          then
+            l_count := true;
+            l_aggregated_col := 'to_char('||l_aggregated_col||')';
+          end if;
+          if po_aggr_col_list is null then
+            po_aggr_col_list := ' '||l_aggregated_col||' '||t_cols_aggr(i).column_alias;
+          else
+            po_aggr_col_list := po_aggr_col_list||', '||l_aggregated_col||' '||t_cols_aggr(i).column_alias;
+          end if;
+
+          if po_break_col_list is null then
+            po_break_col_list := ' distinct null '||r_col.column_alias;
+          else
+            po_break_col_list := po_break_col_list||', null '||r_col.column_alias;
+          end if;
+
+        end if;
+      end if;
+    end loop;
+    if not l_found then
+      if po_aggr_col_list is null then
+        po_aggr_col_list := ' null '||r_col.column_alias;
+      else
+        po_aggr_col_list := po_aggr_col_list||', null '||r_col.column_alias;
+      end if;
+
+      if po_break_col_list is null then
+        po_break_col_list := ' distinct null '||r_col.column_alias;
+      else
+        po_break_col_list := po_break_col_list||', null '||r_col.column_alias;
+      end if;
+    end if;
+
+    if po_basic_col_list is null then
+      if l_count then
+        po_basic_col_list := ' to_char('||r_col.column_alias||') '||r_col.column_alias;
+      else
+        po_basic_col_list := ' '||r_col.column_alias;
+      end if;
+    else
+      if l_count then
+        po_basic_col_list := po_basic_col_list||', to_char('||r_col.column_alias||') '||r_col.column_alias;
+      else
+        po_basic_col_list := po_basic_col_list||', '||r_col.column_alias;
+      end if;
+    end if;
+  end loop;
+
+  if po_aggr_col_list is not null then
+    if l_break_enabled then
+      --l_order_by := replace(po_break_group_by_list, 'GROUP BY', 'ORDER BY');
+      po_aggr_order_by_list := trim(both ',' from po_break_group_by_list);
+    end if;
+
+    if l_aggregation then
+
+        if l_break_enabled then
+          po_aggr_order_by_list := po_aggr_order_by_list||', BREAKROW, REGION_AGGREGATES desc ';
+          AddAggregateColumns(
+            pio_basic_col_list => po_basic_col_list,
+            pio_aggr_col_list => po_aggr_col_list,
+            pio_break_col_list => po_break_col_list,
+            pio_grand_total_col_list => l_grand_total_col_list, --dummy, always null
+            p_region_aggregates => l_region_aggregates
+          );
+        else
+          po_aggr_order_by_list := 'REGION_AGGREGATES desc ';
+          po_break_col_list := null;
+          AddAggregateColumns(
+            pio_basic_col_list => po_basic_col_list,
+            pio_aggr_col_list => po_aggr_col_list,
+            pio_break_col_list => po_break_col_list,
+            pio_grand_total_col_list => l_grand_total_col_list, --dummy, always null
+            p_region_aggregates => l_region_aggregates
+          );
+        end if;
+    elsif l_break_enabled then--not aggregation
+      pak_xslt_log.WriteLog( 'No aggregation just break', p_procedure => 'AggregateSelectReport');
+      po_aggr_col_list := null;
+      AddAggregateColumns(
+            pio_basic_col_list => po_basic_col_list,
+            pio_aggr_col_list => po_aggr_col_list,
+            pio_break_col_list => po_break_col_list,
+            pio_grand_total_col_list => l_grand_total_col_list, --dummy, always null
+            p_region_aggregates => l_region_aggregates
+          );
+      po_aggr_order_by_list := po_aggr_order_by_list||', '||' BREAKROW';
+    else --no aggregation or break
+      pak_xslt_log.WriteLog( 'No aggregation or break', p_procedure => 'AggregateSelectReport');
+      po_aggr_col_list := null;
+      po_break_col_list := null;
+    end if;
+  end if;
+  return l_aggregation;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'AggregateSelectReport', p_sqlerrm => sqlerrm );
+  raise;
+end AggregateSelectReport;
+
+/** Function Check apex_application_page_ir_grpby, apex_application_page_ir_rpt, apex_application_page_ir_comp and other views for any aggregation and outputs parts of select statement for IR
+*
+*  Source (ComposeRegionQuery l_source variable) is region_src or region_src_cc or region_src_filtered or region_src_grpby.
+*
+*   With region_src as (region_select)
+*       ,region_src_cc as (select region_src.*,cc_cols_list from region_src)
+*       ,region_src_filtered as (select region_src_cc.* from region_src_cc where p_where)
+*       [[,region_src_grpby as (select group_by_col_list from region_src_filtered group by group_by_list)]]
+*   Select formated_labeled_col_list from
+*   (
+*        Select basic_col_list{, null BREAKROW} [, null REGION_AGGR] from source
+*     [Union
+*       Select aggr_col_list{, null BREAKROW}, aggr. col. list REGION_AGGR from source]
+*     {Union
+*       Select break_col_list, 1 BREAKROW[, null REGION_AGGR] from source }
+*   )
+*   Order by [{aggr_order_by_list,}] order_by_list;
+*
+*   SQL in [] applied only if aggregation is applied on IR.
+*   SQL in {} applied only if control break is applied on IR.
+*   SQL in [[]] applied only if IR is in group by mode.
+*
+* @param p_region_id APEX Region ID.
+* @param p_page_id APEX Page ID.
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* @param pio_basic_col_list list of columns in select
+* @param po_aggr_col_list columns with which have aggregations defined (SUM, AVG, COUNT..), columns with no aggregation have null values
+* @param po_break_col_list columns in IR break, columns with no break have null values
+* @param po_break_group_by_list if break and aggregation applied
+* @param po_aggr_order_by_list if aggregation applied this is first part of order by column list (BREAKROW, REGION_AGGREGATES desc)
+* @param po_IRAttr IRAttr attribute for Region element of temporary XML
+* @param po_breakAttr break attribute for Region element of temporary XML
+* @param po_grpbyAttr grpby attribute for Region element of temporary XML
+* @param po_max_rows_IR Maximum number of rows fetched, depend on IR settings
+* @param p_cols table of columns (also aggregation function is there)
+*/
+procedure AggregateSelect(
+  --pio_region_source in out nocopy clob,
+  p_region_id             in number,
+  p_page_id               in number,
+  p_use_filters_hidPK     in number,
+  pio_basic_col_list      in out varchar2,
+  po_aggr_col_list        out varchar2,
+  po_break_col_list       out varchar2,
+  po_break_group_by_list  out varchar2,
+  po_aggr_order_by_list   out varchar2,
+  po_IRAttr               out varchar2,
+  po_breakAttr            out varchar2,
+  po_grpbyAttr            out varchar2,
+  po_max_rows_IR          out number,
+  po_cols                 out tp_cols
+)
+as
+l_rpt_row apex_application_page_ir_rpt%rowtype;
+
+l_aggregation boolean;
+
+begin
+  po_cols := CollectIRColumns(p_region_id, p_page_id, p_use_filters_hidPK, pio_basic_col_list, po_IRAttr, po_grpbyAttr);
+  LogComposeSelectAndAttr(
+    'AggregateSelect after CollectIRColumns',
+    p_region_id,
+    p_use_filters_hidPK,
+    p_cols => po_cols
+  );
+
+  po_max_rows_IR := IRMaxRows(p_region_id, p_page_id);
+
+  l_rpt_row := Get_current_report_row(p_region_id, p_page_id);
+  if l_rpt_row.report_view_mode = 'GROUP_BY' then
+    po_breakAttr := null;
+    l_aggregation := AggregateSelectGroupBy(
+      --pio_region_source,
+      p_page_id,
+      l_rpt_row,
+      po_cols,
+      --pio_basic_col_list,
+      po_basic_col_list => pio_basic_col_list,
+      po_aggr_col_list => po_aggr_col_list,
+      po_aggr_order_by_list => po_aggr_order_by_list
+    );
+  else
+    l_aggregation := AggregateSelectReport(
+      --pio_region_source,
+      p_region_id,
+      p_page_id,
+      l_rpt_row,
+      po_breakAttr => po_breakAttr,
+      po_basic_col_list => pio_basic_col_list,
+      po_aggr_col_list => po_aggr_col_list,
+      po_break_col_list => po_break_col_list,
+      po_aggr_order_by_list => po_aggr_order_by_list,
+      po_break_group_by_list => po_break_group_by_list
+    );
+  end if;
+  if not l_aggregation then
+    po_aggr_col_list := null;
+  end if;
+  LogComposeSelectAndAttr(
+    'AggregateSelect',
+    p_region_id,
+    p_use_filters_hidPK,
+    p_cols => po_cols,
+    p_basic_col_list => pio_basic_col_list,
+    p_aggr_col_list => po_aggr_col_list,
+    p_break_col_list => po_break_col_list,
+    p_break_group_by_list => po_break_group_by_list,
+    p_aggr_order_by_list => po_aggr_order_by_list,
+    p_IRAttr => po_IRAttr,
+    p_breakAttr => po_breakAttr,
+    p_grpbyAttr => po_grpbyAttr
+  );
+
+end AggregateSelect;
+
+/**Combine all highlight conditions of current IR from apex_application_page_ir_cond
+* view into one column compute with case sentence
+*
+* @param p_page_id APEX Page ID.
+* @param p_region_id APEX Region ID.
+* @param p_aggregation true if also aggregation occur
+*/
+function GetHighlightCaseAll(
+  p_page_id number,
+  p_region_id number,
+  p_aggregation boolean
+)
+return varchar2
+as
+l_highlight_case varchar2(32767);
+l_report_id number;
+
+cursor c_highlights(c_report_id number) is
+  select  cond.condition_sql,
+          cond.condition_expression,
+          cond.condition_expression2,
+          cond.condition_name,
+          cond.highlight_cell_color,
+          cond.highlight_cell_font_color,
+          cond.highlight_row_color,
+          cond.highlight_row_font_color,
+          col.report_label
+  from
+  apex_application_page_ir_cond cond
+  join apex_application_page_ir_col col on
+  cond.application_id = col.application_id
+  and cond.page_id = col.page_id
+  and col.column_alias = cond.condition_column_name
+   where cond.page_id = p_page_id
+   and cond.report_id = c_report_id
+   and cond.condition_type = 'Highlight'
+   and cond.condition_enabled = 'Yes'
+   order by cond.highlight_sequence desc;
+
+
+begin
+  l_report_id := Get_current_report_row(p_region_id, p_page_id).report_id;
+
+  for r_highlights in c_highlights(l_report_id) loop
+    l_highlight_case := l_highlight_case||
+                        GetHighlightCase(
+                          r_highlights.condition_sql,
+                          r_highlights.condition_expression,
+                          r_highlights.condition_expression2,
+                          r_highlights.condition_name,
+                          r_highlights.highlight_cell_color,
+                          r_highlights.highlight_cell_font_color,
+                          r_highlights.highlight_row_color,
+                          r_highlights.highlight_row_font_color,
+                          r_highlights.report_label
+                          )||query2report.g_crlf;
+  end loop;
+  if l_highlight_case is not null then
+    l_highlight_case:=replace(l_highlight_case, '(case','');
+    l_highlight_case:=replace(l_highlight_case, 'end)','');
+    if p_aggregation then
+      l_highlight_case:=replace(l_highlight_case, 'when','when REGION_AGGREGATES is null and ');
+    end if;
+    l_highlight_case:='(case '||l_highlight_case||' end)';
+  end if;
+  return l_highlight_case;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_page_id '||to_char(p_page_id)||' l_report_id '||to_char(l_report_id),
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'GetHighlightCaseAll',
+    p_sqlerrm => sqlerrm );
+  raise;
+end GetHighlightCaseAll;
+
+function BindSSApexItem(p_name varchar2)
+return varchar2
+as
+l_replacment_string varchar2(50);
+l_replacment_strpos number := 1;
+l_item_id varchar2(50);
+l_ret varchar2(400);
+begin
+  l_ret := p_name;
+  --pak_xslt_log.WriteLog( 'start l_ret: '||l_ret,
+  --    p_procedure => 'BindSSApexItem');
+  loop
+    l_replacment_strpos := regexp_instr(l_ret, '&([a-zA-Z0-9_]*).', l_replacment_strpos); --bind session state values
+     exit when nvl(l_replacment_strpos, 0) = 0;
+    l_replacment_string := regexp_substr(l_ret, '&([a-zA-Z0-9_]*).', l_replacment_strpos); --bind session state values
+    exit when length(l_replacment_string) = 0;
+
+    l_item_id := ltrim(rtrim(l_replacment_string,'.'),'&');
+
+    --pak_xslt_log.WriteLog( 'l_item_id: '||l_item_id||' V(l_item_id): '||V(l_item_id),
+      --p_procedure => 'BindSSApexItem');
+
+    if V(l_item_id) is not null then
+      l_ret := substr(l_ret, 1, l_replacment_strpos - 1)||V(l_item_id)||substr(l_ret, l_replacment_strpos + length(l_replacment_string));
+    else
+      if substr(l_ret, l_replacment_strpos + length(l_replacment_string), 1) ='.' then --regexp_substr('&).', '&([a-zA-Z0-9_]*).') returns '&)' - without dot!
+          l_ret := substr(l_ret, 1, l_replacment_strpos - 1)||'&'||l_item_id||'.'||substr(l_ret, l_replacment_strpos + length(l_replacment_string) + 1);
+      else
+          l_ret := substr(l_ret, 1, l_replacment_strpos - 1)||'&'||l_item_id||'.'||substr(l_ret, l_replacment_strpos + length(l_replacment_string));
+      end if;
+    end if;
+    l_replacment_strpos := l_replacment_strpos + 1;
+  end loop;
+
+  --pak_xslt_log.WriteLog( 'return l_ret: '||l_ret,
+      --p_procedure => 'BindSSApexItem');
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error: '||p_name,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'BindSSApexItem',
+    p_sqlerrm => sqlerrm );
+  raise;
+end BindSSApexItem;
+
+function PrepareColumnHeader(p_header varchar2)
+return varchar2
+as
+l_ret varchar2(400);
+begin
+  l_ret := BindSSApexItem(p_header);
+  --l_ret := PrepareColumnHeader(l_ret);
+  l_ret := Query2Report.ConvertColName2XmlName(l_ret);
+  l_ret := replace(l_ret,'_',' ');
+  --l_ret := '"'||substr(l_ret,1,30)||'"';
+  pak_xslt_log.WriteLog( 'l_ret: '||l_ret,
+      p_procedure => 'PrepareColumnHeader');
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error: '||p_header,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'PrepareColumnHeader',
+    p_sqlerrm => sqlerrm );
+  raise;
+end PrepareColumnHeader;
+
+function RemoveLineBreak(p_fullname varchar2)
+return varchar2
+as
+l_ret varchar2(400);
+begin
+  l_ret:= replace(p_fullname,'<br>',' ');
+  l_ret:= replace(l_ret,'<br/>',' ');
+  
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error: '||p_fullname,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'RemoveLineBreak',
+    p_sqlerrm => sqlerrm );
+  raise;
+end RemoveLineBreak;
+
+
+function BindSSSource(p_region_source varchar2)
+return varchar2
+as
+l_start_string number;
+l_end_string number;
+l_region_source varchar2(32767);
+l_first_part varchar2(32767);
+
+begin
+  l_start_string := instr(p_region_source, '''');
+  l_end_string := instr(p_region_source, '''', 1, 2);
+
+  if nvl(l_start_string, 0) = 0 or nvl(l_end_string, 0) = 0 then
+    l_region_source := replace(p_region_source, '#OWNER#', V('OWNER'));
+    l_region_source := replace(l_region_source, '#owner#', V('OWNER'));
+    l_region_source := replace(l_region_source, '#FLOW_OWNER#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER);
+    l_region_source := replace(l_region_source, '#flow_owner#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER);
+    return regexp_replace(l_region_source, ':([a-zA-Z0-9_]*)','v(''\1'')');
+  else
+    l_first_part := substr(p_region_source, 1 , l_start_string - 1);
+    l_first_part := replace(l_first_part, '#OWNER#', V('OWNER'));
+    l_first_part := replace(l_first_part, '#owner#', V('OWNER'));
+    l_first_part := replace(l_first_part, '#FLOW_OWNER#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER);
+    l_first_part := replace(l_first_part, '#flow_owner#', APEX_APPLICATION.G_FLOW_SCHEMA_OWNER);
+    l_first_part := regexp_replace(l_first_part, ':([a-zA-Z0-9_]*)','v(''\1'')');
+    l_region_source := l_first_part||--bind session state values
+                       substr(p_region_source, l_start_string, l_end_string - l_start_string+1); --leave string untouched
+    if l_end_string < length(p_region_source) then
+      l_region_source := l_region_source||BindSSSource(substr(p_region_source, l_end_string + 1)); --recursive call on second half of source
+    end if;
+    RETURN l_region_source;
+  end if;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'BindSSSource',
+    p_sqlerrm => sqlerrm );
+  raise;
+end BindSSSource;
+
+procedure GetSourceName(
+  p_cc_col_list           in varchar2,
+  p_where                 in varchar2,
+  p_master_region_id      in number,
+  p_group_by_col_list     in varchar2,
+  po_source               out varchar2,
+  po_source_before_filter out varchar2
+)
+as
+
+begin
+  LogComposeSelectAndAttr(
+    p_procedure         =>  'GetSourceName start',
+    p_cc_col_list       => p_cc_col_list,
+    p_group_by_col_list => p_group_by_col_list,
+    p_where             => p_where
+  );
+  if p_master_region_id is not null then
+      po_source := 'region_src_joined_master';
+      po_source_before_filter := 'region_src_joined_master';
+  else
+      po_source := 'region_src';
+      po_source_before_filter := 'region_src';
+  end if;
+
+  if p_cc_col_list is not null then
+    po_source_before_filter := 'region_src_cc';
+  end if;
+
+  if p_group_by_col_list is not null then --IR group by mode
+    po_source := 'region_src_grpby';
+  elsif p_where is not null then
+    po_source := 'region_src_filtered';
+  elsif p_cc_col_list is not null then
+    po_source := 'region_src_cc';
+  end if;
+
+  pak_xslt_log.WriteLog( 'Finished po_source '||po_source||
+                         ' po_source_before_filter '||po_source_before_filter,
+  p_procedure => 'GetSourceName');
+end;
+
+function LOVSuperSelect(p_LOV_query varchar2)
+return varchar2
+as
+  c           NUMBER;
+  d           NUMBER;
+  col_cnt     INTEGER;
+  f           BOOLEAN;
+  rec_tab     DBMS_SQL.DESC_TAB;
+  col_num    NUMBER;
+begin
+  if p_LOV_query is null then
+    return null;
+  end if;
+
+  c := DBMS_SQL.OPEN_CURSOR;
+  --first bind variables (APEX items)
+  DBMS_SQL.PARSE(c, BindSSSource(RemoveSemicolon(p_LOV_query)), DBMS_SQL.NATIVE);
+  d := DBMS_SQL.EXECUTE(c);
+  DBMS_SQL.DESCRIBE_COLUMNS(c, col_cnt, rec_tab);
+  DBMS_SQL.CLOSE_CURSOR(c);
+  if col_cnt <> 2 then
+    return null;
+  end if;
+  return 'select '||rec_tab(1).col_name||' d, '||rec_tab(2).col_name||' v from ('||p_LOV_query||')';
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_LOV_query: '||p_LOV_query, p_log_type => pak_xslt_log.g_error, p_procedure => 'LOVSuperSelect', p_sqlerrm => sqlerrm );
+  raise;
+end LOVSuperSelect;
+
+function GetLOVSelect(
+  p_app_id number,
+  p_col_alias varchar2,
+  p_named_LOV varchar2,
+  p_inline_LOV varchar2
+)
+return varchar2
+as
+l_ret varchar2(32000);
+l_LOV_query varchar2(32000);
+l_LOV_type varchar2(20);
+l_static_LOV varchar2(32000);
+l_row varchar2(4000);
+l_comma number;
+l_semicolon number;
+l_static boolean default false;
+
+begin
+  if p_named_LOV is not null then --named LOV
+    select list_of_values_query, lov_type
+    into l_LOV_query, l_LOV_type
+    from apex_application_lovs
+    where application_id = p_app_id
+    and list_of_values_name = p_named_LOV;
+
+    if l_lov_type = 'Static' and p_app_id is not null then --static named LOV
+      l_LOV_query := 'select display_value d, trim(return_value) v from APEX_APPLICATION_LOV_ENTRIES where application_id = '||
+        p_app_id||' and list_of_values_name = '''||p_named_LOV||'''';
+      l_static := true;
+    end if;
+  elsif p_inline_LOV is not null then --not named LOV
+    if substr(upper(trim(p_inline_LOV)),1,6) = 'SELECT' then --dynamic named LOV
+      l_LOV_query := p_inline_LOV;
+    elsif substr(upper(trim(p_inline_LOV)),1,6) = 'STATIC'  --static named LOV
+          and instr(p_inline_LOV,';') > 0
+          and instr(p_inline_LOV,':') > 0
+    then --STATIC:President;1,Member;0
+      l_static_LOV := substr(p_inline_LOV, instr(p_inline_LOV,':')+1); --President;1,Member;0
+      l_static_LOV := l_static_LOV||','; --President;1,Member;0,
+      loop
+        l_comma := nvl(instr(l_static_LOV,','), 0);
+        exit when l_comma = 0;
+        l_row := substr(l_static_LOV, 1, l_comma-1);
+        l_semicolon := nvl(instr(l_row,';'),0);
+        exit when l_semicolon = 0;
+        if l_LOV_query is null then
+          l_LOV_query := 'select '''||substr(l_row,1,l_semicolon - 1)||''' d, '''||
+          substr(l_row, l_semicolon + 1)||''' v from dual';
+        else
+          l_LOV_query := l_LOV_query||' union select '''||
+            substr(l_row,1,l_semicolon - 1)||''' d, '''||
+            substr(l_row, l_semicolon + 1)||''' v from dual';
+        end if;
+        l_static_LOV := substr(l_static_LOV, l_comma+1);--Member;0, on first loop
+      end loop;
+      l_static := true;
+    end if; --static named LOV
+  end if; --not named LOV
+  if not l_static then --must add or chage aliases to d (dispaly_value) and v (return_value)
+                       --also binding variables (APEX ITEMS) takes place
+    l_LOV_query := LOVSuperSelect(l_LOV_query);
+  end if;
+  return l_LOV_query;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error', p_log_type => pak_xslt_log.g_error, p_procedure => 'GetLOVSelect', p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+
+procedure Compose_LOV_selects(
+      p_cc_col_list                     IN varchar2,
+      p_where                           IN varchar2,
+      p_cols                            IN tp_cols,
+      p_master_region_id                IN integer,
+      pio_group_by_col_list             IN OUT varchar2,
+      pio_basic_col_list                IN OUT varchar2,
+      pio_aggr_col_list                 IN OUT varchar2,
+      pio_break_group_by_list           IN OUT varchar2,
+      pio_where                         IN OUT varchar2,
+      pio_break_col_list                IN OUT varchar2,
+      po_LOV_selects                    OUT varchar2,
+      po_join_LOV_selects               OUT varchar2,
+      po_join_LOV_filtersel             OUT varchar2
+)
+as
+l_source                varchar2(100);
+l_source_before_filter  varchar2(100);
+begin
+  LogComposeSelectAndAttr(
+    p_procedure                     =>  'Compose_LOV_selects start',
+    p_cols                          => p_cols,
+    p_cc_col_list                   => p_cc_col_list,
+    p_group_by_col_list             => pio_group_by_col_list,
+    p_basic_col_list                => pio_basic_col_list,
+    p_aggr_col_list                 => pio_aggr_col_list,
+    p_break_group_by_list           => pio_break_group_by_list,
+    p_where                         => pio_where,
+    p_break_col_list                => pio_break_col_list,
+    p_LOV_selects                   => po_LOV_selects,
+    p_join_LOV_selects              => po_join_LOV_selects
+  );
+  GetSourceName(p_cc_col_list, p_where, p_master_region_id, pio_group_by_col_list, l_source, l_source_before_filter);
+
+  for i in 1..p_cols.count loop
+    if p_cols(i).lov_sql is not null then
+      pio_basic_col_list := regexp_replace(pio_basic_col_list, '(\W|^)("?)'||p_cols(i).alias||'("?)(\W|$)',
+                            '\1'||p_cols(i).alias||'_LOV.d \2'||p_cols(i).alias||'\3\4');
+
+      if pio_group_by_col_list is not null then
+          pio_group_by_col_list := regexp_replace(pio_group_by_col_list, '(\W|^)("?)'||p_cols(i).alias||'("?)(\W|$)',
+                            '\1'||p_cols(i).alias||'_LOV.d \2'||p_cols(i).alias||'\3\4');
+      end if;
+
+      if nvl(instr(pio_aggr_col_list, 'null '||p_cols(i).alias), 0) = 0
+         and nvl(instr(pio_aggr_col_list, 'null "'||p_cols(i).alias||'"'), 0) = 0
+      then --replace just if not null value
+          pio_aggr_col_list := regexp_replace(pio_aggr_col_list, '(\W|^)("?)'||p_cols(i).alias||'("?)(\W|$)',
+                            '\1'||p_cols(i).alias||'_LOV.d \2'||p_cols(i).alias||'\3\4');
+      end if;
+
+      if pio_break_group_by_list is not null then
+          pio_break_group_by_list := replace(pio_break_group_by_list, p_cols(i).alias, p_cols(i).alias||'_LOV.d ');
+      end if;
+
+      if nvl(instr(pio_break_col_list, 'null '||p_cols(i).alias), 0) = 0
+         and nvl(instr(pio_break_col_list, 'null "'||p_cols(i).alias||'"'), 0) = 0
+      then --replace just if not null value
+          pio_break_col_list := regexp_replace(pio_break_col_list, '(\W|^)("?)'||p_cols(i).alias||'("?)(\W|$)',
+                                '\1'||p_cols(i).alias||'_LOV.d \2'||p_cols(i).alias||'\3\4');
+      end if;
+
+
+
+      if pio_where is not null then
+        pio_where := regexp_replace(pio_where, '(\W|^)("?)'||p_cols(i).alias||'("?)(\W|$)',
+                              '\1\2'||p_cols(i).alias||'_LOV\3.d\4 ');
+      end if;
+      if po_LOV_selects is null then
+        po_LOV_selects := p_cols(i).alias||'_LOV as ('||p_cols(i).lov_sql||')';
+      else
+        po_LOV_selects := po_LOV_selects||query2report.g_crlf||','||p_cols(i).alias||'_LOV as ('||p_cols(i).lov_sql||')';
+      end if;
+      po_join_LOV_filtersel := po_join_LOV_filtersel||query2report.g_crlf||'left outer join '||p_cols(i).alias||'_LOV on '||
+                             p_cols(i).alias||'_LOV.v = '||l_source_before_filter||'.'||p_cols(i).alias;
+
+      po_join_LOV_selects := po_join_LOV_selects||query2report.g_crlf||'left outer join '||p_cols(i).alias||'_LOV on '||
+                             p_cols(i).alias||'_LOV.v = '||l_source||'.'||p_cols(i).alias;
+    else
+      pio_basic_col_list := regexp_replace(pio_basic_col_list, '(\W|^)("?)'||p_cols(i).alias||'("?)(\W|$)',
+                            '\1'||l_source||'.\2'||p_cols(i).alias||'\3\4');
+      --TODO replace to_char(region_src.CUSTOMERS) region_src.CUSTOMERS, with to_char(region_src.CUSTOMERS) CUSTOMERS,
+      --this is because COUNT, COUNT DISTINCT aggregations
+      pio_basic_col_list := replace(pio_basic_col_list,
+                                    'to_char('||l_source||'.'||p_cols(i).alias||') '||l_source||'.'||p_cols(i).alias||',',
+                                    'to_char('||l_source||'.'||p_cols(i).alias||') '||p_cols(i).alias||',');
+    end if;
+  end loop;
+ --TODO procedure body
+  LogComposeSelectAndAttr(
+    p_procedure         =>  'Compose_LOV_selects end',
+    p_cols              => p_cols,
+    p_cc_col_list       => p_cc_col_list,
+    p_group_by_col_list => pio_group_by_col_list,
+    p_basic_col_list    => pio_basic_col_list,
+    p_aggr_col_list   => pio_aggr_col_list,
+    p_break_group_by_list => pio_break_group_by_list,
+    p_where             => pio_where,
+    p_break_col_list    => pio_break_col_list,
+    p_LOV_selects       => po_LOV_selects,
+    p_join_LOV_selects  => po_join_LOV_selects
+  );
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'Compose_LOV_selects',
+    p_sqlerrm => sqlerrm );
+  raise;
+end Compose_LOV_selects;
+
+/** Returns main labeled column list with formating, Column names are converted to element names in temporary XML
+*
+* @param p_page_id APEX Page ID.
+* @param p_region_id APEX region ID.
+* @param p_source_type_code Dynamic Query or not. For including highlights
+* @param p_cols Array of columns from region source selects
+* @param p_html_cols Columns with HTML markup in temporary XML. 0 - Convert to text, exclude columns with image links, 1 - Exlude columns with HTML markup,
+* 2 - Exclude columns with image links, preserve rest of columns with HTML markup, 3 - Preserve HTML markup, 4 - Convert to text. Default 0.
+* @param p_break Break rows included
+* @param p_aggregation Aggregation is done
+* @param p_group_by_mode IR is in group by mode
+* @return Main labeled column list with formating
+*/
+function FormatedAndLabeledColList(
+  p_page_id number,
+  p_region_id number,
+  p_source_type_code varchar2,
+  p_cols tp_cols,
+  p_html_cols number,
+  p_break boolean default false,
+  p_aggregation boolean default false,
+  p_group_by_mode boolean default false,
+  p_break_group_by_list varchar2 default null,
+  p_break_group_by_list_alias varchar2 default null,
+  po_html_cols_attr out varchar2,
+  po_img_cols_attr out varchar2
+)
+return varchar2
+as
+l_col_lost varchar2(32767);
+l_cols varchar2(32767);
+l_highlight_case varchar2(32767);
+begin
+  --select just in report visible columns (this are columns in t_col)
+  for cc in 1 .. p_cols.count() loop
+    l_col_lost := l_col_lost ||
+                  SuperSelectColumn(
+                    p_cols(cc),
+                    p_html_cols,
+                    po_html_cols_attr,
+                    po_img_cols_attr
+                  );
+    l_cols:= l_cols||p_cols( cc ).alias||'|'||p_cols( cc ).label||', '; --Just for logging
+  end loop;
+
+  if l_col_lost is not null then
+    if p_break then
+      l_col_lost := l_col_lost||' BREAKROW,';
+    end if;
+    if p_aggregation then
+      if p_break then
+          if p_break_group_by_list_alias is not null then
+              l_col_lost := l_col_lost||' case when REGION_AGGREGATES is not null then
+                case BREAKROW WHEN 2 then ''1'' --Total sum
+                else
+                    to_char(row_number() over (order by '||p_break_group_by_list_alias||', BREAKROW, REGION_AGGREGATES desc) - row_number() over (partition by '||p_break_group_by_list_alias||' order by '||p_break_group_by_list_alias||', BREAKROW, REGION_AGGREGATES desc) + 2)
+                end
+                ||'':''||
+                to_char(row_number() over (order by '||p_break_group_by_list_alias||', BREAKROW, REGION_AGGREGATES desc) - 1)||'',''||
+                REGION_AGGREGATES end REGION_AGGREGATES,';
+          else
+              l_col_lost := l_col_lost||' REGION_AGGREGATES,';
+          end if;
+      else
+          l_col_lost := l_col_lost||' case when REGION_AGGREGATES is not null then ''1:''||to_char(rownum - 1)||'',''||REGION_AGGREGATES end REGION_AGGREGATES,';
+      end if;
+    end if;
+    l_col_lost := rtrim(l_col_lost, ','); --remove last colon
+
+    if p_source_type_code = 'DYNAMIC_QUERY' and not p_group_by_mode then --no highlights if IR in group by mode
+      l_highlight_case := GetHighlightCaseAll(p_page_id, p_region_id, p_aggregation);
+      if l_highlight_case is not null then
+        l_col_lost := l_col_lost||', '||query2report.g_crlf||l_highlight_case||' REGION_HIGHLIGHTS';
+      end if;
+    end if;
+
+	$if CCOMPILING.g_IG_exists $then
+
+
+    if p_source_type_code = 'NATIVE_IG' then
+      l_highlight_case := IG2REPORT.GetHighlightCaseAll(p_page_id, p_region_id, p_aggregation, p_cols);
+      if l_highlight_case is not null then
+        l_col_lost := l_col_lost||', '||query2report.g_crlf||l_highlight_case||' REGION_HIGHLIGHTS';
+      end if;
+    end if;
+	$end
+
+
+
+    if po_html_cols_attr is not null then --close attribute
+      po_html_cols_attr := po_html_cols_attr||'"';
+    end if;
+    if po_img_cols_attr is not null then --close attribute
+      po_img_cols_attr := po_img_cols_attr||'"';
+    end if;
+  end if;
+  pak_xslt_log.WriteLog( 'p_region_id: '||p_region_id||' FormatedAndLabeledColList: '||l_col_lost,
+                          p_procedure => 'FormatedAndLabeledColList');
+
+  return l_col_lost;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'FormatedAndLabeledColList',
+    p_sqlerrm => sqlerrm );
+  raise;
+end FormatedAndLabeledColList;
+
+function RegionAttr(
+  p_region_name varchar2,
+  p_IRAttr      varchar2,
+  p_breakAttr   varchar2,
+  p_grpby_args  varchar2,
+  p_max_rows_IR number,
+  p_maximum_row_count number,
+  p_aggregation boolean,
+  p_html_cols_attr varchar2,
+  p_img_cols_attr varchar2,
+  po_max_row    out number
+)
+return varchar2
+as
+l_regionAttr varchar2(4000);
+
+begin
+  l_regionAttr := BindSSApexItem(p_region_name); --bind session state values
+  l_regionAttr := 'name="'||htf.escape_sc(l_regionAttr)||'"';
+  --pak_xslt_log.WriteLog('p_IRAttr: '||p_IRAttr, p_procedure => 'GetSourceQueriesAndXML' );
+  if p_IRAttr is not null then
+    l_regionAttr := l_regionAttr||' '||p_IRAttr;
+  end if;
+  if p_breakAttr is not null then
+    l_regionAttr := l_regionAttr||' '||p_breakAttr;
+  end if;
+  if p_grpby_args is not null then
+    l_regionAttr := l_regionAttr||' '||p_grpby_args;
+  end if;
+  if p_html_cols_attr is not null then
+    l_regionAttr := l_regionAttr||' '||p_html_cols_attr;
+  end if;
+  if p_img_cols_attr is not null then
+    l_regionAttr := l_regionAttr||' '||p_img_cols_attr;
+  end if;
+  --TODO
+  po_max_row := nvl(p_max_rows_IR, p_maximum_row_count);
+  if p_aggregation then
+    if p_breakAttr is not null then
+      po_max_row := po_max_row * 1.3;
+    end if;
+    po_max_row := po_max_row + 1;
+  end if;
+  return l_regionAttr;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'RegionAttr',
+    p_sqlerrm => sqlerrm );
+  raise;
+end RegionAttr;
+
+FUNCTION SplitString (p_in_string VARCHAR2, p_delim VARCHAR2 default ',') RETURN tp_order_cols
+IS
+  i       number :=0;
+  pos     number :=0;
+  lv_str  varchar2(4000) := p_in_string;
+  strings tp_order_cols;
+   BEGIN
+      -- determine first chuck of string
+      pos := instr(lv_str,p_delim,1,1);
+      -- while there are chunks left, loop
+      WHILE ( pos != 0) LOOP
+         -- increment counter
+         i := i + 1;
+         -- create array element for chuck of string
+         strings(i) := trim(substr(lv_str,1,pos-length(p_delim)));
+         -- remove chunk from string
+         lv_str := substr(lv_str,pos+1,length(lv_str));
+         -- determine next chunk
+         pos := instr(lv_str,p_delim,1,1);
+         -- no last chunk, add to array
+         IF pos = 0 THEN
+            strings(i+1) := trim(lv_str);
+         END IF;
+      END LOOP;
+
+      -- return array
+      RETURN strings;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'SplitString',
+    p_sqlerrm => sqlerrm );
+  raise;
+END SplitString;
+
+function MergeOrderList(
+  p_aggr_order_by_list varchar2,
+  p_order_by_list varchar2,
+  p_IG boolean default false
+)
+return varchar2
+as
+l_ret varchar2(4000);
+l_aggr_tbl tp_order_cols;
+l_order_tbl tp_order_cols;
+l_start_order_tbl tp_order_cols;
+l_colname varchar2(40);
+l_temp varchar2(40);
+l_position integer;
+l_finded integer := 0;
+begin
+  if p_IG then
+      l_ret := ltrim(rtrim(p_aggr_order_by_list||','||p_order_by_list,','),',');
+  else
+      if nvl(instr(p_aggr_order_by_list, 'BREAKROW'),0) = 0 then
+        l_ret := trim( both ',' from p_aggr_order_by_list||','||p_order_by_list);
+      else
+        l_aggr_tbl := SplitString(trim( both ',' from p_aggr_order_by_list));
+        l_order_tbl := SplitString(trim( both ',' from p_order_by_list));
+        for i in 1..l_order_tbl.count loop
+          --extract COL name
+          l_colname := trim(replace(rtrim(rtrim(l_order_tbl(i),'DESC'),'ASC'),'"'));
+          l_position := 0;
+          --find COL name in l_aggr_tbl
+          for j in 1..l_aggr_tbl.count loop
+            if l_aggr_tbl(j) = l_colname then
+              l_position := j;
+              l_finded := l_finded +1;
+              exit;
+            end if;
+          end loop;
+          if l_position > 0 then --finded in l_aggr_tbl
+            --add finded to start table
+            l_start_order_tbl(l_finded) :=  l_order_tbl(i);
+            --mark order_tbl(i) and l_aggr_tbl(l_position) to not double include column in order by
+            l_aggr_tbl(l_position) := 'ORDER BY';
+            l_order_tbl(i):='ORDER BY';
+          end if;
+        end loop;
+        --create order by sentence from l_aggr_tbl and l_order_tbl without 'BREAKROW' values
+        for i in 1..l_start_order_tbl.count loop
+          l_ret := l_ret||l_start_order_tbl(i)||', ';
+        end loop;
+        for i in 1..l_aggr_tbl.count loop
+          if l_aggr_tbl(i) != 'ORDER BY' then
+            l_ret := l_ret||l_aggr_tbl(i)||', ';
+          end if;
+        end loop;
+        for i in 1..l_order_tbl.count loop
+          if l_order_tbl(i) != 'ORDER BY' then
+            l_ret := l_ret||l_order_tbl(i)||', ';
+          end if;
+        end loop;
+        l_ret := rtrim(l_ret,', ');
       end if;
   end if;
-return Il01I1; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error OIlI0I '||OIlI0I||' IIlI0l '||IIlI0l, 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'IIlI01', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-function llI101( 
-  Il1l1I             varchar2, 
-  OlI10I varchar2, 
-  Ol0I01                     varchar2, 
-  Ol0I00            varchar2, 
-  Il0I00             varchar2, 
-  ll0I01            varchar2, 
-  Ol0I0l       varchar2, 
-  Il0I0l               varchar2, 
-  Il0I0I             varchar2, 
-  OIlI0I        varchar2, 
-  IIlI0l             varchar2, 
-  ll0I0I         varchar2, 
-  ll0I11               varchar2, 
-  Ol0I1I          varchar2, 
-  IlI10I        varchar2,
+return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_aggr_order_by_list '||p_aggr_order_by_list||' p_order_by_list '||p_order_by_list,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'MergeOrderList',
+    p_sqlerrm => sqlerrm );
+  raise;
+end;
+
+function ComposeRegionSource(p_region_source varchar2, p_start_region varchar2) 
+return varchar2
+as
+l_ret varchar2(32767);
+l_last_select varchar2(32767);
+l_region_source_no_with varchar2(32767);
+l_region_source_with varchar2(32767);
+
+begin
+if regexp_replace(p_region_source,'[[:space:]]*') like ('with%as(%)%') then --there is with in region source
+    l_region_source_with := trim(RemoveSemicolon(p_region_source)); 
+    l_region_source_no_with := substr(l_region_source_with, instr(lower(l_region_source_with), 'with')+length('with'));
+    l_last_select := regexp_instr(lower(l_region_source_no_with), '\)[[:space:]]*select');
+    l_last_select := instr(lower(l_region_source_no_with), 'select', l_last_select);
+    l_ret := substr(l_region_source_no_with, 1, l_last_select-1)||' , '||
+                                      p_start_region ||query2report.g_crlf
+                                      ||substr(l_region_source_no_with, l_last_select)
+                                      ||query2report.g_crlf||g_end_region_src||query2report.g_crlf;
+  else
+    l_ret := p_start_region||query2report.g_crlf||RemoveSemicolon(p_region_source)||query2report.g_crlf||g_end_region_src||query2report.g_crlf;
+  end if;
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_region_source '||p_region_source||' p_start_region '||p_start_region,
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'RemoveSemicolon',
+    p_sqlerrm => sqlerrm );
+  raise;     
+end;
+
+/** Function returns complete select from select parts in input parameters
+*
+*   With region_src as (p_region_source)
+*       ,region_src_cc as (select region_src.*,p_cc_cols_list from region_src)
+*       ,region_src_filtered as (select region_src_cc.* from region_src_cc where p_where)
+*       [[,region_src_grpby as (select p_group_by_col_list from region_src_filtered group by p_group_by_list)]]
+*   Select p_formated_labeled_col_list from
+*   (
+*        Select p_basic_col_list{, null BREAKROW} [, null REGION_AGGR] from source
+*     [Union
+*       Select p_aggr_col_list{, null BREAKROW}, aggr. col. list REGION_AGGR from source]
+*     {Union
+*       Select p_break_col_list, 1 BREAKROW[, null REGION_AGGR] from source }
+*   )
+*   Order by [{p_aggr_order_by_list,}] p_order_by_list;
+*
+*   Source (l_source variable) is region_src or region_src_cc or region_src_filtered or region_src_grpby.
+*
+*   SQL in [] applied only if aggregation is applied on IR.
+*   SQL in {} applied only if control break is applied on IR.
+*   SQL in [[]] applied only if IR is in group by mode.
+*
+* @param p_region_source Original region souce select
+* @param p_formated_labeled_col_list Part of select.
+* @param p_where Part of select
+* @param p_basic_col_list Part of select
+* @param p_aggr_col_list Part of select
+* @param p_break_col_list Part of select
+* @param p_break_group_by_list Part of select
+* @param p_cc_col_list Part of select
+* @param p_group_by_list Part of select
+* @param p_aggr_order_by_list Part of select
+* @param p_order_by_list Part of select
+* @param p_group_by_col_list Part of select
+*/
+function ComposeRegionQuery(
+  p_region_source             varchar2,
+  p_formated_labeled_col_list varchar2,
+  p_where                     varchar2,
+  p_basic_col_list            varchar2,
+  p_aggr_col_list             varchar2,
+  p_break_col_list            varchar2,
+  p_break_group_by_list       varchar2,
+  p_cc_col_list               varchar2,
+  p_group_by_list             varchar2,
+  p_aggr_order_by_list        varchar2,
+  p_order_by_list             varchar2,
+  p_group_by_col_list         varchar2,
+  p_LOV_selects               varchar2,
+  p_join_LOV_selects          varchar2,
+  p_join_LOV_filtersel        varchar2,
   p_grand_total_col_list      varchar2,
   p_IG                        boolean default false,
-  p_master_region_source      varchar2 default null,   
+  p_master_region_source      varchar2 default null,
   p_join_master_region        varchar2 default null,
-  p_alias_list                varchar2 default null
-) 
-return varchar2 
-as 
-ll0l1I varchar2(32767); 
-IlI00I varchar2(100); 
-llI10l boolean default false; 
-begin 
-  Il01ll( 
-    p_procedure => 'llI101', 
-    Ol0I00 => Ol0I00, 
-    Il0I00 =>  Il0I00, 
-    ll0I01 => ll0I01, 
-    Ol0I01 => Ol0I01, 
-    Il0I0I => Il0I0I, 
-    IIlI0l =>  IIlI0l, 
-    OIlI0I => OIlI0I, 
-    ll0I0I => ll0I0I, 
-    Ol0I0l => Ol0I0l, 
-    Il0I0l => Il0I0l, 
-    ll0I11 => ll0I11, 
-    Ol0I1I => Ol0I1I,
+  p_master_select_list        varchar2 default null
+)
+return varchar2
+as
+l_region_source varchar2(32767);
+l_source varchar2(100);
+l_group_by_mode boolean;
+
+begin
+  LogComposeSelectAndAttr(
+    p_procedure => 'ComposeRegionQuery',
+    p_basic_col_list => p_basic_col_list,
+    p_aggr_col_list =>  p_aggr_col_list,
+    p_break_col_list => p_break_col_list,
+    p_where => p_where,
+    p_group_by_list => p_group_by_list,
+    p_order_by_list =>  p_order_by_list,
+    p_aggr_order_by_list => p_aggr_order_by_list,
+    p_group_by_col_list => p_group_by_col_list,
+    p_break_group_by_list => p_break_group_by_list,
+    p_cc_col_list => p_cc_col_list,
+    p_LOV_selects => p_LOV_selects,
+    p_join_LOV_selects => p_join_LOV_selects,
     p_grand_total_col_list => p_grand_total_col_list,
-    p_master_region_source => p_master_region_source,  
+    p_master_region_source => p_master_region_source,
     p_join_master_region => p_join_master_region,
-    p_alias_list => p_alias_list  
-  ); 
- 
-  ll0l1I := 'with ';
-  if ll0I11 is not null then 
-    ll0l1I := ll0l1I||ll0I11||query2report.g_crlf||',';
-  end if; 
-  if p_master_region_source is not null then 
-    ll0l1I := ll0l1I||'master_region_src as ( '||rtrim(trim(p_master_region_source),';')||')'||query2report.g_crlf||',';
-  end if; 
-    
-  ll0l1I := ll0l1I||g_start_region_src||query2report.g_crlf||rtrim(trim(Il1l1I),';')||query2report.g_crlf||g_end_region_src||query2report.g_crlf; 
+    p_master_select_list => p_master_select_list
+  );
+
+  l_region_source := 'with ';
+  if p_LOV_selects is not null then
+    l_region_source := l_region_source||p_LOV_selects||query2report.g_crlf||',';
+  end if;
+  if p_master_region_source is not null then
+    l_region_source := l_region_source || ComposeRegionSource(p_master_region_source, 'master_region_src as ( ')||query2report.g_crlf||','; 
+    --l_region_source := l_region_source||'master_region_src as ( '||RemoveSemicolon(p_master_region_source)||')'||query2report.g_crlf||',';
+  end if;
+
+  l_region_source := l_region_source || ComposeRegionSource(p_region_source, g_start_region_src);
   
-  if p_join_master_region is not null and p_master_region_source is not null and p_alias_list is not null then 
-      ll0l1I := ll0l1I||', region_src_joined_master '||p_alias_list||' as ( select master_region_src.*, region_src.* from master_region_src join region_src on '||
-      p_join_master_region||')'||query2report.g_crlf;
-      IlI00I := 'region_src_joined_master'; 
+  /*
+  if regexp_replace(p_region_source,'[[:space:]]*') like ('with%as(%)%') then --there is with in region source
+    l_region_source_with := rtrim(trim(p_region_source),';'); 
+    l_region_source_no_with := substr(l_region_source_with, instr(lower(l_region_source_with), 'with')+length('with'));
+    l_last_select := regexp_instr(lower(l_region_source_no_with), '\)[[:space:]]*select');
+    l_last_select := instr(lower(l_region_source_no_with), 'select', l_last_select);
+    l_region_source := l_region_source|| substr(l_region_source_no_with, 1, l_last_select-1)||' , '||
+                                      g_start_region_src ||query2report.g_crlf
+                                      ||substr(l_region_source_no_with, l_last_select)
+                                      ||query2report.g_crlf||g_end_region_src||query2report.g_crlf;
   else
-      IlI00I := 'region_src'; 
+    l_region_source := l_region_source||g_start_region_src||query2report.g_crlf||RemoveSemicolon(p_region_source)||query2report.g_crlf||g_end_region_src||query2report.g_crlf;
   end if;
-  if Il0I0l is not null then 
-    ll0l1I := ll0l1I|| 
-      ',region_src_cc as ( select '||IlI00I||'.* '||Il0I0l||' from '||IlI00I||')'||query2report.g_crlf; 
-      IlI00I := 'region_src_cc'; 
-  end if; 
-  if Ol0I01 is not null then 
-    ll0l1I := ll0l1I|| 
-      ',region_src_filtered as ( select '||IlI00I||'.* from '||IlI00I|| 
-      IlI10I|| 
-      query2report.g_crlf||'where '||Ol0I01||')'||query2report.g_crlf; 
-      IlI00I := 'region_src_filtered'; 
-  end if; 
-  if ll0I0I is not null then 
-    ll0l1I := ll0l1I||',region_src_grpby as (select '||ll0I0I|| 
-                      ' from '||IlI00I||' group by '||Il0I0I||')'||query2report.g_crlf; 
-    IlI00I := 'region_src_grpby'; 
-    llI10l := true; 
-  end if; 
-  ll0l1I := ll0l1I||'select '||nvl(OlI10I,'*')||' from '||query2report.g_crlf||'('||query2report.g_crlf|| 
-  'select '||nvl(Ol0I00,'*')||' from '||IlI00I||query2report.g_crlf; 
-  if Ol0I1I is not null then 
-    ll0l1I := ll0l1I||Ol0I1I||query2report.g_crlf; 
-  end if; 
-   
-  if Il0I00 is not null then 
-    ll0l1I := ll0l1I ||' union '||query2report.g_crlf|| 
-                       'select '||Il0I00||' from '||IlI00I||' '; 
-                       
-    if Ol0I1I is not null then 
-        ll0l1I := ll0l1I||Ol0I1I||query2report.g_crlf; 
-    end if; 
-    
-    if Ol0I0l is not null and ll0I01 is not null then 
-      ll0l1I := ll0l1I ||query2report.g_crlf||'group by '||Ol0I0l; 
-    end if; 
-  end if; 
-  if ll0I01 is not null then 
-    ll0l1I := ll0l1I||query2report.g_crlf||'union '||query2report.g_crlf|| 
-                       'select '||ll0I01||' from '||IlI00I||' '; 
-    if Ol0I1I is not null then 
-        ll0l1I := ll0l1I||Ol0I1I||query2report.g_crlf; 
-    end if; 
-  end if;
-  if p_grand_total_col_list is not null then 
-    ll0l1I := ll0l1I||query2report.g_crlf||'union '||query2report.g_crlf|| 
-                       'select '||p_grand_total_col_list||' from '||IlI00I||' '; 
-  end if;
+  */
   
-  
-  ll0l1I := ll0l1I ||query2report.g_crlf||')'; 
-  if nvl(IIlI0l, OIlI0I) is not null then 
-    ll0l1I := ll0l1I ||query2report.g_crlf|| 
-            ' order by '||IIlI01(OIlI0I, IIlI0l, p_IG); 
-  end if; 
-  return Ol1l11(ll0l1I); 
-end llI101; 
- 
-function OlI10l(IlI110 varchar2) 
-return number 
-as 
-Il01I1 number; 
-begin 
-  Il01I1 := to_number(IlI110); 
-  if abs(floor(Il01I1)) = Il01I1 then 
-    return Il01I1; 
-  else 
-    return 0; 
-  end if; 
-exception 
-  when others then 
-    return 0; 
-end; 
- 
-function llI110(OlI111 Ol0111) 
-return varchar2 
-as 
-Il01I1 varchar2(4000); 
-begin 
-  for ll01I1 in 1..OlI111.count loop 
-    Il01I1 := Il01I1 || OlI111(ll01I1).region_name||';'; 
-    if  OlI111(ll01I1).Il010l is not null then 
-      Il01I1 := Il01I1||' select'||ll01I1||';'; 
-    end if; 
-    if  OlI111(ll01I1).ll010l is not null then 
-      Il01I1 := Il01I1||' '||OlI111(ll01I1).ll010l||';'; 
-    end if; 
-     Il01I1 := Il01I1||' | '; 
-  end loop; 
-  return Il01I1; 
-end; 
- 
-function IlI111( 
-  llI11I varchar2, 
-  IIl1I0 number 
-) 
-return Ol0111 
-as 
-OlI11I Ol0111 := Ol0111(); 
-IlI11l number := 1; 
-llI11l varchar2(32000); 
-OlI1I0 varchar2(32000); 
-IlI1I0 number; 
- 
-cursor llI1I1 is 
-select IIl1lI(region_name) region_name 
- from apex_application_page_regions 
+  if p_join_master_region is not null and p_master_region_source is not null /*and p_master_select_list is not null*/ then
+      --l_region_source := l_region_source||', region_src_joined_master '||p_master_select_list||' as ( select master_region_src.*, region_src.* from master_region_src join region_src on '||
+      l_region_source := l_region_source||', region_src_joined_master as ( select '||p_master_select_list||' region_src.* from master_region_src join region_src on '||
+      p_join_master_region||')'||query2report.g_crlf;
+      l_source := 'region_src_joined_master';
+  else
+      l_source := 'region_src';
+  end if;
+  if p_cc_col_list is not null then
+    l_region_source := l_region_source||
+      ',region_src_cc as ( select '||l_source||'.* '||p_cc_col_list||' from '||l_source||')'||query2report.g_crlf;
+      l_source := 'region_src_cc';
+  end if;
+  if p_where is not null then
+    l_region_source := l_region_source||
+      ',region_src_filtered as ( select '||l_source||'.* from '||l_source||
+      p_join_LOV_filtersel||
+      query2report.g_crlf||'where '||p_where||')'||query2report.g_crlf;
+      l_source := 'region_src_filtered';
+  end if;
+  if p_group_by_col_list is not null then --IR group by mode
+    l_region_source := l_region_source||',region_src_grpby as (select '||p_group_by_col_list||
+                      ' from '||l_source||' group by '||p_group_by_list||')'||query2report.g_crlf;
+    l_source := 'region_src_grpby';
+    l_group_by_mode := true;
+  end if;
+  l_region_source := l_region_source||'select '||nvl(p_formated_labeled_col_list,'*')||' from '||query2report.g_crlf||'('||query2report.g_crlf||
+  'select '||nvl(p_basic_col_list,'*')||' from '||l_source||query2report.g_crlf;
+  if p_join_LOV_selects is not null then
+    l_region_source := l_region_source||p_join_LOV_selects||query2report.g_crlf;
+  end if;
+  /*
+  if p_break_col_list is null and p_group_by_list is not null then --group by in IR group by mode
+    l_region_source := l_region_source ||' group by '||p_break_group_by_list||query2report.g_crlf;
+  end if;
+  */
+  if p_aggr_col_list is not null then
+    l_region_source := l_region_source ||' union '||query2report.g_crlf||
+                       'select '||p_aggr_col_list||' from '||l_source||' ';
+
+    if p_join_LOV_selects is not null then
+        l_region_source := l_region_source||p_join_LOV_selects||query2report.g_crlf;
+    end if;
+
+    if p_break_group_by_list is not null and p_break_col_list is not null then --group by in IR when break and aggregation applied.
+      l_region_source := l_region_source ||query2report.g_crlf||'group by '||p_break_group_by_list;
+    end if;
+  end if;
+  if p_break_col_list is not null then
+    l_region_source := l_region_source||query2report.g_crlf||'union '||query2report.g_crlf||
+                       'select '||p_break_col_list||' from '||l_source||' ';
+    if p_join_LOV_selects is not null then
+        l_region_source := l_region_source||p_join_LOV_selects||query2report.g_crlf;
+    end if;
+  end if;
+  if p_grand_total_col_list is not null then
+    l_region_source := l_region_source||query2report.g_crlf||'union '||query2report.g_crlf||
+                       'select '||p_grand_total_col_list||' from '||l_source||' ';
+  end if;
+
+
+  l_region_source := l_region_source ||query2report.g_crlf||')';
+  if nvl(p_order_by_list, p_aggr_order_by_list) is not null then
+    l_region_source := l_region_source ||query2report.g_crlf||
+            ' order by '||MergeOrderList(p_aggr_order_by_list, p_order_by_list, p_IG);
+  end if;
+  return BindSSSource(l_region_source); --bind session state values;
+end ComposeRegionQuery;
+
+function GetPosint(p_string varchar2)
+return number
+as
+l_ret number;
+begin
+  l_ret := to_number(p_string);
+  if abs(floor(l_ret)) = l_ret then
+    return l_ret;
+  else
+    return 0;
+  end if;
+exception
+  when others then
+    return 0;
+end;
+
+function LogParsedRegions(p_regions tp_regions)
+return varchar2
+as
+l_ret varchar2(4000);
+begin
+  for i in 1..p_regions.count loop
+    l_ret := l_ret || p_regions(i).region_name||';';
+    if  p_regions(i).region_query is not null then
+      l_ret := l_ret||' select'||i||';';
+    end if;
+    if  p_regions(i).max_rows is not null then
+      l_ret := l_ret||' '||p_regions(i).max_rows||';';
+    end if;
+     l_ret := l_ret||' | ';
+  end loop;
+  return l_ret;
+end;
+
+function ParseRegions(
+  p_region_names varchar2,
+  p_page_id number
+)
+return tp_regions
+as
+l_regions tp_regions := tp_regions();
+l_semicolon_pos number := 1;
+l_region_names varchar2(32000);
+l_region_name varchar2(32000);
+l_max_rows number;
+
+cursor c_apr is
+select BindSSApexItem(region_name) region_name
+ from apex_application_page_regions
  where application_id = APEX_APPLICATION.G_FLOW_ID
- and   page_id = IIl1I0 
- 
- and  lower(trim(region_source))  like 'select%from%'
- order by display_sequence; 
-begin 
-  pak_xslt_log.WriteLog( 'Parse regions starts llI11I: '||llI11I||' IIl1I0: '||IIl1I0, p_procedure => 'IlI111'); 
-  if llI11I is not null then 
-    llI11l := llI11I||';'; 
-    loop 
-      IlI11l := instr(llI11l,';'); 
-      exit when nvl(IlI11l, 0) = 0; 
-      OlI1I0 := substr(llI11l, 1, IlI11l-1); 
-      OlI1I0 := trim(leading chr(13) from trim(OlI1I0)); 
-      OlI1I0 := trim(leading chr(10) from OlI1I0); 
-      OlI1I0 := trim(trailing chr(10) from OlI1I0); 
-      OlI1I0 := trim(trailing chr(13) from OlI1I0); 
-      OlI1I0 := trim(OlI1I0); 
-      IlI1I0 := OlI10l(OlI1I0); 
- 
-      pak_xslt_log.WriteLog( 
-        'OlI1I0: '||OlI1I0, 
-        p_procedure => 'IlI111' 
-      ); 
- 
-      if OlI11I.count > 0 
-         and OlI11I(OlI11I.count).region_name is not null 
-         and lower(OlI1I0) like 'select%' 
-         and instr(lower(OlI1I0),'from') > 0 
-         then 
-        OlI11I(OlI11I.count).Il010l := OlI1I0; 
-      elsif OlI11I.count > 0 
-            and OlI11I(OlI11I.count).region_name is not null 
-            and OlI11I(OlI11I.count).Il010l is not null 
-            and IlI1I0 > 0 
-      then 
-        OlI11I(OlI11I.count).ll010l := IlI1I0; 
-      elsif length(OlI1I0) > 0 then 
-        OlI11I.extend; 
-        OlI11I(OlI11I.count).region_name := OlI1I0; 
-      end if; 
-      llI11l := substr(llI11l, IlI11l+1); 
-    end loop; 
-  else 
-    pak_xslt_log.WriteLog( 'Parse regions starts with llI11I is null, IIl1I0: '||IIl1I0, p_procedure => 'IlI111'); 
-    for OlI1I1 in llI1I1 loop 
-      OlI11I.extend; 
-      OlI11I(OlI11I.count).region_name := OlI1I1.region_name; 
-      pak_xslt_log.WriteLog( 'Parse regions find region: '||OlI1I1.region_name, p_procedure => 'IlI111'); 
-    end loop; 
-  end if; 
-  pak_xslt_log.WriteLog( 'Parse regions finished: '||llI110(OlI11I), p_procedure => 'IlI111'); 
-  return OlI11I; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error', 
-    p_log_type => pak_xslt_log.g_error, 
-    p_procedure => 'IlI111', 
-    p_sqlerrm => sqlerrm ); 
-  raise; 
-end; 
- 
- 
-procedure IIl111( 
-    OIl11I         in varchar2 default null, 
-    IIl11l   in number default OIl10I, 
-    OIl1I0           in number default 0, 
-    IIl1I0             in number default null, 
-    p_dwld_type           in number, 
-    po_xml                out CLOB, 
-    OIl1I1     out CLOB, 
-    IIl1II        out query2report.tab_string 
-) 
-as 
+ and   page_id = p_page_id
+ --and   source_type_code in ( 'UPDATABLE_SQL_QUERY', 'SQL_QUERY', 'DYNAMIC_QUERY', 'STRUCTURED_QUERY', 'FUNCTION_RETURNING_SQL_QUERY', 'NATIVE_IG' ) --'UPDATABLE_SQL_QUERY' Added by MM
+ and  lower(trim(region_source))  like '%select%from%'
+ order by display_sequence;
+begin
+  pak_xslt_log.WriteLog( 'Parse regions starts p_region_names: '||p_region_names||' p_page_id: '||p_page_id, p_procedure => 'ParseRegions');
+  if p_region_names is not null then
+    l_region_names := p_region_names||';';
+    loop
+      l_semicolon_pos := instr(l_region_names,';');
+      exit when nvl(l_semicolon_pos, 0) = 0;
+      l_region_name := substr(l_region_names, 1, l_semicolon_pos-1);
+      l_region_name := trim(leading chr(13) from trim(l_region_name));
+      l_region_name := trim(leading chr(10) from l_region_name);
+      l_region_name := trim(trailing chr(10) from l_region_name);
+      l_region_name := trim(trailing chr(13) from l_region_name);
+      l_region_name := trim(l_region_name);
+      l_max_rows := GetPosInt(l_region_name);
 
-Ol01I0 Ol0110; 
- 
+      pak_xslt_log.WriteLog(
+        'l_region_name: '||l_region_name,
+        p_procedure => 'ParseRegions'
+      );
 
- 
-IlI1II  query2report.tab_string := query2report.tab_string(); 
-llI1II  query2report.t_coltype_tables := query2report.t_coltype_tables(); 
-OlI1Il  query2report.tab_integer := query2report.tab_integer(); 
- 
+      if l_regions.count > 0
+         and l_regions(l_regions.count).region_name is not null
+         and lower(l_region_name) like 'select%'
+         and instr(lower(l_region_name),'from') > 0
+         then
+        l_regions(l_regions.count).region_query := l_region_name;
+      elsif l_regions.count > 0
+            and l_regions(l_regions.count).region_name is not null
+            and l_regions(l_regions.count).region_query is not null
+            and l_max_rows > 0
+      then
+        l_regions(l_regions.count).max_rows := l_max_rows;
+      elsif length(l_region_name) > 0 then
+        l_regions.extend;
+        l_regions(l_regions.count).region_name := l_region_name;
+      end if;
+      l_region_names := substr(l_region_names, l_semicolon_pos+1);
+    end loop;
+  else --p_region_names is null
+    pak_xslt_log.WriteLog( 'Parse regions starts with p_region_names is null, p_page_id: '||p_page_id, p_procedure => 'ParseRegions');
+    for r_apr in c_apr loop
+      l_regions.extend;
+      l_regions(l_regions.count).region_name := r_apr.region_name;
+      pak_xslt_log.WriteLog( 'Parse regions find region: '||r_apr.region_name, p_procedure => 'ParseRegions');
+    end loop;
+  end if;
+  pak_xslt_log.WriteLog( 'Parse regions finished: '||LogParsedRegions(l_regions), p_procedure => 'ParseRegions');
+  return l_regions;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error',
+    p_log_type => pak_xslt_log.g_error,
+    p_procedure => 'ParseRegions',
+    p_sqlerrm => sqlerrm );
+  raise;
+end;
 
+/** Get Source Query or Queries of the region(s) and resulting XML
+*
+* @param p_region_name Region name(s) separarted with semicolon. If null procedure uses suorces of all regions on the page.
+* @param p_app_id APEX Application ID. If null current Application ID
+* @param p_page_id APEX Page ID. If null current Page ID
+* @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+* You want to use 1 or 0 for cross reference by hidden or PK columns inside complex XML build from multiple queries.
+* @param p_html_cols Columns with HTML markup in temporary XML. 0 - Convert to text, exclude columns with image links, 1 - Exlude columns with HTML markup,
+* 2 - Exclude columns with image links, preserve rest HTML markup, 3 - Preserve HTML markup, 4 - Convert to text. Default 0.
+* @param po_source_queries select queries for region(s) from p_region_name parameter
+* @param po_xml one XML with region(s) data
+*/
+procedure GetSourceQueriesAndXML(
+    p_region_name         in varchar2 default null,
+    p_use_filters_hidPK   in number default g_filters,
+    p_html_cols           in number default 0,
+    p_page_id             in number default null,
+    p_dwld_type           in number,
+    po_xml                out CLOB,
+    po_source_queries     out CLOB,
+    po_regionAttrs        out query2report.tab_string,
+    po_reportTypes        out query2report.t_coltype_tables
+)
+as
+--columns collection
+t_cols tp_cols;
 
-IlI1Il varchar2(32767); 
-Il1III varchar2(32767); 
-llI1l0  varchar2(32767); 
-Ol11l1  varchar2(32767); 
-OlI1l0  varchar2(4000); 
-Il1010 varchar2(4000); 
- 
+--query2report collections
 
-IlI1l1 varchar2(32767); 
-llI1l1 varchar2(32767); 
-OlI1lI varchar2(32767); 
- 
+l_selectQueries  query2report.tab_string := query2report.tab_string();
+l_maxRows  query2report.tab_integer := query2report.tab_integer();
 
-IlI1lI  varchar2(32767); 
-llI1ll  varchar2(32767); 
-OlI1ll varchar2(32767); 
-IlII00  varchar2(32767); 
-llII00 varchar2(32767); 
-III0110 varchar2(32767); 
-OlII01          varchar2(32767); 
+------------------Lists to compose select---------------
+--column lists
+l_formatedAndLabeledColList varchar2(32767);
+l_basic_col_list varchar2(32767);
+l_aggr_col_list  varchar2(32767);
+l_break_col_list  varchar2(32767);
+l_cc_col_list  varchar2(4000);
+l_highlight_case varchar2(4000);
 
-l_master_region_source varchar2(32767); 
-l_join_master_region varchar2(32767); 
-l_alias_list varchar2(32767); 
-IlIlIOl number;
+--LOV--
+l_LOV_selects varchar2(32767);
+l_join_LOV_selects varchar2(32767);
+l_join_LOV_filtersel varchar2(32767);
 
- 
+--where, order by, group by lists
+l_order_by_list  varchar2(32767);
+l_aggr_order_by_list  varchar2(32767);
+l_group_by_col_list varchar2(32767);
+l_group_by_list  varchar2(32767);
+l_break_group_by_list varchar2(32767);
+l_break_group_by_list_alias varchar2(32767);
+l_grand_total_col_list varchar2(32767);
+l_where          varchar2(32767);
 
+--master region-------------
+l_master_region_source varchar2(32767);
+l_join_master_region varchar2(32767);
+l_master_select_list varchar2(32767);
+l_master_region_id number;
+-----------------------------------------------------------
 
-OlI0II varchar2(4000); 
-IlII01 varchar2(4000); 
-llII0I varchar2(4000); 
-OlII0I varchar2(400); 
-IlII0l varchar2(4000); 
-llII0l varchar2(4000); 
+--XML attributes parameters-----
+--l_aggregation boolean default false;
+l_regionAttr varchar2(4000);
+l_breakAttr varchar2(4000);
+l_IRAttr varchar2(4000);
+l_grpbyAttr varchar2(400);
+l_html_cols_attr varchar2(4000);
+l_img_cols_attr varchar2(4000);
+
 l_IG boolean := false;
- 
 
-OlII10 number; 
-IlII10 PLS_INTEGER; 
-llII11 number;  
-OlII11 PLS_INTEGER; 
-OlI11I Ol0111; 
- 
-cursor llI1I1(IlII1I varchar2) is 
-select * from 
-( 
-  select region_id 
-        , IIl1lI(region_name) region_name 
-        , region_source 
-        , source_type_code 
-        , report_column_source_type 
-        , page_name 
-        , maximum_row_count 
-  from apex_application_page_regions 
-  where application_id = APEX_APPLICATION.G_FLOW_ID
-  and   page_id = IIl1I0 
-  
-  and  lower(trim(region_source))  like 'select%from%'
-) 
-where region_name = IlII1I; 
- 
- OlI1I1 llI1I1%rowtype; 
- 
-begin 
-  OlII11 := dbms_utility.get_time(); 
-  OlII10 := nvl(IIl1I0, V('PAGE_ID')); 
-  IIl1II := query2report.tab_string(); 
- 
-  OlI11I := IlI111(OIl11I, IIl1I0); 
- 
-  for ll01I1 in 1..OlI11I.count loop 
-    if OlI11I(ll01I1).Il010l is not null then 
-      pak_xslt_log.WriteLog( 'Direct Query2Report.Il000I region name: '|| OlI11I(ll01I1).region_name || ' query: ' || OlI11I(ll01I1).Il010l, p_procedure => 'IIl111' ); 
-      Query2Report.Il000I( 
-        'name="'||htf.escape_sc(OlI11I(ll01I1).region_name)||'"', 
-        OlI11I(ll01I1).Il010l, 
-        Query2Report.OIllll(OlI11I(ll01I1).Il010l), 
-        llII11, 
-        IIl1II, 
-        IlI1II, 
-        llI1II, 
-        OlI1Il 
-      ); 
-    else 
-      
-      
-      
-      open llI1I1(OlI11I(ll01I1).region_name); 
-      fetch llI1I1 into OlI1I1; 
-      if llI1I1%found then 
-        pak_xslt_log.WriteLog( 'found ' || OlI1I1.source_type_code || ' ' || OlI1I1.region_name, p_procedure => 'IIl111' ); 
-        
-        Il1III := null; 
-        llI1l0  := null; 
-        Ol11l1  := null; 
-        
-        OlI1l0  := null; 
-        Il1010 := null; 
- 
-        
-        IlI1l1 := null; 
-        llI1l1 := null; 
-        OlI1lI := null; 
- 
-        
-        IlI1lI  := null; 
-        llI1ll  := null; 
-        OlI1ll := null; 
-        IlII00  := null; 
-        llII00 := null; 
-        III0110 := null;
-        OlII01          := null; 
-        
- 
-        
-        
-        OlI0II := null; 
-        IlII01 := null; 
-        llII0I := null; 
-        OlII0I := null; 
-        IlII10 := null; 
-        llII11 := null; 
-        IlII0l := null; 
-        llII0l := null; 
-        
-        
-        l_master_region_source := null; 
-        l_join_master_region := null; 
-        l_alias_list := null; 
-        IlIlIOl := null;
-        
-        
+----rest of params -------
+l_page_id number;
+l_max_rows_IR PLS_INTEGER; --Query2Report.Query2Xml call
+l_max_row number;  --Query2Report.Query2Xml call
+l_start_time PLS_INTEGER; --debuging
+l_regions tp_regions;
+
+cursor c_apr(c_region_name varchar2) is
+select * from
+(
+  select region_id
+        , BindSSApexItem(region_name) region_name
+        , region_source
+        , source_type_code
+        , report_column_source_type
+        , page_name
+        , maximum_row_count
+  from apex_application_page_regions
+  where application_id = APEX_APPLICATION.G_FLOW_ID--V('APP_ID') --TODO optimize
+  and   page_id = p_page_id
+  --and   source_type_code in ( 'UPDATABLE_SQL_QUERY', 'SQL_QUERY', 'DYNAMIC_QUERY', 'STRUCTURED_QUERY', 'FUNCTION_RETURNING_SQL_QUERY', 'NATIVE_IG' ) --'UPDATABLE_SQL_QUERY' Added by MM
+  and  lower(trim(region_source))  like '%select%from%'
+)
+where region_name = c_region_name;
+
+ r_apr c_apr%rowtype;
+
+begin
+  l_start_time := dbms_utility.get_time();
+  l_page_id := nvl(p_page_id, V('PAGE_ID'));
+  po_regionAttrs := query2report.tab_string();
+  po_reportTypes := query2report.t_coltype_tables();
+
+  l_regions := ParseRegions(p_region_name, p_page_id);
+
+  for i in 1..l_regions.count loop --loop through all selected regions
+    if l_regions(i).region_query is not null then
+      pak_xslt_log.WriteLog( 'Direct Query2Report.AddQuery region name: '|| l_regions(i).region_name || ' query: ' || l_regions(i).region_query, p_procedure => 'GetSourceQueriesAndXML' );
+      Query2Report.AddQuery(
+        'name="'||htf.escape_sc(l_regions(i).region_name)||'"',
+        l_regions(i).region_query,
+        Query2Report.ReportTypesElementTab(l_regions(i).region_query),
+        l_max_row,
+        po_regionAttrs,
+        l_selectQueries,
+        po_reportTypes,
+        l_maxRows
+      );
+    else
+      --Initialization at start of the loop
+      ------------------Lists to compose select---------------
+      --column lists
+      open c_apr(l_regions(i).region_name);
+      fetch c_apr into r_apr;
+      if c_apr%found then
+        pak_xslt_log.WriteLog( 'found ' || r_apr.source_type_code || ' ' || r_apr.region_name, p_procedure => 'GetSourceQueriesAndXML' );
+        --l_aggregation := false;
+        l_basic_col_list := null;
+        l_aggr_col_list  := null;
+        l_break_col_list  := null;
+
+        l_cc_col_list  := null;
+        l_highlight_case := null;
+
+        --LOV--
+        l_LOV_selects := null;
+        l_join_LOV_selects := null;
+        l_join_LOV_filtersel := null;
+
+        --where, order by, group by lists
+        l_order_by_list  := null;
+        l_aggr_order_by_list  := null;
+        l_group_by_col_list := null;
+        l_group_by_list  := null;
+        l_break_group_by_list := null;
+        l_break_group_by_list_alias := null;
+        l_grand_total_col_list := null;
+        l_where          := null;
+        -----------------------------------------------------------
+
+        --XML attributes parameters-----
+        --l_aggregation boolean default false;
+        l_regionAttr := null;
+        l_breakAttr := null;
+        l_IRAttr := null;
+        l_grpbyAttr := null;
+        l_max_rows_IR := null;
+        l_max_row := null;
+        l_html_cols_attr := null;
+        l_img_cols_attr := null;
+
+        --master region-------------
+        l_master_region_source := null;
+        l_join_master_region := null;
+        l_master_select_list := null;
+        l_master_region_id := null;
+        -----------------------------------------------------------
+
+
         l_IG := false;
- 
- 
-        if OlI1I1.source_type_code = 'FUNCTION_RETURNING_SQL_QUERY' 
-        then 
-          OlI1I1.region_source := apex_plugin_util.get_plsql_function_result( OlI1I1.region_source ); 
-          pak_xslt_log.WriteLog( OlI1I1.region_name||' (FUNCTION_RETURNING_SQL_QUERY): ', p_procedure => 'IIl111' ); 
-        elsif OlI1I1.source_type_code = 'DYNAMIC_QUERY' 
-        then 
- 
-          Il11I0( 
-            OlI1I1.region_id, 
-            OlII10, 
-            IIl11l, 
-            ll11I0 => Il1III, 
-            Il10l1 => IlI1lI, 
-            ll10lI => OlII01, 
-            Il111I => OlI1ll, 
-            Ol111I => IlII00 
-          ); 
- 
-           
-          Il1l00( 
-            OlI1I1.region_id, 
-            OlII10, 
-            IIl11l, 
-            Il11I1 => Il1III   , 
-            Ol11l0 => llI1l0    , 
-            Il1IIl => Ol11l1   , 
-            ll1Il0 => llII00    , 
-            Ol1II1 => llI1ll    , 
-            ll1l00 => llII0I           , 
-            Ol1IIl => IlII01        , 
-            Il0l01 => OlII0I       , 
-            Ol1l01 => IlII10      , 
-            ll1I00 => Ol01I0 
-          ); 
- 
-          $IF CCOMPILING.g_views_granted $THEN 
-          OlI1l0 := ll100l(OlII10, OlI1I1.region_id); 
-          $END 
-        
-            
-          $IF CCOMPILING.g_IG_exists $THEN 
-          elsif OlI1I1.source_type_code = 'NATIVE_IG' then
-            l_IG := true;
-            Ol01I0 := "l1IIl0lI".II0I1IO1(
-               OlI1I1.region_id, 
-               OlII10, 
-               IIl11l, 
-               l101lO1O1 => llII0I,
-               O0Il1I0I => IlII10   
-            );
-            
-            "l1IIl0lI".O01lIlI0( 
-                   OlI1I1.region_id, 
-                   ll10l10 => l_master_region_source,
-                   l10100Il => l_join_master_region,
-                   O00I00Il => l_alias_list, 
-                   lI111lO1 => IlIlIOl
-               );
-            "l1IIl0lI".lIlOOl1(  
-                OlI1I1.region_id, 
-                OlII10, 
-                IIl11l,
-                IlIlIOl,
-                ll01ll => Ol01I0,
-                Il10l1 => IlI1lI, 
-                Ol1II1 => llI1ll, 
-                ll10lI => OlII01
-              );
-              
-                              
-              "l1IIl0lI".Il1l00( 
-                  ll01ll => Ol01I0,
-                  Ol1IIl => IlII01, 
-                  ll11I0 => Il1III  , 
-                  Il1IIl => Ol11l1, 
-                  Ol11l0 => llI1l0    , 
-                  llllOI0 => llI1ll, 
-                  ll1Il0 => llII00, 
-                  O0llOlOl => III0110
-               ); 
-          $END     
-               
-        
-        else 
-          Il11ll( 
-            OlI1I1.region_id, 
-            OlII10, 
-            IIl11l, 
-            Ol01I0, 
-            Il1III, 
-            llI1l0, 
-            IlI1lI 
-            
-          ); 
-        end if; 
- 
-        ll1lll( 
-          Il0I0l => OlI1l0, 
-          Ol0I01 => OlII01, 
-          ll01ll => Ol01I0,  
-          l10I0OI0 => IlIlIOl,  
-          pio_group_by_col_list  => OlI1ll, 
-          Il11I1 => Il1III, 
-          ll11II => llI1l0,
-          pio_break_group_by_list => llII00,  
-          OlI000 => OlII01, 
-          Ol11II    => Ol11l1, 
-          IlI000 => IlI1l1, 
-          llI001 => llI1l1, 
-          OlI001 => OlI1lI 
-        ); 
- 
-        IlI1Il := 
-        OlI00l( 
-          OlII10, 
-          OlI1I1.region_id, 
-          OlI1I1.source_type_code, 
-          Ol01I0, 
-          OIl1I0, 
-          IlII01 is not null, 
-          llI1l0 is not null, 
-          OlII0I is not null, 
-          IlI011 => IlII0l, 
-          llI011 => llII0l 
-        ); 
- 
-        
-        OlI1I1.region_source := 
-        llI101( 
-          OlI1I1.region_source          , 
-          OlI10I => IlI1Il , 
-          Ol0I01 => OlII01  , 
-          Ol0I00 => Il1III, 
-          Il0I00 => llI1l0, 
-          ll0I01 => Ol11l1            , 
-          Ol0I0l => llII00, 
-          Il0I0l => OlI1l0               , 
-          Il0I0I => IlII00             , 
-          OIlI0I => llI1ll, 
-          IIlI0l => IlI1lI, 
-          ll0I0I => OlI1ll, 
-          ll0I11 => IlI1l1, 
-          Ol0I1I => llI1l1, 
-          IlI10I => OlI1lI, 
-          p_grand_total_col_list => III0110, 
-          p_master_region_source => l_master_region_source,
-          p_join_master_region => l_join_master_region,  
-          p_alias_list => l_alias_list,  
-          p_IG => l_IG   
-        ); 
- 
-        OlI0II := llI01l( 
-          OlI1I1.region_name, 
-          llII0I, 
-          IlII01, 
-          OlII0I, 
-          IlII10, 
-          OlI1I1.maximum_row_count, 
-          llI1l0 is not null, 
-          OlI0I1 => IlII0l, 
-          IlI0I1 => llII0l, 
-          llI0II => llII11 
-        ); 
- 
-        pak_xslt_log.WriteLog('Before Query2Report.Il000I OlI0II: '||OlI0II||' llII11 '||llII11, 
-                              p_procedure => 'IIl111' ); 
-        Query2Report.Il000I(OlI0II, OlI1I1.region_source, Ol01II(Ol01I0), llII11, IIl1II, IlI1II, llI1II, OlI1Il); 
-      else 
-         pak_xslt_log.WriteLog('Region '||OlI11I(ll01I1).region_name||' not found! ', 
-                              p_log_type => pak_xslt_log.g_warning, 
-                              p_procedure => 'IIl111' ); 
-      end if; 
-      close llI1I1; 
-    end if; 
-  end loop; 
-  pak_xslt_log.WriteLog('source SQL prepared', p_procedure => 'IIl111', p_start_time => OlII11); 
- 
-  if p_dwld_type <> query2report.g_dwld_suorce then 
-    OlII11 := dbms_utility.get_time(); 
-    po_xml := Query2Report.ll001I(IIl1II, IlI1II, llI1II, OlI1Il); 
- 
-    if po_Xml is null then 
-      pak_xslt_log.WriteLog( 
-        'po_Xml is null', 
-        p_log_type => pak_xslt_log.g_error, 
-        p_procedure => 'IIl111' 
-      ); 
-    else 
-        pak_xslt_log.WriteLog( 
-          'Query2Report.ll001I finished' 
-          ,p_procedure => 'IIl111' 
-          , p_start_time => OlII11 
-        ); 
-         
-    end if; 
-  end if; 
-  OIl1I1 := Il1I01(IlI1II); 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error IIl1I0 '||to_char(IIl1I0)|| 
-    ' IIl11l '||IIl11l, 
-    p_log_type => pak_xslt_log.g_error, p_procedure => 'IIl111', p_sqlerrm => sqlerrm ); 
-  raise; 
-end IIl111; 
- 
- 
-procedure llII1I( 
-  p_xsltStaticFile            IN  varchar2, 
-  p_filename                  in  VARCHAR2, 
-  IIl1I0                   in  number, 
-  p_dwld_type                 in  number default Query2Report.g_dwld_transformed, 
-  IIl11l         in  number default OIl10I, 
-  OIl1I0                 in  number default 0, 
-  OIl11I               in  varchar2 default null, 
-  p_format                    IN  number default null, 
-  p_templateStaticFile        in  VARCHAR2 default null, 
-  p_external_params           IN  varchar2 default null, 
-  p_second_XsltStaticFile      IN  varchar2 default null, 
-  p_second_external_params     IN  varchar2 default null, 
-  IIlllI         IN  boolean default false, 
-  ll0000                 IN  number default null, 
-  p_convertblob_param       IN varchar2 default null 
-) 
-as 
- 
-OlII1l number; 
-IlII1l CLOB; 
-llIII0 CLOB; 
-OlII11 PLS_INTEGER; 
-OlIII0 query2report.tab_string; 
-IlIII1 varchar2(4000); 
-llIII1 varchar2(4000); 
-OlIIII number; 
-IlIIII number; 
-begin 
- 
-  if ll0000 is not null then 
-    pak_xslt_log.SetLevel(ll0000); 
-  end if; 
- 
-  pak_xslt_log.WriteLog( 'llII1I started ', 
-                                p_procedure => 'llII1I' 
-                              ); 
- 
-  if p_dwld_type in (Query2Report.g_dwld_xml, Query2Report.IIlIl0, Query2Report.g_dwld_transformed, Query2Report.g_dwld_suorce) then 
-    IIl111( 
-      OIl11I => OIl11I, 
-      IIl1I0 => IIl1I0, 
-      IIl11l => IIl11l, 
-      OIl1I0 => OIl1I0, 
-      p_dwld_type => p_dwld_type, 
-      po_xml => IlII1l, 
-      OIl1I1 => llIII0, 
-      IIl1II    => OlIII0 
-    ); 
-    if p_dwld_type <> Query2Report.g_dwld_suorce and IlII1l is null then 
-    pak_xslt_log.WriteLog( 
-      'IlII1l is null', 
-      p_log_type => pak_xslt_log.g_error, 
-      p_procedure => 'llII1I' 
-    ); 
-    end if; 
- 
-    if p_dwld_type in (Query2Report.g_dwld_xml, Query2Report.IIlIl0) then 
-      IlIII1 := Query2Report.Il001l(IIl1I0, OlIII0); 
-      OlII11 := dbms_utility.get_time(); 
-      
-      query2report.OIll1I(IlII1l);
-      
-      pak_xslt_log.WriteLog( 
-        'Query2Report.ConvertXml finished' 
-        ,p_procedure => 'llII1I' 
-        , p_start_time => OlII11 
-      ); 
-      Query2Report.DownloadConvertOutput(APEX_APPLICATION.G_FLOW_ID,  pak_blob_util.clob2blob(IlII1l), IlIII1||'.xml', 'text/xml'); 
-      if p_dwld_type = Query2Report.IIlIl0 then 
-        Query2Report.ll001l(IlIII1, IlII1l); 
-      end if; 
-    elsif p_dwld_type = Query2Report.g_dwld_suorce then 
-      IlIII1 := Query2Report.Il001l(IIl1I0, OlIII0); 
-      Query2Report.DownloadConvertOutput(APEX_APPLICATION.G_FLOW_ID, pak_blob_util.clob2blob(llIII0), IlIII1||'.sql', 'text/plain'); 
-    else 
-      select count(*) into IlIIII 
-      from user_scheduler_jobs 
-      where upper(job_name) = 'JOB_XSLTRANSFORMANDDOWNLOAD' 
-      and upper(program_name) = 'PROG_XSLTRANSFORMANDDOWNLOAD'; 
- 
-      if IIlllI and IlIIII = 1 then 
-        insert into temporary_xml (XMLCLOB) values(IlII1l) 
-        returning id_temporary_xml into OlIIII; 
-        commit; 
- 
-        Query2Report.ll0001( 
-          Il0001 => OlIIII, 
-          p_xsltStaticFile => p_xsltStaticFile, 
-          IIl1I0 => IIl1I0, 
-          OIl11I => OIl11I, 
-          p_filename => p_filename, 
-          p_format => p_format, 
-          p_templateStaticFile => p_templateStaticFile, 
-          p_external_params => p_external_params, 
-          p_second_XsltStaticFile => p_second_XsltStaticFile, 
-          p_second_external_params => p_second_external_params, 
-          p_convertblob_param => p_convertblob_param, 
-          ll0000 => ll0000 
-        ); 
-      else 
-        OlII11 := dbms_utility.get_time(); 
-        if IIlllI then 
-           pak_xslt_log.WriteLog( 'Job JOB_XSLTRANSFORMANDDOWNLOAD is not installed! Can not run in background.', 
-           p_log_type => pak_xslt_log.g_warning, 
-           p_procedure => 'llII1I'); 
-        end if; 
-        Query2Report.XslTransformAndDownload( 
-          p_Xml => IlII1l, 
-          p_xsltStaticFile => p_xsltStaticFile, 
-          IIl1I0 => IIl1I0, 
-          OIl11I => OIl11I, 
-          p_filename => p_filename, 
-          p_format => p_format, 
-          p_templateStaticFile => p_templateStaticFile, 
-          p_external_params => p_external_params, 
-          p_second_XsltStaticFile => p_second_XsltStaticFile, 
-          p_second_external_params => p_second_external_params, 
-          p_convertblob_param => p_convertblob_param 
-        ); 
- 
- 
- 
-        pak_xslt_log.WriteLog( 'Query2Report.XslTransformAndDownload finished ', 
-                                  p_procedure => 'llII1I', 
-                                  p_start_time => OlII11 
-                                ); 
-      end if; 
-    end if; 
-  else 
-    Query2Report.OIll10( 
-      p_xsltStaticFile, 
-      p_second_XsltStaticFile, 
-      
-      
-      p_dwld_type, 
-      
-      p_format 
-    ); 
-  end if; 
- 
-  pak_xslt_log.WriteLog( 'llII1I finished ', 
-                                p_procedure => 'llII1I' 
-                              ); 
-  commit; 
-exception 
-  when others then 
-  pak_xslt_log.WriteLog( 'Error IIl11l '||IIl11l, 
-    p_log_type => pak_xslt_log.g_error, p_procedure => 'llII1I', p_sqlerrm => sqlerrm ); 
-  rollback; 
-  raise; 
-end; 
- 
- 
-function Region2XSLTReport( 
-    p_process in apex_plugin.t_process, 
-    p_plugin  in apex_plugin.t_plugin ) 
-    return apex_plugin.t_process_exec_result 
-AS 
-  llIIIl          varchar2(256); 
-  IlIII1               varchar2(256); 
-  OlII10                 number; 
-  OlIIIl               number  ; 
-  IlIIl0       number  ; 
-  llIIl0               number; 
-  OlI1I0             varchar2(32000); 
-  OlIIl1                  number  ; 
-  IlIIl1         varchar2(1000); 
-  llIIlI    varchar2(256); 
-  OlIIlI   varchar2(1000); 
-  IlIIll        boolean; 
-  llIIll                number; 
-  OlIl00        varchar2(4000); 
-  IlIl00                varchar2(256); 
-  llIl01               varchar2(256); 
-  OlIl01               varchar2(256); 
-  IlIl0I       varchar2(256); 
-  llIl0I              number; 
- 
-  Il01I1 apex_plugin.t_process_exec_result; 
-begin 
- 
-  llIIIl        := p_process.attribute_01;      
-  IlIII1             := p_process.attribute_02;      
-  OlII10               := p_process.attribute_11;      
- 
-  select page_name, page_title, page_alias 
-  into IlIl00, llIl01, OlIl01 
-  from apex_application_pages 
-  where application_id = APEX_APPLICATION.G_FLOW_ID and page_id = OlII10; 
- 
-  IlIII1 := replace(IlIII1, '#PAGE_NAME#', IIl1lI(IlIl00)); 
-  IlIII1 := replace(IlIII1, '#PAGE_TITLE#', IIl1lI(llIl01)); 
-  IlIII1 := replace(IlIII1, '#PAGE_ALIAS#', OlIl01); 
-  IlIII1 := trim(substr(translate(IlIII1,'?,''":;?*+()/\|&%$#! '||query2report.g_crlf,'______________________'),1, 255)); 
- 
-  OlIIIl             := p_process.attribute_03;      
-  IlIIl0     := p_process.attribute_04;      
-  llIIl0             := p_process.attribute_05;      
-  OlI1I0           := p_process.attribute_06;      
-  OlIIl1                := p_process.attribute_07;      
-  IlIIl1       := p_process.attribute_08;      
-  if p_process.attribute_09 is not null then 
-    llIIlI  := p_process.attribute_09;    
-  end if; 
-  OlIIlI := p_process.attribute_10;      
-  IlIIll      := (upper(p_process.attribute_12) = 'Y');      
- 
-  IlIl0I     := p_process.attribute_13; 
- 
-  llIIll              := p_process.attribute_14;      
-  OlIl00      := p_process.attribute_15;      
- 
-  llII1I( 
-    p_xsltStaticFile => llIIIl, 
-    p_filename => IlIII1, 
-    IIl1I0 => OlII10, 
-    p_dwld_type => OlIIIl, 
-    IIl11l => IlIIl0, 
-    OIl1I0 => llIIl0, 
-    OIl11I => OlI1I0, 
-    p_format => OlIIl1, 
-    p_templateStaticFile => IlIl0I, 
-    p_external_params => IlIIl1, 
-    p_second_XsltStaticFile => llIIlI, 
-    p_second_external_params => OlIIlI, 
-    ll0000 => llIIll, 
-    IIlllI => IlIIll, 
-    p_convertblob_param => OlIl00 
-  ); 
- 
-  Il01I1.success_message := p_process.success_message; 
-  return Il01I1; 
-exception 
-    when others then 
-    if llIIlI is null then 
-      Il01I1.success_message := 'Error when transforming on region '||V('REGION')|| 
-        ' with '||llIIIl; 
-    else 
-      Il01I1.success_message := 'Error when transforming on region '||V('REGION')|| 
-        ' with '||llIIIl ||' and then with '||llIIlI; 
-    end if; 
- 
-    pak_xslt_log.WriteLog(Il01I1.success_message, p_log_type => pak_xslt_log.g_error, p_procedure => 'Region2XSLTReport', p_sqlerrm => sqlerrm ); 
- 
-    Il01I1.success_message := Il01I1.success_message||' SQLERR: '||sqlerrm; 
- 
-    return Il01I1; 
-END Region2XSLTReport; 
- 
-END APEXREP2REPORT;
 
+
+        if r_apr.source_type_code = 'FUNCTION_RETURNING_SQL_QUERY' --Select generated with function
+        then
+          r_apr.region_source := apex_plugin_util.get_plsql_function_result( r_apr.region_source );
+          pak_xslt_log.WriteLog( r_apr.region_name||' (FUNCTION_RETURNING_SQL_QUERY): ', p_procedure => 'GetSourceQueriesAndXML' );
+        elsif r_apr.source_type_code = 'DYNAMIC_QUERY' --Interactive report
+        then
+
+          IRUseFiltersOrGroupBy(
+            r_apr.region_id,
+            l_page_id,
+            p_use_filters_hidPK,
+            po_basic_col_list => l_basic_col_list,
+            po_order_by_list => l_order_by_list,
+            po_where => l_where,
+            po_group_by_col_list => l_group_by_col_list,
+            po_group_by_list => l_group_by_list
+          );
+
+          /*
+          pak_xslt_log.WriteLog( 'Source before aggregate select: '||r_apr.region_source, p_procedure => 'GetSourceQueriesAndXML');
+          pak_xslt_log.WriteLog( 'l_report_columns before aggregate select: '||l_basic_col_list, p_procedure => 'GetSourceQueriesAndXML');
+          */
+          AggregateSelect(
+            r_apr.region_id,
+            l_page_id,
+            p_use_filters_hidPK,
+            pio_basic_col_list => l_basic_col_list   ,
+            po_aggr_col_list => l_aggr_col_list    ,
+            po_break_col_list => l_break_col_list   ,
+            po_break_group_by_list => l_break_group_by_list    ,
+            po_aggr_order_by_list => l_aggr_order_by_list    ,
+            po_IRAttr => l_IRAttr           ,
+            po_breakAttr => l_breakAttr        ,
+            po_grpbyAttr => l_grpbyAttr       ,
+            po_max_rows_IR => l_max_rows_IR      ,
+            po_cols => t_cols
+          );
+
+          $IF CCOMPILING.g_views_granted $THEN
+          l_cc_col_list := AddComputedColumns(l_page_id, r_apr.region_id);
+          $END
+        --DYNAMIC_QUERY
+
+          $IF CCOMPILING.g_IG_exists $THEN
+          elsif r_apr.source_type_code = 'NATIVE_IG' then--Interactive grid
+            l_IG := true;
+            t_cols := IG2Report.CollectIGColumns(
+               r_apr.region_id,
+               l_page_id,
+               p_use_filters_hidPK,
+               po_IG_Attr => l_IRAttr,
+               po_max_rows_IG => l_max_rows_IR
+            );
+
+            IG2Report.MasterRegionSelect(
+                   r_apr.region_id,
+                   t_cols,
+                   po_master_region_source => l_master_region_source,
+                   po_join_master_region => l_join_master_region,
+                   po_master_select_list => l_master_select_list,
+                   po_master_region_id => l_master_region_id
+               );
+
+            IG2Report.IGUseFilters(  --IG version of IRUseFilters
+                r_apr.region_id,
+                l_page_id,
+                p_use_filters_hidPK,
+                l_master_region_id,
+                p_cols => t_cols,
+                po_order_by_list => l_order_by_list,
+                po_aggr_order_by_list => l_aggr_order_by_list,
+                po_where => l_where
+              );
+
+
+              IG2Report.AggregateSelect(
+                  p_cols => t_cols,
+                  po_breakAttr => l_breakAttr,
+                  po_basic_col_list => l_basic_col_list  ,
+                  po_break_col_list => l_break_col_list,
+                  po_aggr_col_list => l_aggr_col_list    ,
+                  pio_aggr_order_by_list => l_aggr_order_by_list,
+                  po_break_group_by_list => l_break_group_by_list,
+                  po_grand_total_col_list => l_grand_total_col_list
+               );
+           $END
+
+
+        else
+          NotDynamicQuery(
+            r_apr.region_id,
+            l_page_id,
+            p_use_filters_hidPK,
+            t_cols,
+            l_basic_col_list,
+            l_aggr_col_list,
+            l_order_by_list --,
+            --l_aggregation
+          );
+        end if;
+
+        l_break_group_by_list_alias := l_break_group_by_list;
+
+        Compose_LOV_selects(
+          p_cc_col_list => l_cc_col_list,
+          p_where => l_where,
+          p_cols => t_cols,
+          p_master_region_id => l_master_region_id,
+          pio_group_by_col_list  => l_group_by_col_list,
+          pio_basic_col_list => l_basic_col_list,
+          pio_aggr_col_list => l_aggr_col_list,
+          pio_break_group_by_list => l_break_group_by_list,
+          pio_where => l_where,
+          pio_break_col_list    => l_break_col_list,
+          po_LOV_selects => l_LOV_selects,
+          po_join_LOV_selects => l_join_LOV_selects,
+          po_join_LOV_filtersel => l_join_LOV_filtersel
+        );
+
+        l_formatedAndLabeledColList :=
+        FormatedAndLabeledColList(
+          l_page_id,
+          r_apr.region_id,
+          r_apr.source_type_code,
+          t_cols,
+          p_html_cols,
+          l_breakAttr is not null,
+          l_aggr_col_list is not null,
+          l_grpbyAttr is not null,
+          l_break_group_by_list,
+          l_break_group_by_list_alias,
+          po_html_cols_attr => l_html_cols_attr,
+          po_img_cols_attr => l_img_cols_attr
+        );
+
+        --TODO sestavi query
+        r_apr.region_source :=
+        ComposeRegionQuery(
+          r_apr.region_source          ,
+          p_formated_labeled_col_list => l_formatedAndLabeledColList ,
+          p_where => l_where  ,
+          p_basic_col_list => l_basic_col_list,
+          p_aggr_col_list => l_aggr_col_list,
+          p_break_col_list => l_break_col_list            ,
+          p_break_group_by_list => l_break_group_by_list,
+          p_cc_col_list => l_cc_col_list               ,
+          p_group_by_list => l_group_by_list             ,
+          p_aggr_order_by_list => l_aggr_order_by_list,
+          p_order_by_list => l_order_by_list,
+          p_group_by_col_list => l_group_by_col_list,
+          p_LOV_selects => l_LOV_selects,
+          p_join_LOV_selects => l_join_LOV_selects,
+          p_join_LOV_filtersel => l_join_LOV_filtersel,
+          p_grand_total_col_list => l_grand_total_col_list,
+          p_master_region_source => l_master_region_source,
+          p_join_master_region => l_join_master_region,
+          p_master_select_list => l_master_select_list,
+          p_IG => l_IG
+        );
+
+        l_regionAttr := RegionAttr(
+          r_apr.region_name,
+          l_IRAttr,
+          l_breakAttr,
+          l_grpbyAttr,
+          l_max_rows_IR,
+          r_apr.maximum_row_count,
+          l_aggr_col_list is not null,
+          p_html_cols_attr => l_html_cols_attr,
+          p_img_cols_attr => l_img_cols_attr,
+          po_max_row => l_max_row
+        );
+
+        pak_xslt_log.WriteLog('Before Query2Report.AddQuery l_regionAttr: '||l_regionAttr||' l_max_row '||l_max_row,
+                              p_procedure => 'GetSourceQueriesAndXML' );
+        Query2Report.AddQuery(l_regionAttr, r_apr.region_source, ReportTypesTable(t_cols), l_max_row, po_regionAttrs, l_selectQueries, po_reportTypes, l_maxRows);
+      else
+         pak_xslt_log.WriteLog('Region '||l_regions(i).region_name||' not found! ',
+                              p_log_type => pak_xslt_log.g_warning,
+                              p_procedure => 'GetSourceQueriesAndXML' );
+      end if;
+      close c_apr;
+    end if;
+  end loop;
+  pak_xslt_log.WriteLog('source SQL prepared', p_procedure => 'GetSourceQueriesAndXML', p_start_time => l_start_time);
+
+  if p_dwld_type <> query2report.g_dwld_suorce then
+    l_start_time := dbms_utility.get_time();
+    po_xml := Query2Report.Query2Xml(po_regionAttrs, l_selectQueries, po_reportTypes, l_maxRows);
+
+    if po_Xml is null then
+      pak_xslt_log.WriteLog(
+        'po_Xml is null',
+        p_log_type => pak_xslt_log.g_error,
+        p_procedure => 'GetSourceQueriesAndXML'
+      );
+    else
+        pak_xslt_log.WriteLog(
+          'Query2Report.Query2Xml finished'
+          ,p_procedure => 'GetSourceQueriesAndXML'
+          , p_start_time => l_start_time
+        );
+        /*
+        l_start_time := dbms_utility.get_time();
+        --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug4.xml');
+        query2report.xmlConvert(po_Xml);--, pio_endOffset => l_offset);
+        --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug5.xml');
+        pak_xslt_log.WriteLog(
+          'Query2Report.ConvertXml finished'
+          ,p_procedure => 'GetSourceQueriesAndXML'
+          , p_start_time => l_start_time
+        );
+        */
+    end if;
+  end if;
+  po_source_queries := tab_string2Clob(l_selectQueries);
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_page_id '||to_char(p_page_id)||
+    ' p_use_filters_hidPK '||p_use_filters_hidPK, --||' last region '||l_region_name,
+    p_log_type => pak_xslt_log.g_error, p_procedure => 'GetSourceQueriesAndXML', p_sqlerrm => sqlerrm );
+  raise;
+end GetSourceQueriesAndXML;
+
+function prepareFilename(p_filename varchar2, p_page_id number)
+return varchar2
+as
+    l_filename varchar2(400) := p_filename;
+    l_page_name                varchar2(256);
+    l_page_title               varchar2(256);
+    l_page_alias               varchar2(256);
+begin
+  if instr(l_filename, '#PAGE_') > 0 then
+      select page_name, page_title, page_alias
+      into l_page_name, l_page_title, l_page_alias
+      from apex_application_pages
+      where application_id = APEX_APPLICATION.G_FLOW_ID and page_id = p_page_id;
+
+      l_filename := replace(l_filename, '#PAGE_NAME#', BindSSApexItem(l_page_name));
+      l_filename := replace(l_filename, '#PAGE_TITLE#', BindSSApexItem(l_page_title));
+      l_filename := replace(l_filename, '#PAGE_ALIAS#', l_page_alias);
+  end if;
+  
+  l_filename := trim(substr(translate(l_filename,'?,''":;?*+()/\|&%$#! '||query2report.g_crlf,'______________________'),1, 255));
+  l_filename := replace(l_filename, '__','_');
+  l_filename := replace(l_filename, '_.','.');
+  return l_filename;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_filename: '||p_filename||', p_page_id: '||p_page_id,
+    p_log_type => pak_xslt_log.g_error, p_procedure => 'prepareFilename', p_sqlerrm => sqlerrm );
+  rollback;
+  raise;
+end;
+
+/** Download otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single temporary XML
+  * created from data fetched by region(s) source selects
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_page_id APEX ID of page with report region(s)
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+  * You want to use 1 or 0 for cross referencing by hidden or PK columns inside complex XML build from multiple queries.
+  * @param p_html_cols Columns with HTML markup in temporary XML. 0 - Convert to text, exclude columns with image links, 1 - Exlude columns with HTML markup,
+  * 2 - Exclude columns with image links, preserve rest HTML markup, 3 - Preserve HTML markup, 4 - Convert to text. Default 0.
+  * @param p_region_name Region(s) name(s) separarted with semicolon. If null procedure uses suorces of current region.
+  * @param p_format Define output format to apply format corrections (e.g. inserting new lines to make output format more readable.). Must be set for MHT format or if download Starter XSLT.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Single quotes are not necessary for numeric values. Example: startX=50 baseColor='magenta'.
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @param p_BBFile Building block file
+  * @param p_BB_no_esc_sc Applied only when p_format is F_TEXT. If true then not escape XML special characters.
+  * You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+  * You should not escape special characters if Building block file is in MHT format.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertCLOB procedure
+  */
+function GetApexReport(
+  p_xsltStaticFile            IN  varchar2,
+  p_filename                  in out VARCHAR2,
+  p_page_id                   in  number,
+  p_dwld_type                 in  number default Query2Report.g_dwld_transformed,
+  p_use_filters_hidPK         in  number default g_filters,
+  p_html_cols                 in  number default 0,
+  p_region_name               in  varchar2 default null,
+  p_format                    IN  number default null,
+  p_templateStaticFile        in  VARCHAR2 default null,
+  p_external_params           IN  varchar2 default null,
+  p_second_XsltStaticFile      IN  varchar2 default null,
+  p_second_external_params     IN  varchar2 default null,
+  --p_run_in_background         IN  boolean default false,
+  p_log_level                 IN  number default null--,
+  --p_convertblob_param       IN varchar2 default null
+)
+return BLOB
+as
+
+l_xml CLOB;
+l_ret BLOB;
+l_source_queries CLOB;
+l_start_time PLS_INTEGER;
+l_regionAttrs query2report.tab_string;
+l_reportTypes query2report.t_coltype_tables;
+begin
+
+  if p_log_level is not null then
+    pak_xslt_log.SetLevel(p_log_level);
+  end if;
+
+  pak_xslt_log.WriteLog( 'GetApexReport started ',
+                                p_procedure => 'GetApexReport'
+                              );
+
+  if p_dwld_type in (Query2Report.g_dwld_xml, Query2Report.g_dwld_xml_copyto_xpm, Query2Report.g_dwld_transformed, Query2Report.g_dwld_suorce) then
+    GetSourceQueriesAndXML(
+      p_region_name => p_region_name,
+      p_page_id => p_page_id,
+      p_use_filters_hidPK => p_use_filters_hidPK,
+      p_html_cols => p_html_cols,
+      p_dwld_type => p_dwld_type,
+      po_xml => l_xml,
+      po_source_queries => l_source_queries,
+      po_regionAttrs    => l_regionAttrs,
+      po_reportTypes => l_reportTypes
+    );
+    if p_dwld_type <> Query2Report.g_dwld_suorce 
+       and (l_Xml is null or nvl(instr(l_Xml, '<ROW>'), 0) = 0) --
+    then
+        pak_xslt_log.WriteLog(
+          'l_Xml is null or empty',
+          p_log_type => pak_xslt_log.g_error,
+          p_procedure => 'GetApexReport'
+        );
+        return null;
+    end if;
+
+    pak_xslt_log.WriteLog( p_description => 'GetApexReport started - l_reportTypes: '||PAK_XML_CONVERT.LogColTypes(l_reportTypes),
+                                p_procedure => 'GetApexReport'
+                              );
+
+    pak_xslt_log.WriteLog( p_description => 'GetApexReport started - l_regionAttrs(1): '||l_regionAttrs(1),
+                                p_procedure => 'GetApexReport'
+                              );
+
+
+    if p_dwld_type in (Query2Report.g_dwld_xml, Query2Report.g_dwld_xml_copyto_xpm) then
+      p_filename := Query2Report.XMLOrSourceFilename(p_page_id, l_regionAttrs);
+      l_start_time := dbms_utility.get_time();
+      --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug4.xml');
+      pak_xslt_log.WriteLog( p_description => 'Before query2report.xmlConvert - l_regionAttrs(1): '||l_regionAttrs(1),
+                                p_procedure => 'GetApexReport'
+                              );
+      pak_xml_convert.xmlConvert(l_Xml, p_filename, l_regionAttrs, l_reportTypes);--, pio_endOffset => l_offset);
+      --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug5.xml');
+      pak_xslt_log.WriteLog(
+        'Query2Report.ConvertXml finished'
+        ,p_procedure => 'GetApexReport'
+        , p_start_time => l_start_time
+      );
+      l_ret := pak_blob_util.clob2blob(l_xml);
+      if p_dwld_type = Query2Report.g_dwld_xml_copyto_xpm then
+        Query2Report.insert_xpm_xml(p_filename, l_xml);
+      end if;
+    elsif p_dwld_type = Query2Report.g_dwld_suorce then
+      p_filename := Query2Report.XMLOrSourceFilename(p_page_id, l_regionAttrs);
+      l_ret := pak_blob_util.clob2blob(l_source_queries);
+    else
+		p_filename := prepareFilename(p_filename, p_page_id);													 
+        l_ret := Query2Report.XslTransform(
+          p_Xml => l_xml,
+          p_xsltStaticFile => p_xsltStaticFile,
+          p_page_id => p_page_id,
+          p_region_name => p_region_name,
+          p_filename => p_filename,
+          pi_regionAttrs => l_regionAttrs,
+          pi_reportTypes => l_reportTypes,
+          p_format => p_format,
+          p_templateStaticFile => p_templateStaticFile, --default null,
+          p_external_params => p_external_params,
+          p_second_XsltStaticFile => p_second_XsltStaticFile,
+          p_second_external_params => p_second_external_params --,
+          --p_convertblob_param => p_convertblob_param
+        );
+
+
+        pak_xslt_log.WriteLog( 'Query2Report.XslTransform finished ',
+                                  p_procedure => 'GetApexReport',
+                                  p_start_time => l_start_time
+                                );
+    end if;
+    --if p_dwld_type in (Query2Report.g_dwld_xslt, Query2Report.g_dwld_second_xslt) do nothing, return null.
+  end if;
+
+  pak_xslt_log.WriteLog( 'GetApexReport finished ',
+                                p_procedure => 'GetApexReport'
+                              );
+  return l_ret;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_use_filters_hidPK '||p_use_filters_hidPK,
+    p_log_type => pak_xslt_log.g_error, p_procedure => 'GetApexReport', p_sqlerrm => sqlerrm );
+  rollback;
+  raise;
+end;
+
+
+/** Download otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single temporary XML
+  * created from data fetched by region(s) source selects
+  * @param p_xsltStaticFile Filename of APEX static file with XSLT
+  * @param p_filename Filename of downloaded output
+  * @param p_page_id APEX ID of page with report region(s)
+  * @param p_dwld_type What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT
+  * @param p_use_filters_hidPK 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters.
+  * You want to use 1 or 0 for cross referencing by hidden or PK columns inside complex XML build from multiple queries.
+  * @param p_html_cols Columns with HTML markup in temporary XML. 0 - Convert to text, exclude columns with image links, 1 - Exlude columns with HTML markup,
+  * 2 - Exclude columns with image links, preserve rest HTML markup, 3 - Preserve HTML markup, 4 - Convert to text. Default 0.
+  * @param p_region_name Region(s) name(s) separarted with semicolon. If null procedure uses suorces of current region.
+  * @param p_format Define output format to apply format corrections (e.g. inserting new lines to make output format more readable.). Must be set for MHT format or if download Starter XSLT.
+  * @param p_external_params External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Single quotes are not necessary for numeric values. Example: startX=50 baseColor='magenta'.
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_second_XsltStaticFile Filename of APEX static file with XSLT applied after p_xsltStaticFile
+  * @param p_second_external_params External parameters for transformation p_second_XsltStaticFile.
+  * See format notes at p_external_params parameter.
+  * @param p_BBFile Building block file
+  * @param p_BB_no_esc_sc Applied only when p_format is F_TEXT. If true then not escape XML special characters.
+  * You should escape special XML (<,>," and &) characters if Building block file is in RTF format.
+  * You should not escape special characters if Building block file is in MHT format.
+  * @param p_convertblob_param P_PARAM Parameter of ConvertCLOB procedure
+  */
+procedure DownloadApexReport(
+  p_xsltStaticFile            IN  varchar2,
+  p_filename                  in  VARCHAR2,
+  p_page_id                   in  number,
+  p_dwld_type                 in  number default Query2Report.g_dwld_transformed,
+  p_use_filters_hidPK         in  number default g_filters,
+  p_html_cols                 in  number default 0,
+  p_region_name               in  varchar2 default null,
+  p_format                    IN  number default null,
+  p_templateStaticFile        in  VARCHAR2 default null,
+  p_external_params           IN  varchar2 default null,
+  p_second_XsltStaticFile      IN  varchar2 default null,
+  p_second_external_params     IN  varchar2 default null,
+  p_run_in_background         IN  boolean default false,
+  p_log_level                 IN  number default null,
+  p_convertblob_param       IN varchar2 default null
+)
+as
+
+l_second_file_id number;
+l_xml CLOB;
+l_source_queries CLOB;
+l_start_time PLS_INTEGER;
+l_regionAttrs query2report.tab_string;
+l_reportTypes query2report.t_coltype_tables;
+l_filename varchar2(4000);
+l_plsql varchar2(4000);
+l_id_temporary_xml number;
+l_job_exists number;
+begin
+
+  if p_log_level is not null then
+    pak_xslt_log.SetLevel(p_log_level);
+  end if;
+
+  pak_xslt_log.WriteLog( 'DownloadApexReport started ',
+                                p_procedure => 'DownloadApexReport'
+                              );
+
+  if p_dwld_type in (Query2Report.g_dwld_xml, Query2Report.g_dwld_xml_copyto_xpm, Query2Report.g_dwld_transformed, Query2Report.g_dwld_suorce) then
+    GetSourceQueriesAndXML(
+      p_region_name => p_region_name,
+      p_page_id => p_page_id,
+      p_use_filters_hidPK => p_use_filters_hidPK,
+      p_html_cols => p_html_cols,
+      p_dwld_type => p_dwld_type,
+      po_xml => l_xml,
+      po_source_queries => l_source_queries,
+      po_regionAttrs    => l_regionAttrs,
+      po_reportTypes => l_reportTypes
+    );
+    if p_dwld_type <> Query2Report.g_dwld_suorce and l_Xml is null then
+    pak_xslt_log.WriteLog(
+      'l_Xml is null',
+      p_log_type => pak_xslt_log.g_error,
+      p_procedure => 'DownloadApexReport'
+    );
+    end if;
+
+    pak_xslt_log.WriteLog( p_description => 'DownloadApexReport started - l_reportTypes: '||PAK_XML_CONVERT.LogColTypes(l_reportTypes),
+                                p_procedure => 'DownloadApexReport'
+                              );
+
+    pak_xslt_log.WriteLog( p_description => 'DownloadApexReport started',
+                                p_procedure => 'DownloadApexReport'
+                              );
+
+
+    if p_dwld_type in (Query2Report.g_dwld_xml, Query2Report.g_dwld_xml_copyto_xpm) then
+      l_filename := Query2Report.XMLOrSourceFilename(p_page_id, l_regionAttrs);
+      l_start_time := dbms_utility.get_time();
+      --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug4.xml');
+      pak_xslt_log.WriteLog( p_description => 'Before query2report.xmlConvert',
+                                p_procedure => 'DownloadApexReport'
+                              );
+      pak_xml_convert.xmlConvert(l_Xml, p_filename, l_regionAttrs, l_reportTypes);--, pio_endOffset => l_offset);
+      --dbms_xslprocessor.clob2file(po_xml, 'XMLDIR', 'debug5.xml');
+      pak_xslt_log.WriteLog(
+        'Query2Report.ConvertXml finished'
+        ,p_procedure => 'DownloadApexReport'
+        , p_start_time => l_start_time
+      );
+      Query2Report.DownloadConvertOutput(APEX_APPLICATION.G_FLOW_ID,  pak_blob_util.clob2blob(l_xml), l_filename||'.xml', 'text/xml');
+      if p_dwld_type = Query2Report.g_dwld_xml_copyto_xpm then
+        Query2Report.insert_xpm_xml(l_filename, l_xml);
+      end if;
+    elsif p_dwld_type = Query2Report.g_dwld_suorce then
+      l_filename := Query2Report.XMLOrSourceFilename(p_page_id, l_regionAttrs);
+      Query2Report.DownloadConvertOutput(APEX_APPLICATION.G_FLOW_ID, pak_blob_util.clob2blob(l_source_queries), l_filename||'.sql', 'text/plain');
+    else
+      select count(*) into l_job_exists
+      from user_scheduler_jobs
+      where upper(job_name) = 'JOB_XSLTRANSFORMANDDOWNLOAD'
+      and upper(program_name) = 'PROG_XSLTRANSFORMANDDOWNLOAD';
+
+      if p_run_in_background and l_job_exists = 1 then
+        insert into temporary_xml (XMLCLOB) values(l_xml)
+        returning id_temporary_xml into l_id_temporary_xml;
+        commit;
+
+        Query2Report.XslTransformAndDownloadJob(
+          p_id_temporary_xml => l_id_temporary_xml,
+          p_xsltStaticFile => p_xsltStaticFile,
+          p_page_id => p_page_id,
+          p_region_name => p_region_name,
+          p_filename => p_filename,
+          p_regionAttrs => l_regionAttrs,
+          p_reportTypes => l_reportTypes,
+          p_format => p_format,
+          p_templateStaticFile => p_templateStaticFile, --default null,
+          p_external_params => p_external_params,
+          p_second_XsltStaticFile => p_second_XsltStaticFile,
+          p_second_external_params => p_second_external_params,
+          p_convertblob_param => p_convertblob_param,
+          p_log_level => p_log_level
+        );
+      else
+        l_start_time := dbms_utility.get_time();
+        if p_run_in_background then
+           pak_xslt_log.WriteLog( 'Job JOB_XSLTRANSFORMANDDOWNLOAD is not installed! Can not run in background.',
+           p_log_type => pak_xslt_log.g_warning,
+           p_procedure => 'DownloadApexReport');
+        end if;
+        Query2Report.XslTransformAndDownload(
+          p_Xml => l_xml,
+          p_xsltStaticFile => p_xsltStaticFile,
+          p_page_id => p_page_id,
+          p_region_name => p_region_name,
+          p_filename => p_filename,
+          pi_regionAttrs => l_regionAttrs,
+          pi_reportTypes => l_reportTypes,
+          p_format => p_format,
+          p_templateStaticFile => p_templateStaticFile, --default null,
+          p_external_params => p_external_params,
+          p_second_XsltStaticFile => p_second_XsltStaticFile,
+          p_second_external_params => p_second_external_params,
+          p_convertblob_param => p_convertblob_param
+        );
+
+
+
+        pak_xslt_log.WriteLog( 'Query2Report.XslTransformAndDownload finished ',
+                                  p_procedure => 'DownloadApexReport',
+                                  p_start_time => l_start_time
+                                );
+      end if;
+    end if;
+  else
+    Query2Report.DownloadStaticFile(
+      p_xsltStaticFile,
+      p_second_XsltStaticFile,
+      --p_BBFile,
+      --p_BB_no_esc_sc,
+      p_dwld_type,
+      --p_mime,
+      p_format
+    );
+  end if;
+
+  pak_xslt_log.WriteLog( 'DownloadApexReport finished ',
+                                p_procedure => 'DownloadApexReport'
+                              );
+  commit;
+exception
+  when others then
+  pak_xslt_log.WriteLog( 'Error p_use_filters_hidPK '||p_use_filters_hidPK,
+    p_log_type => pak_xslt_log.g_error, p_procedure => 'DownloadApexReport', p_sqlerrm => sqlerrm );
+  rollback;
+  raise;
+end;
+
+/** Process plugin function
+  * Download otput of (p_xsltStaticFile) or two (p_xsltStaticFile, p_second_XsltStaticFile) XSLT transformation(s) applied on single temporary XML
+  * created from data fetched by region(s) source selects
+  * @param p_process.attribute_01 Text with filename of APEX static file with main XSLT
+  * @param p_process.attribute_02 Filename of downloaded output
+  * @param p_process.attribute_11 ID of APEX page with report region(s)
+  * @param p_process.attribute_03 Static LOV: What to download: transformed output (default), input XML, XSLT, second XSLT, building block file, starter XSLT. Default Query2Report.g_dwld_transformed (0)
+  * @param p_process.attribute_04 Static LOV: 0 - Don't use filters, 1 - Use filters but include also hidden and PK columns, 2 - Just use filters. Default g_filters (2)
+  * You want to use 1 or 0 for cross referencing by hidden or PK columns inside complex XML build from multiple queries.
+  * @param p_process.attribute_05 Columns with HTML markup in temporary XML. 0 - Convert to text, exclude columns with image links, 1 - Exlude columns with HTML markup,
+  * 2 - Exclude columns with image links, preserve rest HTML markup, 3 - Preserve HTML markup, 4 - Convert to text. Default 0.
+  * @param p_process.attribute_06 Region name(s) separarted with semicolon. If null procedure uses suorces of current region. Default null means current region.
+  * @param p_process.attribute_07 Define output format to apply format corrections (e.g. inserting new lines to make output format more readable.). Must be set for MHT format or if download Starter XSLT. Default Query2Report.F_TEXT (0)
+  * @param p_process.attribute_08 External parameters for transformation p_xslt.
+  * Format for single parameter is name='value'. Single quotes are not necessary for numeric values. Example: startX=50 baseColor='magenta'. Default null no first XSLT.
+  * Notice that we had to put single quotes around the text value magenta!
+  * @param p_process.attribute_09 Text with filename of APEX static file with XSLT applied before main XSLT. Default null means no params.
+  * @param p_process.attribute_10 External parameters for transformation XSLT applied before main XSLT. Default null means no params.
+  * See format notes at p_external_params parameter.
+  * @param  p_process.attribute_12 Run in Background Y/N default N. If Y means XSL process and ConvertBlob will run in separate job
+  * @param  p_process.attribute_13 Template Static File
+  * @param p_process.attribute_14 Log level
+  * @param p_process.attribute_15 P_PARAM Parameter of ConvertCLOB procedure
+  */
+function Region2XSLTReport(
+    p_process in apex_plugin.t_process,
+    p_plugin  in apex_plugin.t_plugin )
+    return apex_plugin.t_process_exec_result
+AS
+  l_xsltStaticFile          varchar2(256);
+  l_filename               varchar2(256);
+  l_page_id                 number;
+  l_dwld_type               number  ;
+  l_use_filters_hidPK       number  ;
+  l_html_cols               number;
+  l_region_name             varchar2(32000);
+  l_format                  number  ;
+  l_external_params         varchar2(1000);
+  l_second_XsltStaticFile    varchar2(256);
+  l_second_external_params   varchar2(1000);
+  l_run_in_background        boolean;
+  l_log_level                number;
+  l_convertclob_param        varchar2(4000);
+  l_templateStaticFile       varchar2(256);
+  
+  l_ret apex_plugin.t_process_exec_result;
+begin
+
+  l_xsltStaticFile        := p_process.attribute_01;      --Text
+  l_filename             := p_process.attribute_02;      --text
+  l_page_id               := p_process.attribute_11;      --Number
+
+  l_filename := prepareFilename(l_filename, l_page_id);
+
+  l_dwld_type             := p_process.attribute_03;      --LOV   default Query2Report.g_dwld_transformed (0)
+  l_use_filters_hidPK     := p_process.attribute_04;      --LOV   default g_filters (2)
+  l_html_cols             := p_process.attribute_05;      --number  default 0
+  l_region_name           := p_process.attribute_06;      --text  default null means current region
+  l_format                := p_process.attribute_07;      --LOV   default Query2Report.F_TEXT (0)
+  l_external_params       := p_process.attribute_08;      --text  default null means no params
+  if p_process.attribute_09 is not null then
+    l_second_XsltStaticFile  := p_process.attribute_09;    --text  default null means no second XSLT
+  end if;
+  l_second_external_params := p_process.attribute_10;      --text default null means no params for second XSLT
+  l_run_in_background      := (upper(p_process.attribute_12) = 'Y');      --Y/N default N if Y means XSL process and ConvertBlob will run in separate job
+
+  l_templateStaticFile     := p_process.attribute_13;
+
+  l_log_level              := p_process.attribute_14;      --Number
+  l_convertclob_param      := p_process.attribute_15;      --text
+
+  DownloadApexReport(
+    p_xsltStaticFile => l_xsltStaticFile,
+    p_filename => l_filename,
+    p_page_id => l_page_id,
+    p_dwld_type => l_dwld_type,
+    p_use_filters_hidPK => l_use_filters_hidPK,
+    p_html_cols => l_html_cols,
+    p_region_name => l_region_name,
+    p_format => l_format,
+    p_templateStaticFile => l_templateStaticFile,
+    p_external_params => l_external_params,
+    p_second_XsltStaticFile => l_second_XsltStaticFile,
+    p_second_external_params => l_second_external_params,
+    p_log_level => l_log_level,
+    p_run_in_background => l_run_in_background,
+    p_convertblob_param => l_convertclob_param
+  );
+
+  l_ret.success_message := p_process.success_message;
+  return l_ret;
+exception
+    when others then
+    if l_second_XsltStaticFile is null then
+      l_ret.success_message := 'Error when transforming on region '||V('REGION')||
+        ' with '||l_xsltStaticFile;
+    else
+      l_ret.success_message := 'Error when transforming on region '||V('REGION')||
+        ' with '||l_xsltStaticFile ||' and then with '||l_second_xsltStaticFile;
+    end if;
+
+    pak_xslt_log.WriteLog(l_ret.success_message, p_log_type => pak_xslt_log.g_error, p_procedure => 'Region2XSLTReport', p_sqlerrm => sqlerrm );
+
+    l_ret.success_message := l_ret.success_message||' SQLERR: '||sqlerrm;
+
+    return l_ret;
+END Region2XSLTReport;
+
+END APEXREP2REPORT;
 /

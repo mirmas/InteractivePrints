@@ -2,8 +2,8 @@ declare PARSING_SCHEMA VARCHAR2(30) := :PARSING_SCHEMA;
 l_apex_version VARCHAR2(6);
 
 begin
-  SELECT lpad(substr(version_no, 1, instr(version_no, '.', 1, 1)-1),2,'0') ||
-  lpad(substr(version_no, instr(version_no, '.', 1, 1)+1, instr(version_no, '.', 1, 2)-instr(version_no, '.', 1, 1)-1),2,'0')||'00'
+  SELECT lpad(substr(version_no, 1, instr(version_no, '.', 1, 1)-1), 2, '0') ||
+  lpad(substr(version_no, instr(version_no, '.', 1, 1)+1, instr(version_no, '.', 1, 2)-instr(version_no, '.', 1, 1)-1), 2, '0')||'00' 
   INTO l_apex_version
   FROM apex_release;
   

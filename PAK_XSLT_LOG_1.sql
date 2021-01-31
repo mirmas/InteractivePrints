@@ -1,8 +1,28 @@
---------------------------------------------------------
---  DDL for Package Body PAK_XSLT_LOG
---------------------------------------------------------
+-- This project using the following MIT License:
+  --
+  -- The MIT License (MIT)
+  --
+  -- Copyright (c) 2021 Mirmas IC
+  --
+  -- Permission is hereby granted, free of charge, to any person obtaining a copy
+  -- of this software and associated documentation files (the "Software"), to deal
+  -- in the Software without restriction, including without limitation the rights
+  -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  -- copies of the Software, and to permit persons to whom the Software is
+  -- furnished to do so, subject to the following conditions:
+  --
+  -- The above copyright notice and this permission notice shall be included in all
+  -- copies or substantial portions of the Software.
+  --
+  -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  -- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  -- SOFTWARE.
 
-  CREATE OR REPLACE PACKAGE BODY "PAK_XSLT_LOG" AS
+CREATE OR REPLACE PACKAGE BODY "PAK_XSLT_LOG" AS
 
 
 /* set level of logging:
@@ -76,7 +96,16 @@ BEGIN
        end if;
        apex_debug_message.log_message(substr(substr(GetProcedure(DBMS_UTILITY.FORMAT_CALL_STACK),1,200)
                                       ||' '||l_description,1,3900), p_level => l_apex_debug_level);
-
+$IF CCOMPILING.g_logger_exists $THEN
+       l_description := 'Interactive Prints-'||l_description; 
+       if p_log_type = g_error then 
+            logger.log_error (l_description, substr(nvl(p_procedure, GetProcedure(DBMS_UTILITY.FORMAT_CALL_STACK)),1,200));
+       elsif p_log_type = g_warning then
+            logger.log_warning (l_description, substr(nvl(p_procedure, GetProcedure(DBMS_UTILITY.FORMAT_CALL_STACK)),1,200)); 
+       else
+            logger.log(l_description, substr(nvl(p_procedure, GetProcedure(DBMS_UTILITY.FORMAT_CALL_STACK)),1,200));
+       end if;
+$ELSE
       insert into XSLT_LOG
          ( ID_XSLT_LOG
          , LOG_TYPE
@@ -105,6 +134,7 @@ BEGIN
          , substr(P_SQLERRM, 1, 1024)
          , P_ERR_NUM
          );
+ $END        
    end if;
 
    commit;
@@ -190,5 +220,4 @@ begin
 
 
 END PAK_XSLT_LOG;
-
 /

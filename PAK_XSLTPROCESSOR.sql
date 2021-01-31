@@ -1,7 +1,10 @@
+--------------------------------------------------------
+--  DDL for Package PAK_XSLTPROCESSOR
+--------------------------------------------------------
 
-CREATE OR REPLACE PACKAGE "PAK_ZIP" AS
-
--- Interactive Prints using the following MIT License:
+  CREATE OR REPLACE PACKAGE "PAK_XSLTPROCESSOR" AS
+  
+  -- Interactive Prints using the following MIT License:
   --
   -- The MIT License (MIT)
   --
@@ -25,39 +28,41 @@ CREATE OR REPLACE PACKAGE "PAK_ZIP" AS
   -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   -- SOFTWARE.
 
-  procedure add1file
-  ( p_zipped_blob in out blob
-    , p_name in varchar2
-    , p_content in blob
-  );
-
-  procedure finish_zip(
-    p_zipped_blob in out blob,
-    p_comment varchar2 default 'Zipped by Region2XSLTReport software http://www.mirmas.si'
-  );
+  function Transform
+  (
+    p_Xml               IN    CLOB,
+    p_template          IN    CLOB,
+    p_external_params   IN    varchar2 default null,
+    po_error            OUT   varchar2
+  ) return BLOB;
 
 $if CCOMPILING.g_utl_file_privilege $then
-  procedure save_zip
-  ( p_zipped_blob in blob
-    , p_dir in varchar2
-    , p_filename in varchar2
+  --testing function--
+  procedure WriteResponseToFile(
+    p_url varchar2,
+    p_xmlDir varchar2,
+    p_xmlFile varchar2,
+    p_xsltDir varchar2,
+    p_xsltFile varchar2,
+    p_outputDir varchar2,
+    p_outputFile varchar2,
+    p_zipedB64encoded boolean default false,
+    p_xslParams varchar2 default null,
+    P_NLS_CHARSET varchar2 default 'AL32UTF8'
   );
 $end
 
-  function compressText(p_content CLOB, p_file_name varchar2 :='Region2XSLTReport') return BLOB;
+/*
+FUNCTION XSLTransformServlet (
+    P_URL IN  varchar2,
+    P_XML    IN BLOB,
+    P_XSLT       IN CLOB,
+    p_zipedB64encoded boolean default false,
+    p_xslParams varchar2 default null
 
-  function decompressToText
-    ( p_zipped_blob blob
-    , p_file_name varchar2 :='Region2XSLTReport'
-    )
-  return clob;
+) RETURN BLOB;
+*/
 
-  function decompress
-    ( p_zipped_blob blob
-    , p_file_name varchar2 :='Region2XSLTReport'
-    )
-  return blob;
-
-END PAK_ZIP;
+END PAK_XSLTPROCESSOR;
 
 /
