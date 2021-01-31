@@ -319,27 +319,31 @@
 			
 			
 			<numFmts count="4">
-				<numFmt numFmtId="165" formatCode="yyyy\-mm\-dd;@"/> <!--Date in YYYY-MM-DD format. Write your own mappings-->
-				<numFmt numFmtId="166" formatCode="0.000"/> 
-				<numFmt numFmtId="167" formatCode="#,##0"/>
-				<numFmt numFmtId="168" formatCode="[$$-409]#,##0.00"/> <!--Dollar curency-->
-				<!--TODO add your format -->
-				<!-- Format excel column, save Excel file, change file extension from XLSX to ZIP and unzip the file -->
-				<!-- Examine /xl/styles.xml file to find format string of the added format --> 
-				<!-- Search for string "TODO add your format" and follow instructions in steps 1 and 2 in this file ExcelXLSX.xml and steps 3 to 6 in ExcelXLSX.xslt-->
-				<!-- In this example we add date format D/M/YY H:MM. Excel format string is "d/m/yy\ h:mm;@" -->
+			<!--Base Excel formats-->
+			<!--In PL/SQL function 
+			    PAK_XML_CONVERT.getbaseformat(P_ORA_TYPE IN VARCHAR2, P_ORA_FORMAT_MASK IN VARCHAR2) return NUMBER 
+				you need to define mapping between Oracle data types and format masks and excel base formats lists here-->
+				
+			    <!--Ordinary excell string is Base format 0-->
+				
+			    <!--Predefined number formats below are listed just for evidence, don't uncomment-->
+				<!--numFmt numFmtId="1" formatCode="0"/--> 				<!--Base Format 1: Number without decimal places (NO thousand separator NO decimal places) '999999999999990'-->
+				<!--numFmt numFmtId="2" formatCode="0.00"/--> 			<!--Base Format 2: Number with fixed Excel format (NO thousand separator two decimal places) '999999999999990D00'-->
+				<!--numFmt numFmtId="3" formatCode="#,##0"/--> 			<!--Base Format 3: Number without decimal places (thousand separator NO decimal places) '999G999G999G999G990'-->
+				<!--numFmt numFmtId="4" formatCode="#,##0.00"/-->  		<!--Base Format 4: Number with standard Excel format (thousand separator two and decimal places) '999G999G999G999G990D00'-->
+				<!--End of predefined number formats, don't uncomment-->
+				
+				<numFmt numFmtId="165" formatCode="yyyy\-mm\-dd;@"/> 	<!--Base Format 5: Date in YYYY-MM-DD format-->
+				<numFmt numFmtId="166" formatCode="0.000"/> 			<!--Base Format 6: Number with tree decimal places '%990D000'-->
+				<numFmt numFmtId="167" formatCode="#,##0"/>				<!--Base Format 7: Same as base format 3-->	
+				<numFmt numFmtId="168" formatCode="[$$-409]#,##0.00"/>  <!--Base Format 8: Dollar curency-->
 				<!--TODO add your format, step 1 -->
-				<numFmt numFmtId="169" formatCode="d/m/yy\ h:mm;@"/> <!--Date in D/M/YY H:MM format-->
+				<numFmt numFmtId="169" formatCode="d/m/yy\ h:mm;@"/>    <!--Base Format 9: Date in D/M/YY H:MM format-->
 				<!--end of step1 -->
 				
 				<!--TODO define all additional number formats. Date and currency are also numbers in Excel-->
 				
-				
-				<!--Predefined number formats below are listed just for evidence, don't uncomment-->
-				<!--numFmt numFmtId="1" formatCode="0"/--> 				<!--Number without decimal places (NO thousand separator NO decimal places) '999999999999990'-->
-				<!--numFmt numFmtId="2" formatCode="0.00"/--> 			<!--Number with fixed Excel format (NO thousand separator two decimal places) '999999999999990D00'-->
-				<!--numFmt numFmtId="3" formatCode="#,##0"/--> 	<!--Number without decimal places (thousand separator NO decimal places) '999G999G999G999G990'-->
-				<!--numFmt numFmtId="4" formatCode="#,##0.00"/-->  		<!--Number with standard Excel format (thousand separator two and decimal places) '999G999G999G999G990D00'-->
+			<!--End of base Excel formats-->
 			</numFmts>
 			
 			<!--TODO enter all fonts-->
