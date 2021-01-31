@@ -20,5 +20,3 @@ This is complex plugin. Basic roadmap is:<br/>
   <li>Read the rest of User Guide.</li>
   <li>Examine XSLTs in static files and read Static Files Guide.</li>
 </ul>  
-Code in PL/SQL packages APEXREP2REPORT, QUERY2REPORT, IG2REPORT and FLAT_OPC_PKG is obfuscated (not humany readable).<br/> 
-Humany readable code is part of comercial version. 
