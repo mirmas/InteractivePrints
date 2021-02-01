@@ -21,4 +21,5 @@ This is complex plugin. Basic roadmap is:<br/>
   <li>Examine XSLTs in static files and read Static Files Guide.</li>
 </ul>
 <br/>
-If you find this plugin useful you can donate here: https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N
+If you find this plugin useful you can donate here:<br/> 
+[![paypal](https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N)]
