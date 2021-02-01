@@ -21,9 +21,4 @@ This is complex plugin. Basic roadmap is:<br/>
   <li>Examine XSLTs in static files and read Static Files Guide.</li>
 </ul>
 <br/>
-If you find this plugin useful you can donate here:<br/> 
-<form action="https://www.paypal.com/donate" method="post" target="_top">
-<input type="hidden" name="hosted_button_id" value="TPHY5JCYRUR4N" />
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
-<img alt="" border="0" src="https://www.paypal.com/en_SI/i/scr/pixel.gif" width="1" height="1" />
-</form>
+If you find this plugin useful you can <a href="https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N">donate here</a>
