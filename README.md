@@ -19,4 +19,6 @@ This is complex plugin. Basic roadmap is:<br/>
 <ul>  
   <li>Read the rest of User Guide.</li>
   <li>Examine XSLTs in static files and read Static Files Guide.</li>
-</ul>  
+</ul>
+<br/>
+If you find this plugin useful you can donate here: https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N
