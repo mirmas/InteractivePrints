@@ -22,4 +22,4 @@ This is complex plugin. Basic roadmap is:<br/>
 </ul>
 <br/>
 If you find this plugin useful you can donate here:<br/> 
-[![paypal](https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N)]
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](TPHY5JCYRUR4N)
