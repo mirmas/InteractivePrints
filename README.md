@@ -20,4 +20,4 @@ This is complex plugin. Basic roadmap is:<br/>
   <li>Examine XSLTs in static files and read Static Files Guide.</li>
 </ul>
 <br/>
-If you find this plugin useful you can <a href="https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N">donate here</a>
+If you find this plugin useful you can <a href="https://www.paypal.com/donate?hosted_button_id=TPHY5JCYRUR4N">donate here!</a>
